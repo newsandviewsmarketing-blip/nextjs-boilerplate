@@ -34,7 +34,7 @@
 - Duplicate Home, Layout and CSS attachments were compared and reduced to one authoritative copy each.
 - Random upload identifiers are not used as production filenames.
 - No ZIP, `.next`, `.vercel`, `.openai`, `node_modules` or environment-secret files are included inside the source package.
-- Only one Next.js configuration file is included: `next.config.mjs`.
+- Only one Next.js configuration file is included: `next.config.ts`, matching the existing GitHub repository path.
 - Repository-root copies of route files are not included.
 
 ## Functional scope

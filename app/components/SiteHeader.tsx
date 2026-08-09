@@ -18,14 +18,26 @@ export default function SiteHeader() {
 
         <nav className="main-nav" aria-label="Main navigation">
           {navItems.map(([label, href]) => (
-            <Link key={href} href={href}>{label}</Link>
+            <Link key={href} href={href}>
+              {label}
+            </Link>
           ))}
-          <a href="https://vetnewsandviews.com" target="_blank" rel="noreferrer">VNV News</a>
+          <a
+            href="https://vetnewsandviews.com"
+            target="_blank"
+            rel="noreferrer"
+          >
+            VNV News
+          </a>
         </nav>
 
         <div className="header-actions">
-          <Link className="text-link" href="/login">Sign in</Link>
-          <Link className="button button-small button-primary" href="/register">Join VetConnect</Link>
+          <Link className="text-link" href="/login">
+            Sign in
+          </Link>
+          <Link className="button button-small button-primary" href="/register">
+            Join VetConnect
+          </Link>
         </div>
       </div>
     </header>

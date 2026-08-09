@@ -1,13 +1,123 @@
+import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
+import {
+  companyInitials,
+  sampleCompanies,
+  type PublicCompany,
+} from "@/lib/marketplace";
 
-const companies = [
-  ["AH", "Animal Health Company", "Pharmaceuticals", "Lahore", "Medicines • Vaccines"],
-  ["VN", "Veterinary Nutrition Company", "Feed & Nutrition", "Faisalabad", "Supplements • Feed Additives"],
-  ["PC", "Poultry Solutions Company", "Poultry", "Lahore", "Products • Technical Services"],
-  ["DC", "Dairy Solutions Company", "Dairy", "Multan", "Nutrition • Equipment"],
-  ["AC", "Aquaculture Company", "Fisheries", "Karachi", "Feed • Health Products"],
-  ["DX", "Veterinary Diagnostics Company", "Diagnostics", "Islamabad", "Laboratory • Kits"],
-];
+export const dynamic = "force-dynamic";
 
-export default function CompaniesPage(){return <main><SiteHeader/><section className="page-hero"><div className="shell"><span className="section-kicker">COMPANY DIRECTORY</span><h1>Build a searchable animal-health business network.</h1><p>Company profiles provide the identity layer behind marketplace products, jobs, training partnerships and technical engagement.</p></div></section><section className="section compact-section"><div className="shell"><div className="directory-top"><div><b>Company profiles</b><span>Sample front-end directory</span></div><div className="market-search"><input placeholder="Search company"/><select><option>All business types</option><option>Pharmaceuticals</option><option>Feed</option><option>Equipment</option><option>Diagnostics</option></select></div></div><div className="company-grid">{companies.map(c=><article key={c[1]}><div className="company-mark large">{c[0]}</div><span className="sample-label">Sample company</span><h3>{c[1]}</h3><p>{c[2]} • {c[3]}</p><div className="profile-chips"><span>{c[4]}</span></div><dl><div><dt>Products</dt><dd>Structured listings</dd></div><div><dt>Jobs</dt><dd>Employer module</dd></div><div><dt>Contact</dt><dd>Profile-controlled</dd></div></dl><button className="button button-primary button-full">View company</button></article>)}</div></div></section><section className="section section-soft"><div className="shell two-col"><div><span className="section-kicker">BUSINESS PROFILE</span><h2>A single company identity across VetConnect.</h2><p>Once verified, the same business account can support product listings, job postings, company contacts, training partnerships and sector visibility without duplicating data.</p></div><div className="spec-list"><div><b>Identity</b><span>Registered name, NTN/registration, business type and locations.</span></div><div><b>Contacts</b><span>Website, social channels, city-wise contacts and authorized persons.</span></div><div><b>Marketplace</b><span>Products, categories, prices, delivery and documents.</span></div><div><b>HR & learning</b><span>Jobs, internships, technical courses and company participation.</span></div></div></div></section><SiteFooter/></main>}
+async function loadCompanies() {
+  if (!isSupabaseConfigured()) return sampleCompanies;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("company_profiles")
+    .select(
+      "user_id, company_name, business_type, city, address, description, website, contact_email, logo_url",
+    )
+    .eq("verification_status", "approved")
+    .order("company_name");
+  return data?.length ? (data as PublicCompany[]) : sampleCompanies;
+}
+
+export default async function CompaniesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; type?: string }>;
+}) {
+  const params = await searchParams;
+  const companies = await loadCompanies();
+  const query = (params.q ?? "").toLowerCase();
+  const visibleCompanies = companies.filter(
+    (company) =>
+      (!query ||
+        `${company.company_name} ${company.business_type ?? ""} ${company.city ?? ""} ${company.description ?? ""}`
+          .toLowerCase()
+          .includes(query)) &&
+      (!params.type ||
+        params.type === "All business types" ||
+        company.business_type?.toLowerCase().includes(params.type.toLowerCase())),
+  );
+  const types = [...new Set(companies.map((company) => company.business_type).filter(Boolean))] as string[];
+
+  return (
+    <main>
+      <SiteHeader />
+      <section className="page-hero">
+        <div className="shell">
+          <span className="section-kicker">COMPANY DIRECTORY</span>
+          <h1>A verified animal-health business network.</h1>
+          <p>
+            Approved company profiles provide the identity layer behind public
+            marketplace products and customer inquiries.
+          </p>
+          <div className="hero-actions">
+            <Link className="button button-primary" href="/register?role=company#registration">Register a company</Link>
+          </div>
+        </div>
+      </section>
+      <section className="section compact-section">
+        <div className="shell">
+          <div className="directory-top">
+            <div>
+              <b>{visibleCompanies.length} company profiles</b>
+              <span>{companies.some((company) => company.is_sample) ? "Sample preview until companies are approved" : "Administrator-approved directory"}</span>
+            </div>
+            <form className="market-search" method="get">
+              <input name="q" defaultValue={params.q ?? ""} placeholder="Search company" />
+              <select name="type" defaultValue={params.type ?? "All business types"}>
+                <option>All business types</option>
+                {types.map((type) => <option key={type}>{type}</option>)}
+              </select>
+              <button className="button button-primary" type="submit">Search</button>
+            </form>
+          </div>
+          {visibleCompanies.length === 0 ? (
+            <div className="empty-state"><h2>No companies match this search.</h2><Link href="/companies">Clear search</Link></div>
+          ) : (
+            <div className="company-grid">
+              {visibleCompanies.map((company, index) => (
+                <article key={company.user_id ?? company.company_name}>
+                  {company.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="company-mark large company-logo" src={company.logo_url} alt="" />
+                  ) : (
+                    <div className="company-mark large">{companyInitials(company.company_name)}</div>
+                  )}
+                  {company.is_sample && <span className="sample-label">Sample company</span>}
+                  <h3>{company.company_name}</h3>
+                  <p>{company.business_type || "Animal health"} • {company.city || "Pakistan"}</p>
+                  <div className="profile-chips"><span>{company.description || "Verified business profile"}</span></div>
+                  <dl>
+                    <div><dt>Products</dt><dd>Approved listings</dd></div>
+                    <div><dt>Contact</dt><dd>Profile-controlled</dd></div>
+                    <div><dt>Status</dt><dd>{company.is_sample ? "Preview" : "Verified"}</dd></div>
+                  </dl>
+                  <Link className="button button-primary button-full" href={`/companies/${company.user_id ?? `sample-${index + 1}`}`}>
+                    View company
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="section section-soft">
+        <div className="shell two-col">
+          <div><span className="section-kicker">BUSINESS PROFILE</span><h2>A single verified company identity.</h2><p>Company approval connects business details, public products and information requests without exposing private verification documents.</p></div>
+          <div className="spec-list">
+            <div><b>Identity</b><span>Registered name, business type and location.</span></div>
+            <div><b>Public contacts</b><span>Company-controlled email and website.</span></div>
+            <div><b>Marketplace</b><span>Only administrator-approved products are public.</span></div>
+            <div><b>Privacy</b><span>Regulatory records remain protected from public access.</span></div>
+          </div>
+        </div>
+      </section>
+      <SiteFooter />
+    </main>
+  );
+}
