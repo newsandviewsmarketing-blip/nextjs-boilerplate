@@ -13,7 +13,7 @@ export default function SiteHeader() {
     <header className="site-header">
       <div className="shell header-row">
         <Link className="brand" href="/" aria-label="VetConnect home">
-          <img src="/logo.png" alt="VetConnect" />
+          <img src="/vetconnect-logo.png" alt="VetConnect" />
         </Link>
 
         <nav className="main-nav" aria-label="Main navigation">

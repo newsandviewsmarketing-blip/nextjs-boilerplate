@@ -5,7 +5,7 @@ export default function SiteFooter() {
     <footer className="site-footer">
       <div className="shell footer-grid">
         <div className="footer-brand">
-          <div className="footer-logo-wrap"><img src="/logo.png" alt="VetConnect" /></div>
+          <div className="footer-logo-wrap"><img src="/vetconnect-logo.png" alt="VetConnect" /></div>
           <p>Connecting verified veterinary expertise, animal owners, farmers, companies, careers and learning across Pakistan.</p>
           <div className="footer-badges"><span>English</span><span>اردو</span></div>
         </div>
