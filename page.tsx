@@ -1,23 +1,181 @@
 import Link from "next/link";
-import SiteHeader from "../components/SiteHeader";
-import SiteFooter from "../components/SiteFooter";
+import SiteHeader from "./components/SiteHeader";
+import SiteFooter from "./components/SiteFooter";
 
-const vets = [
-  ["SA", "Dr. Sara Ahmed", "Small Animal & Pet Practice", "Lahore", "Dogs, Cats", "Clinic, Video", "Today 6:00 PM"],
-  ["MH", "Dr. M. Hassan", "Livestock & Herd Health", "Faisalabad", "Cattle, Buffalo", "Farm Visit, Video", "Tomorrow 9:30 AM"],
-  ["RK", "Dr. R. Khan", "Poultry Health", "Rawalpindi", "Broiler, Layer", "On-site, Advisory", "Mon 11:00 AM"],
-  ["AN", "Dr. A. Noor", "Dairy Reproduction", "Multan", "Dairy Cattle", "Farm Visit", "Tue 8:30 AM"],
-  ["FA", "Dr. F. Ali", "Equine Practice", "Lahore", "Horse", "Clinic, Farm Visit", "Wed 4:00 PM"],
-  ["HZ", "Dr. H. Zafar", "Aquatic Animal Health", "Islamabad", "Fish, Aquaculture", "Advisory, Video", "Thu 2:00 PM"],
+const modules = [
+  {
+    tag: "VET",
+    title: "Verified Veterinarian Network",
+    text: "Professional profiles built around qualifications, PVMC verification workflow, expertise, species, clinic details, service areas and real availability.",
+    href: "/vets",
+    link: "Find a veterinarian",
+  },
+  {
+    tag: "MKT",
+    title: "Veterinary Marketplace",
+    text: "Company profiles and structured B2B/B2C product listings for medicines, vaccines, feed, nutrition, equipment, pet care, dairy, poultry and fisheries.",
+    href: "/marketplace",
+    link: "Explore marketplace",
+  },
+  {
+    tag: "JOB",
+    title: "Jobs & Talent Matching",
+    text: "A career bridge where companies can publish openings and students or professionals can build profiles, upload CVs and discover relevant opportunities.",
+    href: "/jobs",
+    link: "Explore careers",
+  },
+  {
+    tag: "EDU",
+    title: "Learning & Professional Development",
+    text: "Courses, workshops, seminars and technical learning designed to help veterinary professionals and sector teams keep their skills current.",
+    href: "/learn",
+    link: "Visit learning hub",
+  },
 ];
 
-export default function VetsPage() {
-  return <main><SiteHeader />
-    <section className="page-hero"><div className="shell"><span className="section-kicker">VETERINARIAN DIRECTORY</span><h1>Find the right veterinary professional.</h1><p>Search by city, sector, animal, expertise, service type and availability. Profile verification and booking data shown here are front-end preview fields.</p></div></section>
-    <section className="section compact-section"><div className="shell directory-layout">
-      <aside className="directory-filters"><h3>Filter profiles</h3><label>City</label><select><option>All cities</option><option>Lahore</option><option>Faisalabad</option><option>Islamabad</option><option>Rawalpindi</option><option>Multan</option></select><label>Sector / Animal</label><select><option>All sectors</option><option>Pets</option><option>Livestock</option><option>Poultry</option><option>Dairy</option><option>Equine</option><option>Fisheries</option></select><label>Service type</label><select><option>Any service</option><option>Clinic Visit</option><option>Farm Visit</option><option>Video Consultation</option><option>Advisory</option></select><label>Availability</label><select><option>Any time</option><option>Today</option><option>Tomorrow</option><option>This week</option></select><button className="button button-primary button-full">Apply filters</button><div className="filter-note"><b>Verification design</b><p>Professional registration number, qualifications and submitted documents can be reviewed by VetConnect admin before a public verification badge is activated.</p></div></aside>
-      <div><div className="directory-top"><div><b>Veterinarian profiles</b><span>Sample front-end directory</span></div><select><option>Recommended</option><option>Nearest</option><option>Earliest available</option></select></div><div className="directory-grid">{vets.map(v => <article className="directory-vet" key={v[1]}><div className="directory-vet-head"><div className="avatar">{v[0]}</div><div><span className="sample-label">Sample profile</span><h3>{v[1]}</h3><p>{v[2]}</p></div></div><div className="verified-line"><span>✓</span> PVMC verification field</div><div className="profile-chips"><span>{v[3]}</span><span>{v[4]}</span><span>{v[5]}</span></div><div className="availability-box"><small>Next available</small><b>{v[6]}</b></div><div className="profile-details"><div><small>Clinic / service address</small><b>Profile-controlled location</b></div><div><small>Consultation fee</small><b>Shown when configured</b></div></div><div className="card-actions"><button className="button button-primary">Book appointment</button><button className="button button-secondary">View full profile</button></div></article>)}</div></div>
-    </div></section>
-    <section className="section section-soft"><div className="shell"><div className="section-heading"><span className="section-kicker">PROFILE DATA MODEL</span><h2>What a veterinarian can manage.</h2></div><div className="feature-columns"><div><h3>Identity & verification</h3><p>Name, photograph, PVMC number, qualifications, documents and verification status.</p></div><div><h3>Clinical expertise</h3><p>Specialties, species, services, consultation modes and professional experience.</p></div><div><h3>Location & availability</h3><p>Clinic address, city, nearby service areas, farm-visit radius, weekly schedule and available slots.</p></div><div><h3>Practice & bookings</h3><p>Fees, appointment types, booking confirmation, animal/case details, revisit history and follow-up.</p></div></div></div></section>
-    <SiteFooter /></main>;
+const sampleVets = [
+  { initials: "SA", name: "Dr. Sara Ahmed", role: "Small Animal & Pet Practice", city: "Lahore", animals: "Dogs • Cats", mode: "Clinic • Video", next: "Today, 6:00 PM" },
+  { initials: "MH", name: "Dr. M. Hassan", role: "Livestock & Herd Health", city: "Faisalabad", animals: "Cattle • Buffalo", mode: "Farm Visit • Video", next: "Tomorrow, 9:30 AM" },
+  { initials: "RK", name: "Dr. R. Khan", role: "Poultry Health", city: "Rawalpindi", animals: "Broiler • Layer", mode: "On-site • Advisory", next: "Mon, 11:00 AM" },
+];
+
+const marketCategories = ["Medicines", "Vaccines", "Feed & Nutrition", "Pet Care", "Farm Equipment", "Diagnostics", "Disinfectants", "Aquaculture"];
+
+const jobs = [
+  { role: "Veterinary Officer", company: "Animal Health Company", city: "Lahore", type: "Full-time", sector: "Livestock" },
+  { role: "Technical Sales Executive", company: "Veterinary Nutrition Company", city: "Faisalabad", type: "Full-time", sector: "Feed & Nutrition" },
+  { role: "Veterinary Intern", company: "Veterinary Clinic Network", city: "Islamabad", type: "Internship", sector: "Companion Animals" },
+];
+
+const courses = [
+  { code: "01", title: "Poultry Health & Disease Management", meta: "Technical course • Veterinarians" },
+  { code: "02", title: "Farm Biosecurity Essentials", meta: "Short course • Farm teams" },
+  { code: "03", title: "Veterinary Diagnostics & Sample Handling", meta: "Professional learning • Clinical" },
+];
+
+export default function Home() {
+  return (
+    <main>
+      <SiteHeader />
+
+      <section className="hero">
+        <div className="shell hero-grid">
+          <div className="hero-copy">
+            <div className="eyebrow"><span /> Pakistan&apos;s veterinary connection platform</div>
+            <h1>Veterinary expertise, products, careers and learning. <em>Connected.</em></h1>
+            <p className="hero-lead">VetConnect is a sector platform built to help people find the right veterinary professional, discover trusted animal-health products, connect employers with talent, and access professional learning.</p>
+            <div className="hero-actions">
+              <Link href="/vets" className="button button-primary">Find a Veterinarian</Link>
+              <Link href="/register" className="button button-secondary">Create Professional Profile</Link>
+            </div>
+            <div className="trust-row">
+              <span>PVMC verification workflow</span>
+              <span>Location & expertise matching</span>
+              <span>B2B + B2C marketplace</span>
+              <span>English + Urdu ready</span>
+            </div>
+          </div>
+
+          <div className="hero-search-card">
+            <div className="search-card-head">
+              <div><small>SMART MATCHING</small><h2>What do you need today?</h2></div>
+              <span className="status-pill">Platform Preview</span>
+            </div>
+            <div className="search-tabs"><button className="active">Veterinarian</button><button>Product</button><button>Job</button><button>Course</button></div>
+            <label>Location</label>
+            <select defaultValue="Faisalabad"><option>Faisalabad</option><option>Lahore</option><option>Islamabad</option><option>Rawalpindi</option><option>Multan</option><option>Other city</option></select>
+            <div className="form-two">
+              <div><label>Animal / Sector</label><select defaultValue="Livestock"><option>Livestock</option><option>Pets</option><option>Poultry</option><option>Dairy</option><option>Fisheries</option><option>Equine</option></select></div>
+              <div><label>Service</label><select defaultValue="Consultation"><option>Consultation</option><option>Clinic Visit</option><option>Farm Visit</option><option>Video Consultation</option><option>Vaccination</option><option>Diagnostics</option></select></div>
+            </div>
+            <Link className="button button-primary button-full" href="/vets">Search matching profiles</Link>
+            <p className="microcopy">Match by city, specialty, species, service type and availability.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="quick-bar">
+        <div className="shell quick-grid">
+          <Link href="/vets"><b>Find a Vet</b><span>Search verified professional profiles</span></Link>
+          <Link href="/marketplace"><b>Buy Animal Health Products</b><span>Explore company and product listings</span></Link>
+          <Link href="/jobs"><b>Find a Job</b><span>Jobs, internships and talent profiles</span></Link>
+          <Link href="/learn"><b>Upgrade Skills</b><span>Courses, workshops and seminars</span></Link>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="shell">
+          <div className="section-heading split-heading"><div><span className="section-kicker">THE COMPLETE ECOSYSTEM</span><h2>More than a booking page.</h2></div><p>VetConnect is structured as a multi-sided platform. Each module has its own users, profiles, search logic and transaction path, but all modules connect around the veterinary and animal-health ecosystem.</p></div>
+          <div className="module-grid">
+            {modules.map((m) => <article className="module-card" key={m.title}><span className="module-tag">{m.tag}</span><h3>{m.title}</h3><p>{m.text}</p><Link href={m.href}>{m.link} <span>→</span></Link></article>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="section section-soft" id="veterinarians">
+        <div className="shell">
+          <div className="section-heading"><span className="section-kicker">VETERINARIAN DISCOVERY</span><h2>Profiles that help users make an informed choice.</h2><p>A useful veterinarian profile should show more than a name. It should combine verification, qualifications, expertise, species, service areas, clinic information, availability and booking options.</p></div>
+          <div className="vet-layout">
+            <div className="filter-panel">
+              <h3>Match the right professional</h3>
+              <div className="filter-item"><b>1</b><span><strong>Choose need</strong><small>Pet, livestock, poultry, dairy, fisheries or other.</small></span></div>
+              <div className="filter-item"><b>2</b><span><strong>Choose location</strong><small>City, nearby area, clinic, farm visit or online.</small></span></div>
+              <div className="filter-item"><b>3</b><span><strong>Compare profiles</strong><small>Qualifications, specialty, availability, services and reviews.</small></span></div>
+              <div className="filter-item"><b>4</b><span><strong>Book a slot</strong><small>Add animal/case details and receive confirmation.</small></span></div>
+              <Link className="button button-dark button-full" href="/vets">Open veterinarian directory</Link>
+            </div>
+            <div className="vet-card-grid">
+              {sampleVets.map((vet, i) => <article className="vet-card" key={vet.name}><div className="vet-card-top"><div className="avatar">{vet.initials}</div><div><span className="sample-label">Sample profile</span><h3>{vet.name}</h3><p>{vet.role}</p></div></div><div className="verified-line"><span>✓</span> PVMC verification field</div><dl><div><dt>City</dt><dd>{vet.city}</dd></div><div><dt>Animals</dt><dd>{vet.animals}</dd></div><div><dt>Service</dt><dd>{vet.mode}</dd></div><div><dt>Next slot</dt><dd>{vet.next}</dd></div></dl><div className="card-actions"><Link href="/vets" className="button button-primary">View profile</Link><button className="icon-button" aria-label="Save profile">♡</button></div></article>)}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section marketplace-preview">
+        <div className="shell two-col">
+          <div>
+            <span className="section-kicker">MARKETPLACE</span><h2>Structured product listings, backed by company profiles.</h2><p>Companies can build verified business profiles and list products with sector, category, generic/brand information, pack size, pricing, offers, delivery, documents, availability and customer feedback.</p>
+            <div className="category-cloud">{marketCategories.map(c => <span key={c}>{c}</span>)}</div>
+            <Link className="button button-primary" href="/marketplace">Browse marketplace</Link>
+          </div>
+          <div className="company-product-card">
+            <div className="company-head"><div className="company-mark">AH</div><div><small>Sample company profile</small><h3>Animal Health Company</h3><p>Pharmaceuticals • Nutrition • Lahore</p></div><span className="status-pill">Profile</span></div>
+            <div className="product-list-mini"><div><span className="product-thumb">RX</span><p><b>Veterinary Medicine</b><small>Brand • Generic • Pack • Price</small></p><strong>View</strong></div><div><span className="product-thumb">VAX</span><p><b>Vaccine Listing</b><small>Species • Pack • Cold chain notes</small></p><strong>View</strong></div><div><span className="product-thumb">NUT</span><p><b>Nutrition Product</b><small>Category • Pack • Bulk quotation</small></p><strong>View</strong></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section section-dark">
+        <div className="shell">
+          <div className="section-heading split-heading light-heading"><div><span className="section-kicker">JOBS & TALENT</span><h2>One career system for employers and candidates.</h2></div><p>Companies get an HR-facing space to publish openings and search candidate profiles. Students and professionals can build career profiles, upload CVs, define interests and discover relevant vacancies.</p></div>
+          <div className="jobs-home-grid">
+            <div className="job-list">
+              {jobs.map(j => <article className="job-row" key={j.role}><div className="job-logo">VC</div><div><span>{j.sector}</span><h3>{j.role}</h3><p>{j.company} • {j.city} • {j.type}</p></div><Link href="/jobs">View job</Link></article>)}
+            </div>
+            <div className="talent-panel"><span className="module-tag">CANDIDATE</span><h3>Build one career profile.</h3><ul><li>CV upload and structured profile</li><li>Education, experience and skills</li><li>Preferred sectors and locations</li><li>Jobs and internship matching</li><li>Application tracking</li></ul><Link href="/jobs" className="button button-white">Explore careers</Link></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="shell two-col align-center">
+          <div>
+            <span className="section-kicker">LEARNING HUB</span><h2>Professional development connected to industry needs.</h2><p>Courses and short learning programs can sit alongside jobs and professional profiles, allowing veterinarians, students and company teams to strengthen practical skills and maintain a visible learning record.</p>
+            <Link className="button button-primary" href="/learn">Explore learning hub</Link>
+          </div>
+          <div className="course-stack">{courses.map(c => <Link href="/learn" key={c.code}><span>{c.code}</span><div><h3>{c.title}</h3><p>{c.meta}</p></div><b>→</b></Link>)}</div>
+        </div>
+      </section>
+
+      <section className="section section-soft">
+        <div className="shell two-col align-center">
+          <div className="news-panel"><div className="news-brand">VNV</div><div><small>INDUSTRY NEWS PARTNER</small><h3>Veterinary News & Views</h3><p>Sector news, research, policy, markets, events and professional updates can connect the VetConnect community with current industry information.</p></div></div>
+          <div><span className="section-kicker">CONNECTED KNOWLEDGE</span><h2>News, services and professional opportunity in one ecosystem.</h2><p>VetConnect can link platform users to relevant veterinary and animal-sector coverage while maintaining a clear separation between marketplace, professional services, careers and editorial content.</p><a className="button button-dark" href="https://vetnewsandviews.com" target="_blank" rel="noreferrer">Visit Veterinary News & Views</a></div>
+        </div>
+      </section>
+
+      <section className="cta-band"><div className="shell cta-row"><div><small>JOIN THE NETWORK</small><h2>Choose how you want to connect.</h2></div><div className="cta-buttons"><Link className="button button-white" href="/register">Veterinarian / Professional</Link><Link className="button button-outline-white" href="/register">Company / Employer</Link><Link className="button button-outline-white" href="/register">Student / Job Seeker</Link></div></div></section>
+      <SiteFooter />
+    </main>
+  );
 }
