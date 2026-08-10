@@ -1,3 +1,5 @@
+import process from "node:process";
+
 export function getSupabaseConfig() {
   return {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
