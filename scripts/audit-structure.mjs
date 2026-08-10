@@ -88,7 +88,7 @@ if (missing.length || includedForbidden.length || unexpectedArchives.length) {
     console.error("Forbidden entries:", includedForbidden);
   if (unexpectedArchives.length)
     console.error("Unexpected archives:", unexpectedArchives);
-  import process from "node:process";
+
   process.exit(1);
 }
 
