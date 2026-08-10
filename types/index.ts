@@ -1,12 +1,12 @@
 export type AccountRole =
+  | "super_admin"
+  | "career_admin"
   | "user"
   | "veterinarian"
   | "company"
-  | "employer"
-  | "student"
   | "candidate";
 
-export type VerificationStatus = "pending" | "verified" | "rejected";
+export type VerificationStatus = "pending" | "approved" | "rejected";
 
 export interface VeterinarianProfile {
   id: string;

@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "VetConnect Pakistan | Veterinarians, Marketplace, Jobs & Learning",
+    default:
+      "VetConnect Pakistan | Veterinarians, Marketplace, Jobs & Learning",
     template: "%s | VetConnect Pakistan",
   },
   description:
@@ -19,7 +20,8 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "VetConnect Pakistan",
-    description: "One connected platform for veterinary care, products, careers and learning.",
+    description:
+      "One connected platform for veterinary care, products, careers and learning.",
     type: "website",
     url: "https://www.vetconnect.com.pk",
     siteName: "VetConnect Pakistan",
@@ -27,7 +29,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body>{children}</body>
