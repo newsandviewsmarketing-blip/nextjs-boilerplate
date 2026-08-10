@@ -1,3 +1,4 @@
+import process from "node:process";
 import { existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -87,6 +88,7 @@ if (missing.length || includedForbidden.length || unexpectedArchives.length) {
     console.error("Forbidden entries:", includedForbidden);
   if (unexpectedArchives.length)
     console.error("Unexpected archives:", unexpectedArchives);
+  import process from "node:process";
   process.exit(1);
 }
 
