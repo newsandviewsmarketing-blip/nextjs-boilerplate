@@ -1,119 +1,250 @@
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import { createClient } from "@/lib/supabase/server";
 
-const vets = [
-  [
-    "SA",
-    "Dr. Sara Ahmed",
-    "Small Animal & Pet Practice",
-    "Lahore",
-    "Pets, Dogs, Cats",
-    "Clinic, Video",
-    "Today 6:00 PM",
-  ],
-  [
-    "MH",
-    "Dr. M. Hassan",
-    "Livestock & Herd Health",
-    "Faisalabad",
-    "Livestock, Cattle, Buffalo",
-    "Farm Visit, Video",
-    "Tomorrow 9:30 AM",
-  ],
-  [
-    "RK",
-    "Dr. R. Khan",
-    "Poultry Health",
-    "Rawalpindi",
-    "Poultry, Broiler, Layer",
-    "On-site, Advisory",
-    "Mon 11:00 AM",
-  ],
-  [
-    "AN",
-    "Dr. A. Noor",
-    "Dairy Reproduction",
-    "Multan",
-    "Dairy, Cattle",
-    "Farm Visit",
-    "Tue 8:30 AM",
-  ],
-  [
-    "FA",
-    "Dr. F. Ali",
-    "Equine Practice",
-    "Lahore",
-    "Equine, Horse",
-    "Clinic, Farm Visit",
-    "Wed 4:00 PM",
-  ],
-  [
-    "HZ",
-    "Dr. H. Zafar",
-    "Aquatic Animal Health",
-    "Islamabad",
-    "Fisheries, Fish, Aquaculture",
-    "Advisory, Video",
-    "Thu 2:00 PM",
-  ],
-];
+export const dynamic = "force-dynamic";
+
+type SearchParams = {
+  city?: string;
+  sector?: string;
+  service?: string;
+};
+
+type VetCard = {
+  userId: string;
+  fullName: string;
+  initials: string;
+  pvmcNumber: string;
+  qualifications: string;
+  specialization: string;
+  yearsExperience: number | null;
+  city: string;
+  services: string[];
+};
+
+function getInitials(name: string) {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return "VC";
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
+function normalizeServices(value: unknown): string[] {
+  let values: string[] = [];
+
+  if (Array.isArray(value)) {
+    values = value.map((item) => String(item).trim());
+  } else if (typeof value === "string" && value.trim()) {
+    const trimmed = value.trim();
+
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed: unknown = JSON.parse(trimmed);
+
+        if (Array.isArray(parsed)) {
+          values = parsed.map((item) => String(item).trim());
+        } else {
+          values = [trimmed];
+        }
+      } catch {
+        values = trimmed.split(",").map((item) => item.trim());
+      }
+    } else {
+      values = trimmed.split(",").map((item) => item.trim());
+    }
+  }
+
+  return values.filter((service) => {
+    if (!service) return false;
+
+    const lower = service.toLowerCase();
+
+    if (lower.includes("full name:")) return false;
+    if (lower.includes("phone:")) return false;
+    if (lower.includes("pvmc")) return false;
+
+    return service.length <= 80;
+  });
+}
 
 export default async function VetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ city?: string; sector?: string; service?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const filteredVets = vets.filter((vet) => {
+  const supabase = await createClient();
+
+  let loadError = false;
+
+  const { data: veterinarianRows, error: veterinarianError } = await supabase
+    .from("veterinarian_profiles")
+    .select(
+      `
+        user_id,
+        pvmc_number,
+        qualifications,
+        specialization,
+        years_experience,
+        city,
+        services,
+        verification_status
+      `,
+    )
+    .eq("verification_status", "approved");
+
+  if (veterinarianError) {
+    loadError = true;
+  }
+
+  const userIds = (veterinarianRows ?? []).map((row) => row.user_id);
+
+  let profileRows: {
+    id: string;
+    full_name: string | null;
+    city: string | null;
+    account_status: string | null;
+  }[] = [];
+
+  if (userIds.length > 0) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, city, account_status")
+      .in("id", userIds)
+      .eq("account_status", "active");
+
+    if (error) {
+      loadError = true;
+    }
+
+    profileRows = data ?? [];
+  }
+
+  const profilesById = new Map(
+    profileRows.map((profile) => [profile.id, profile]),
+  );
+
+  const liveVets: VetCard[] = [];
+
+  for (const row of veterinarianRows ?? []) {
+    const profile = profilesById.get(row.user_id);
+
+    if (!profile) continue;
+
+    const fullName =
+      profile.full_name?.trim() || "Veterinary Professional";
+
+    liveVets.push({
+      userId: row.user_id,
+      fullName,
+      initials: getInitials(fullName),
+      pvmcNumber: row.pvmc_number
+        ? String(row.pvmc_number)
+        : "",
+      qualifications: row.qualifications?.trim() || "",
+      specialization: row.specialization?.trim() || "",
+      yearsExperience:
+        row.years_experience === null ||
+        row.years_experience === undefined
+          ? null
+          : Number(row.years_experience),
+      city: row.city?.trim() || profile.city?.trim() || "",
+      services: normalizeServices(row.services),
+    });
+  }
+
+  const filteredVets = liveVets.filter((vet) => {
     const cityMatch =
-      !params.city || params.city === "All cities" || vet[3] === params.city;
+      !params.city ||
+      params.city === "All cities" ||
+      vet.city.toLowerCase() === params.city.toLowerCase();
+
+    const sectorText = [
+      vet.specialization,
+      vet.qualifications,
+      ...vet.services,
+    ]
+      .join(" ")
+      .toLowerCase();
+
     const sectorMatch =
       !params.sector ||
       params.sector === "All sectors" ||
-      vet[4].toLowerCase().includes(params.sector.toLowerCase());
+      sectorText.includes(params.sector.toLowerCase());
+
+    const serviceText = vet.services.join(" ").toLowerCase();
+
+    const requestedService = (params.service ?? "")
+      .toLowerCase()
+      .replace(" consultation", "");
+
     const serviceMatch =
       !params.service ||
       params.service === "Any service" ||
-      vet[5]
-        .toLowerCase()
-        .includes(params.service.toLowerCase().replace(" consultation", ""));
+      serviceText.includes(requestedService);
+
     return cityMatch && sectorMatch && serviceMatch;
   });
+
+  const availableCities = Array.from(
+    new Set(
+      liveVets
+        .map((vet) => vet.city)
+        .filter((city) => Boolean(city)),
+    ),
+  ).sort();
 
   return (
     <main>
       <SiteHeader />
+
       <section className="page-hero">
         <div className="shell">
-          <span className="section-kicker">VETERINARIAN DIRECTORY</span>
+          <span className="section-kicker">
+            VETERINARIAN DIRECTORY
+          </span>
+
           <h1>Find the right veterinary professional.</h1>
+
           <p>
-            Search by city, sector, animal and service type. Approved database
-            profiles will replace the sample records as registrations are
-            verified.
+            Search approved veterinary professionals by city,
+            specialization and available services.
           </p>
         </div>
       </section>
+
       <section className="section compact-section">
         <div className="shell directory-layout">
           <aside className="directory-filters">
             <form method="get">
               <h3>Filter profiles</h3>
+
               <label htmlFor="city">City</label>
+
               <select
                 id="city"
                 name="city"
                 defaultValue={params.city ?? "All cities"}
               >
                 <option>All cities</option>
-                <option>Lahore</option>
-                <option>Faisalabad</option>
-                <option>Islamabad</option>
-                <option>Rawalpindi</option>
-                <option>Multan</option>
+
+                {availableCities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
               </select>
+
               <label htmlFor="sector">Sector / Animal</label>
+
               <select
                 id="sector"
                 name="sector"
@@ -127,11 +258,15 @@ export default async function VetsPage({
                 <option>Equine</option>
                 <option>Fisheries</option>
               </select>
+
               <label htmlFor="service">Service type</label>
+
               <select
                 id="service"
                 name="service"
-                defaultValue={params.service ?? "Any service"}
+                defaultValue={
+                  params.service ?? "Any service"
+                }
               >
                 <option>Any service</option>
                 <option>Clinic</option>
@@ -139,70 +274,151 @@ export default async function VetsPage({
                 <option>Video Consultation</option>
                 <option>Advisory</option>
               </select>
+
               <button
                 className="button button-primary button-full"
                 type="submit"
               >
                 Apply filters
               </button>
+
               <Link className="filter-reset" href="/vets">
                 Clear filters
               </Link>
             </form>
+
             <div className="filter-note">
               <b>Verification workflow</b>
+
               <p>
-                VetConnect administrators review PVMC and professional
-                information before an approved profile becomes public.
+                VetConnect administrators review PVMC and
+                professional information before a veterinarian
+                profile becomes publicly visible.
               </p>
             </div>
           </aside>
+
           <div>
             <div className="directory-top">
               <div>
-                <b>{filteredVets.length} veterinarian profiles</b>
-                <span>Searchable sample directory</span>
+                <b>
+                  {filteredVets.length} veterinarian{" "}
+                  {filteredVets.length === 1
+                    ? "profile"
+                    : "profiles"}
+                </b>
+
+                <span>Approved VetConnect directory</span>
               </div>
             </div>
-            {filteredVets.length === 0 ? (
+
+            {loadError ? (
               <div className="empty-state">
-                <h2>No profiles match these filters.</h2>
-                <p>Clear the filters or choose another city and service.</p>
+                <h2>Directory is temporarily unavailable.</h2>
+
+                <p>
+                  Approved veterinarian profiles could not be
+                  loaded from the database.
+                </p>
+              </div>
+            ) : filteredVets.length === 0 ? (
+              <div className="empty-state">
+                <h2>No approved profiles match these filters.</h2>
+
+                <p>
+                  Clear the filters or choose another city,
+                  sector or service.
+                </p>
               </div>
             ) : (
               <div className="directory-grid">
                 {filteredVets.map((vet) => (
-                  <article className="directory-vet" key={vet[1]}>
+                  <article
+                    className="directory-vet"
+                    key={vet.userId}
+                  >
                     <div className="directory-vet-head">
-                      <div className="avatar">{vet[0]}</div>
+                      <div className="avatar">
+                        {vet.initials}
+                      </div>
+
                       <div>
-                        <span className="sample-label">Sample profile</span>
-                        <h3>{vet[1]}</h3>
-                        <p>{vet[2]}</p>
+                        <span className="sample-label">
+                          Approved profile
+                        </span>
+
+                        <h3>{vet.fullName}</h3>
+
+                        <p>
+                          {vet.specialization ||
+                            "Veterinary Professional"}
+                        </p>
                       </div>
                     </div>
+
                     <div className="verified-line">
-                      <span>✓</span> Verification workflow preview
+                      <span>✓</span> Verified by VetConnect
                     </div>
+
                     <div className="profile-chips">
-                      <span>{vet[3]}</span>
-                      <span>{vet[4]}</span>
-                      <span>{vet[5]}</span>
+                      {vet.city && <span>{vet.city}</span>}
+
+                      {vet.qualifications && (
+                        <span>{vet.qualifications}</span>
+                      )}
+
+                      {vet.pvmcNumber && (
+                        <span>
+                          PVMC {vet.pvmcNumber}
+                        </span>
+                      )}
+
+                      {vet.yearsExperience !== null && (
+                        <span>
+                          {vet.yearsExperience}{" "}
+                          {vet.yearsExperience === 1
+                            ? "year"
+                            : "years"}{" "}
+                          experience
+                        </span>
+                      )}
                     </div>
+
+                    {vet.services.length > 0 && (
+                      <div className="profile-chips">
+                        {vet.services
+                          .slice(0, 4)
+                          .map((service) => (
+                            <span key={service}>
+                              {service}
+                            </span>
+                          ))}
+                      </div>
+                    )}
+
                     <div className="availability-box">
-                      <small>Next available</small>
-                      <b>{vet[6]}</b>
+                      <small>Availability</small>
+                      <b>Contact veterinarian</b>
                     </div>
+
                     <div className="profile-details">
                       <div>
-                        <small>Clinic / service address</small>
-                        <b>Profile-controlled location</b>
+                        <small>Specialization</small>
+                        <b>
+                          {vet.specialization ||
+                            "Not specified"}
+                        </b>
                       </div>
+
                       <div>
-                        <small>Consultation fee</small>
-                        <b>Shown when configured</b>
+                        <small>PVMC registration</small>
+                        <b>
+                          {vet.pvmcNumber ||
+                            "Not specified"}
+                        </b>
                       </div>
                     </div>
+
                     <div className="card-actions">
                       <Link
                         className="button button-primary"
@@ -210,6 +426,7 @@ export default async function VetsPage({
                       >
                         Book appointment
                       </Link>
+
                       <Link
                         className="button button-secondary"
                         href="/coming-soon?feature=Full%20veterinarian%20profile"
@@ -224,44 +441,59 @@ export default async function VetsPage({
           </div>
         </div>
       </section>
+
       <section className="section section-soft">
         <div className="shell">
           <div className="section-heading">
-            <span className="section-kicker">PROFILE DATA MODEL</span>
+            <span className="section-kicker">
+              PROFILE DATA MODEL
+            </span>
+
             <h2>What a veterinarian can manage.</h2>
           </div>
+
           <div className="feature-columns">
             <div>
               <h3>Identity & verification</h3>
+
               <p>
-                Name, photograph, PVMC number, qualifications, documents and
-                verification status.
+                Name, photograph, PVMC number, qualifications,
+                documents and verification status.
               </p>
             </div>
+
             <div>
               <h3>Clinical expertise</h3>
+
               <p>
-                Specialties, species, services, consultation modes and
-                professional experience.
+                Specialties, species, services, consultation
+                modes and professional experience.
               </p>
             </div>
+
             <div>
               <h3>Location & availability</h3>
+
               <p>
-                Clinic address, city, nearby service areas, farm-visit radius,
-                weekly schedule and available slots.
+                Clinic address, city, nearby service areas,
+                farm-visit radius, weekly schedule and
+                available slots.
               </p>
             </div>
+
             <div>
               <h3>Practice & bookings</h3>
+
               <p>
-                Fees, appointment types, booking confirmation, animal/case
-                details, revisit history and follow-up.
+                Fees, appointment types, booking confirmation,
+                animal/case details, revisit history and
+                follow-up.
               </p>
             </div>
           </div>
         </div>
       </section>
+
       <SiteFooter />
     </main>
   );
