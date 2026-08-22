@@ -5,11 +5,19 @@ export const selfRegistrationRoles = [
   "veterinarian",
   "company",
   "candidate",
+  "professional",
+  "laboratory",
   "user",
 ] as const;
 
 export type SelfRegistrationRole = (typeof selfRegistrationRoles)[number];
-export type AccountRole = SelfRegistrationRole | "career_admin" | "super_admin";
+export type AccountRole =
+  | SelfRegistrationRole
+  | "career_admin"
+  | "verification_officer"
+  | "content_admin"
+  | "analyst"
+  | "super_admin";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 
@@ -27,7 +35,33 @@ export interface CurrentIdentity {
 }
 
 export function isAdminRole(role: string) {
-  return role === "super_admin" || role === "career_admin";
+  return [
+    "super_admin",
+    "career_admin",
+    "verification_officer",
+    "content_admin",
+    "analyst",
+  ].includes(role);
+}
+
+export function canReviewProfiles(role: string) {
+  return ["super_admin", "verification_officer"].includes(role);
+}
+
+export function canModerateProducts(role: string) {
+  return ["super_admin", "content_admin"].includes(role);
+}
+
+export function canManageJobs(role: string) {
+  return ["super_admin", "career_admin", "content_admin"].includes(role);
+}
+
+export function canManageUsers(role: string) {
+  return role === "super_admin";
+}
+
+export function canViewAudit(role: string) {
+  return ["super_admin", "analyst"].includes(role);
 }
 
 export function isAllowedSelfRegistrationRole(

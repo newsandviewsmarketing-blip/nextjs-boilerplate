@@ -24,7 +24,7 @@ async function loadProducts() {
   if (!data?.length) return sampleProducts;
   const companyIds = [...new Set(data.map((row) => row.company_user_id))];
   const { data: companies } = await supabase
-    .from("company_profiles")
+    .from("public_companies")
     .select("user_id, company_name, city")
     .in("user_id", companyIds);
   const companyMap = new Map(
@@ -49,6 +49,25 @@ async function loadProducts() {
       storage_instructions: row.storage_instructions,
       image_url: row.image_url,
       availability: row.availability,
+      product_code: row.product_code,
+      subclass: row.subclass,
+      therapeutic_class: row.therapeutic_class,
+      sectors: row.sectors ?? [],
+      species: row.species ?? [],
+      production_systems: row.production_systems ?? [],
+      use_areas: row.use_areas ?? [],
+      routes: row.routes ?? [],
+      precautions: row.precautions,
+      contraindications: row.contraindications,
+      warnings: row.warnings,
+      meat_withdrawal: row.meat_withdrawal,
+      milk_withdrawal: row.milk_withdrawal,
+      egg_withdrawal: row.egg_withdrawal,
+      cold_chain: row.cold_chain,
+      temperature_range: row.temperature_range,
+      shelf_life: row.shelf_life,
+      country_of_origin: row.country_of_origin,
+      regulatory_review_status: row.regulatory_review_status,
       company_user_id: row.company_user_id,
       company_name: company?.company_name ?? "Verified VetConnect company",
       company_city: company?.city ?? null,

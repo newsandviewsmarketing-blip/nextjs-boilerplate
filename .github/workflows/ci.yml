@@ -1,0 +1,45 @@
+name: VetConnect CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run repository audit
+        run: npm run audit
+
+      - name: Audit dependencies
+        run: npm run security:audit
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run source safety tests
+        run: npm test
+
+      - name: Run TypeScript checks
+        run: npm run typecheck
+
+      - name: Build production application
+        run: npm run build

@@ -15,11 +15,10 @@ async function loadCompanies() {
   if (!isSupabaseConfigured()) return sampleCompanies;
   const supabase = await createClient();
   const { data } = await supabase
-    .from("company_profiles")
+    .from("public_companies")
     .select(
       "user_id, company_name, business_type, city, address, description, website, contact_email, logo_url",
     )
-    .eq("verification_status", "approved")
     .order("company_name");
   return data?.length ? (data as PublicCompany[]) : sampleCompanies;
 }

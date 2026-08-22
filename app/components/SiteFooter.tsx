@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function SiteFooter() {
   return (
@@ -6,7 +7,13 @@ export default function SiteFooter() {
       <div className="shell footer-grid">
         <div className="footer-brand">
           <div className="footer-logo-wrap">
-            <img src="/vetconnect-logo.png" alt="VetConnect" />
+            <Image
+              src="/vetconnect-logo.png"
+              alt="VetConnect"
+              width={831}
+              height={274}
+              unoptimized
+            />
           </div>
           <p>
             Connecting verified veterinary expertise, animal owners, farmers,
@@ -20,6 +27,8 @@ export default function SiteFooter() {
         <div>
           <h3>Platform</h3>
           <Link href="/vets">Find a Veterinarian</Link>
+          <Link href="/clinics">Clinics & Hospitals</Link>
+          <Link href="/labs">Diagnostic Laboratories</Link>
           <Link href="/marketplace">Marketplace</Link>
           <Link href="/jobs">Jobs & Careers</Link>
           <Link href="/learn">Learning Hub</Link>
@@ -27,6 +36,7 @@ export default function SiteFooter() {
         <div>
           <h3>For Partners</h3>
           <Link href="/companies">Company Profiles</Link>
+          <Link href="/professionals">Industry Professionals</Link>
           <Link href="/register">Veterinarian Registration</Link>
           <Link href="/register">Employer Registration</Link>
           <a
@@ -42,8 +52,8 @@ export default function SiteFooter() {
           <a href="mailto:info@vetnewsandviews.com">info@vetnewsandviews.com</a>
           <a href="https://www.vetconnect.com.pk">www.vetconnect.com.pk</a>
           <p className="footer-note">
-            Front-end preview. Live booking, payments, OTP, product orders and
-            account data require backend services.
+            Verified public information and secure account services are
+            activated module by module. Product listings are informational.
           </p>
         </div>
       </div>

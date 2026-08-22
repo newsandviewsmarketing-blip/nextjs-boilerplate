@@ -1,5 +1,5 @@
 "use server";
-
+import process from "node:process";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -207,10 +207,10 @@ export async function registerAction(formData: FormData) {
   }
 
   const headerStore = await headers();
-  const origin =
-    headerStore.get("origin") ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    "https://www.vetconnect.com.pk";
+ const origin =
+  headerStore.get("origin") ??
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  "https://www.vetconnect.com.pk";
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,

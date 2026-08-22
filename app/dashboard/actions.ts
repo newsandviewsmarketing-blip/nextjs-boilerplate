@@ -64,6 +64,91 @@ export async function updateProfileAction(formData: FormData) {
       })
       .eq("user_id", identity.userId);
     if (error) redirect(message("error", error.message));
+
+    const selectedRoles = formData
+      .getAll("company_roles")
+      .map((item) => String(item))
+      .filter(Boolean);
+    for (const roleType of selectedRoles) {
+      const details = value(formData, `role_details_${roleType}`);
+      const { error: roleError } = await supabase
+        .from("company_roles")
+        .upsert(
+          {
+            company_user_id: identity.userId,
+            role_type: roleType,
+            details,
+            is_active: true,
+          },
+          { onConflict: "company_user_id,role_type" },
+        );
+      if (roleError) redirect(message("error", roleError.message));
+    }
+
+    const selectedSectors = formData
+      .getAll("company_sectors")
+      .map((item) => String(item))
+      .filter(Boolean);
+    for (const sector of selectedSectors) {
+      const { error: sectorError } = await supabase
+        .from("company_sectors")
+        .upsert({ company_user_id: identity.userId, sector });
+      if (sectorError) redirect(message("error", sectorError.message));
+    }
+  }
+
+  if (["professional", "candidate"].includes(identity.profile?.primary_role ?? "")) {
+    const skills = value(formData, "skills")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const { error } = await supabase
+      .from("professional_profiles")
+      .update({
+        professional_type: value(formData, "professional_type") || "Animal Health Professional",
+        headline: value(formData, "headline") || null,
+        public_summary: value(formData, "public_summary") || null,
+        current_position: value(formData, "current_position") || null,
+        organization_name: value(formData, "organization_name") || null,
+        city: city || null,
+        province: value(formData, "province") || null,
+        years_experience: Number(value(formData, "years_experience") || 0),
+        skills,
+        profile_visibility: value(formData, "profile_visibility") || "owner_only",
+      })
+      .eq("user_id", identity.userId);
+    if (error) redirect(message("error", error.message));
+  }
+
+  if (identity.profile?.primary_role === "laboratory") {
+    const testsOffered = value(formData, "tests_offered")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const speciesServed = value(formData, "species_served")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const { error } = await supabase
+      .from("laboratories")
+      .update({
+        laboratory_name: value(formData, "laboratory_name"),
+        laboratory_type: value(formData, "laboratory_type") || "Diagnostic Laboratory",
+        description: value(formData, "description") || null,
+        technical_head: value(formData, "technical_head") || null,
+        city: city || null,
+        province: value(formData, "province") || null,
+        address: value(formData, "address") || null,
+        public_phone: value(formData, "public_phone") || null,
+        public_email: value(formData, "public_email") || null,
+        website: value(formData, "website") || null,
+        working_hours: value(formData, "working_hours") || null,
+        emergency_service: formData.get("emergency_service") === "on",
+        tests_offered: testsOffered,
+        species_served: speciesServed,
+      })
+      .eq("owner_id", identity.userId);
+    if (error) redirect(message("error", error.message));
   }
 
   revalidatePath("/dashboard");

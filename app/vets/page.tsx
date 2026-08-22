@@ -1,264 +1,138 @@
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import ProfilePhoto from "../components/ProfilePhoto";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
+import {
+  initials,
+  sampleVeterinarians,
+  type PublicVeterinarian,
+} from "@/lib/directories";
 
-const vets = [
-  [
-    "SA",
-    "Dr. Sara Ahmed",
-    "Small Animal & Pet Practice",
-    "Lahore",
-    "Pets, Dogs, Cats",
-    "Clinic, Video",
-    "Today 6:00 PM",
-  ],
-  [
-    "MH",
-    "Dr. M. Hassan",
-    "Livestock & Herd Health",
-    "Faisalabad",
-    "Livestock, Cattle, Buffalo",
-    "Farm Visit, Video",
-    "Tomorrow 9:30 AM",
-  ],
-  [
-    "RK",
-    "Dr. R. Khan",
-    "Poultry Health",
-    "Rawalpindi",
-    "Poultry, Broiler, Layer",
-    "On-site, Advisory",
-    "Mon 11:00 AM",
-  ],
-  [
-    "AN",
-    "Dr. A. Noor",
-    "Dairy Reproduction",
-    "Multan",
-    "Dairy, Cattle",
-    "Farm Visit",
-    "Tue 8:30 AM",
-  ],
-  [
-    "FA",
-    "Dr. F. Ali",
-    "Equine Practice",
-    "Lahore",
-    "Equine, Horse",
-    "Clinic, Farm Visit",
-    "Wed 4:00 PM",
-  ],
-  [
-    "HZ",
-    "Dr. H. Zafar",
-    "Aquatic Animal Health",
-    "Islamabad",
-    "Fisheries, Fish, Aquaculture",
-    "Advisory, Video",
-    "Thu 2:00 PM",
-  ],
-];
+export const dynamic = "force-dynamic";
 
-export default async function VetsPage({
+async function loadVeterinarians(): Promise<PublicVeterinarian[]> {
+  if (!isSupabaseConfigured()) return sampleVeterinarians;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("public_veterinarians")
+    .select(
+      "user_id, full_name, qualifications, specialization, years_experience, city, services, profile_verified, pvmc_verified, image_url",
+    )
+    .order("full_name");
+
+  if (error || !data?.length) return sampleVeterinarians;
+  return data as PublicVeterinarian[];
+}
+
+export default async function VeterinarianDirectoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ city?: string; sector?: string; service?: string }>;
+  searchParams: Promise<{ q?: string; city?: string; service?: string }>;
 }) {
   const params = await searchParams;
-  const filteredVets = vets.filter((vet) => {
-    const cityMatch =
-      !params.city || params.city === "All cities" || vet[3] === params.city;
-    const sectorMatch =
-      !params.sector ||
-      params.sector === "All sectors" ||
-      vet[4].toLowerCase().includes(params.sector.toLowerCase());
-    const serviceMatch =
-      !params.service ||
-      params.service === "Any service" ||
-      vet[5]
-        .toLowerCase()
-        .includes(params.service.toLowerCase().replace(" consultation", ""));
-    return cityMatch && sectorMatch && serviceMatch;
+  const veterinarians = await loadVeterinarians();
+  const query = (params.q ?? "").trim().toLowerCase();
+  const city = (params.city ?? "").trim().toLowerCase();
+  const service = (params.service ?? "").trim().toLowerCase();
+  const visible = veterinarians.filter((vet) => {
+    const text = `${vet.full_name} ${vet.qualifications ?? ""} ${vet.specialization ?? ""} ${vet.city ?? ""} ${vet.services.join(" ")}`.toLowerCase();
+    return (
+      (!query || text.includes(query)) &&
+      (!city || city === "all cities" || vet.city?.toLowerCase() === city) &&
+      (!service || service === "all services" || vet.services.some((item) => item.toLowerCase().includes(service)))
+    );
   });
+  const cities = [...new Set(veterinarians.map((vet) => vet.city).filter(Boolean))] as string[];
+  const services = [...new Set(veterinarians.flatMap((vet) => vet.services))];
+  const showingSamples = veterinarians.some((vet) => vet.is_sample);
 
   return (
     <main>
       <SiteHeader />
       <section className="page-hero">
         <div className="shell">
-          <span className="section-kicker">VETERINARIAN DIRECTORY</span>
+          <span className="section-kicker">VERIFIED VETERINARIAN DIRECTORY</span>
           <h1>Find the right veterinary professional.</h1>
           <p>
-            Search by city, sector, animal and service type. Approved database
-            profiles will replace the sample records as registrations are
-            verified.
+            Public directory access is reserved for veterinarians whose profile
+            and veterinary credential have both completed the VetConnect review.
           </p>
         </div>
       </section>
       <section className="section compact-section">
-        <div className="shell directory-layout">
-          <aside className="directory-filters">
-            <form method="get">
-              <h3>Filter profiles</h3>
-              <label htmlFor="city">City</label>
-              <select
-                id="city"
-                name="city"
-                defaultValue={params.city ?? "All cities"}
-              >
+        <div className="shell">
+          <div className="directory-top">
+            <div>
+              <b>{visible.length} veterinarian profiles</b>
+              <span>
+                {showingSamples
+                  ? "Sample profiles until credential-verified members are published"
+                  : "PVMC credential and VetConnect profile review completed"}
+              </span>
+            </div>
+            <form className="market-search" method="get">
+              <input name="q" defaultValue={params.q ?? ""} placeholder="Name, qualification or expertise" />
+              <select name="city" defaultValue={params.city ?? "All cities"}>
                 <option>All cities</option>
-                <option>Lahore</option>
-                <option>Faisalabad</option>
-                <option>Islamabad</option>
-                <option>Rawalpindi</option>
-                <option>Multan</option>
+                {cities.map((item) => <option key={item}>{item}</option>)}
               </select>
-              <label htmlFor="sector">Sector / Animal</label>
-              <select
-                id="sector"
-                name="sector"
-                defaultValue={params.sector ?? "All sectors"}
-              >
-                <option>All sectors</option>
-                <option>Pets</option>
-                <option>Livestock</option>
-                <option>Poultry</option>
-                <option>Dairy</option>
-                <option>Equine</option>
-                <option>Fisheries</option>
+              <select name="service" defaultValue={params.service ?? "All services"}>
+                <option>All services</option>
+                {services.map((item) => <option key={item}>{item}</option>)}
               </select>
-              <label htmlFor="service">Service type</label>
-              <select
-                id="service"
-                name="service"
-                defaultValue={params.service ?? "Any service"}
-              >
-                <option>Any service</option>
-                <option>Clinic</option>
-                <option>Farm Visit</option>
-                <option>Video Consultation</option>
-                <option>Advisory</option>
-              </select>
-              <button
-                className="button button-primary button-full"
-                type="submit"
-              >
-                Apply filters
-              </button>
-              <Link className="filter-reset" href="/vets">
-                Clear filters
-              </Link>
+              <button className="button button-primary" type="submit">Search</button>
             </form>
-            <div className="filter-note">
-              <b>Verification workflow</b>
-              <p>
-                VetConnect administrators review PVMC and professional
-                information before an approved profile becomes public.
-              </p>
-            </div>
-          </aside>
-          <div>
-            <div className="directory-top">
-              <div>
-                <b>{filteredVets.length} veterinarian profiles</b>
-                <span>Searchable sample directory</span>
-              </div>
-            </div>
-            {filteredVets.length === 0 ? (
-              <div className="empty-state">
-                <h2>No profiles match these filters.</h2>
-                <p>Clear the filters or choose another city and service.</p>
-              </div>
-            ) : (
-              <div className="directory-grid">
-                {filteredVets.map((vet) => (
-                  <article className="directory-vet" key={vet[1]}>
-                    <div className="directory-vet-head">
-                      <div className="avatar">{vet[0]}</div>
-                      <div>
-                        <span className="sample-label">Sample profile</span>
-                        <h3>{vet[1]}</h3>
-                        <p>{vet[2]}</p>
-                      </div>
-                    </div>
-                    <div className="verified-line">
-                      <span>✓</span> Verification workflow preview
-                    </div>
-                    <div className="profile-chips">
-                      <span>{vet[3]}</span>
-                      <span>{vet[4]}</span>
-                      <span>{vet[5]}</span>
-                    </div>
-                    <div className="availability-box">
-                      <small>Next available</small>
-                      <b>{vet[6]}</b>
-                    </div>
-                    <div className="profile-details">
-                      <div>
-                        <small>Clinic / service address</small>
-                        <b>Profile-controlled location</b>
-                      </div>
-                      <div>
-                        <small>Consultation fee</small>
-                        <b>Shown when configured</b>
-                      </div>
-                    </div>
-                    <div className="card-actions">
-                      <Link
-                        className="button button-primary"
-                        href="/coming-soon?feature=Appointment%20booking"
-                      >
-                        Book appointment
-                      </Link>
-                      <Link
-                        className="button button-secondary"
-                        href="/coming-soon?feature=Full%20veterinarian%20profile"
-                      >
-                        View full profile
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
           </div>
+          {visible.length === 0 ? (
+            <div className="empty-state">
+              <h2>No veterinarian matches these filters.</h2>
+              <Link href="/vets">Clear search</Link>
+            </div>
+          ) : (
+            <div className="company-grid">
+              {visible.map((vet) => (
+                <article key={vet.user_id}>
+                  <div className="company-mark large profile-photo-frame">
+                    <ProfilePhoto
+                      imageUrl={vet.image_url}
+                      name={vet.full_name}
+                      fallback={initials(vet.full_name)}
+                    />
+                  </div>
+                  {vet.is_sample && <span className="sample-label">Sample profile</span>}
+                  <h3>{vet.full_name}</h3>
+                  <p>{vet.specialization || "Veterinary professional"} • {vet.city || "Pakistan"}</p>
+                  <div className="profile-chips">
+                    {vet.qualifications && <span>{vet.qualifications}</span>}
+                    <span>{vet.years_experience} years</span>
+                  </div>
+                  <dl>
+                    <div><dt>PVMC credential</dt><dd>{vet.pvmc_verified ? "Verified" : vet.is_sample ? "Sample" : "Pending"}</dd></div>
+                    <div><dt>VetConnect profile</dt><dd>{vet.profile_verified ? "Verified" : vet.is_sample ? "Sample" : "Pending"}</dd></div>
+                    <div><dt>Services</dt><dd>{vet.services.slice(0, 2).join(", ") || "Not listed"}</dd></div>
+                  </dl>
+                  <Link className="button button-primary button-full" href={`/vets/${vet.user_id}`}>
+                    View professional profile
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
       <section className="section section-soft">
-        <div className="shell">
-          <div className="section-heading">
-            <span className="section-kicker">PROFILE DATA MODEL</span>
-            <h2>What a veterinarian can manage.</h2>
+        <div className="shell two-col">
+          <div>
+            <span className="section-kicker">TRUST MODEL</span>
+            <h2>Two checks, two clear badges.</h2>
+            <p>PVMC credential verification and VetConnect profile verification are recorded separately. A professional is not labelled as a veterinarian in this directory until the veterinary credential check is complete.</p>
           </div>
-          <div className="feature-columns">
-            <div>
-              <h3>Identity & verification</h3>
-              <p>
-                Name, photograph, PVMC number, qualifications, documents and
-                verification status.
-              </p>
-            </div>
-            <div>
-              <h3>Clinical expertise</h3>
-              <p>
-                Specialties, species, services, consultation modes and
-                professional experience.
-              </p>
-            </div>
-            <div>
-              <h3>Location & availability</h3>
-              <p>
-                Clinic address, city, nearby service areas, farm-visit radius,
-                weekly schedule and available slots.
-              </p>
-            </div>
-            <div>
-              <h3>Practice & bookings</h3>
-              <p>
-                Fees, appointment types, booking confirmation, animal/case
-                details, revisit history and follow-up.
-              </p>
-            </div>
+          <div className="spec-list">
+            <div><b>PVMC Verified</b><span>Professional credential matched with an official source or accepted evidence.</span></div>
+            <div><b>VetConnect Verified Profile</b><span>Identity, public profile and contact information reviewed by VetConnect.</span></div>
+            <div><b>Private by design</b><span>Registration numbers and verification documents are not displayed publicly.</span></div>
           </div>
         </div>
       </section>

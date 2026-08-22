@@ -1,11 +1,16 @@
 import Link from "next/link";
+import Image from "next/image";
+import MobileNav from "./MobileNav";
 
 const navItems = [
   ["Find a Vet", "/vets"],
+  ["Clinics", "/clinics"],
+  ["Diagnostic Labs", "/labs"],
   ["Marketplace", "/marketplace"],
   ["Jobs", "/jobs"],
   ["Learn", "/learn"],
   ["Companies", "/companies"],
+  ["Professionals", "/professionals"],
 ] as const;
 
 export default function SiteHeader() {
@@ -13,7 +18,14 @@ export default function SiteHeader() {
     <header className="site-header">
       <div className="shell header-row">
         <Link className="brand" href="/" aria-label="VetConnect home">
-          <img src="/vetconnect-logo.png" alt="VetConnect" />
+          <Image
+            src="/vetconnect-logo.png"
+            alt="VetConnect"
+            width={831}
+            height={274}
+            priority
+            unoptimized
+          />
         </Link>
 
         <nav className="main-nav" aria-label="Main navigation">
@@ -39,6 +51,8 @@ export default function SiteHeader() {
             Join VetConnect
           </Link>
         </div>
+
+        <MobileNav items={navItems} />
       </div>
     </header>
   );
