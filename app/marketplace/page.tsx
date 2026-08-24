@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -9,6 +10,12 @@ import {
   sampleProducts,
   type PublicProduct,
 } from "@/lib/marketplace";
+
+export const metadata: Metadata = {
+  title: "Veterinary Product Directory Pakistan",
+  description: "Browse approved veterinary medicines, vaccines, feed, nutrition, diagnostics, equipment and animal-health product information.",
+  alternates: { canonical: "/marketplace" },
+};
 
 export const dynamic = "force-dynamic";
 
@@ -159,7 +166,7 @@ export default async function MarketplacePage({
                 <article className="product-card" key={product.slug}>
                   {product.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="product-visual product-image" src={product.image_url} alt="" />
+                    <img className="product-visual product-image" src={product.image_url} alt={`${product.product_name} product image`} loading="lazy" decoding="async" />
                   ) : (
                     <div className="product-visual">{productMark(product)}</div>
                   )}

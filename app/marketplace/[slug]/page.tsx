@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -89,6 +90,19 @@ async function loadProduct(slug: string) {
   return { product, saved: Boolean(saved), identity };
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const { product } = await loadProduct(slug);
+  if (!product) return { title: "Veterinary Product" };
+  return {
+    title: `${product.product_name} by ${product.company_name} | Veterinary Product Directory`,
+    description: product.description || `${product.product_name} product information from ${product.company_name} on VetConnect Pakistan.`,
+    alternates: { canonical: `/marketplace/${slug}` },
+    robots: product.is_sample ? { index: false, follow: true } : undefined,
+    openGraph: product.image_url ? { images: [{ url: product.image_url, alt: product.product_name }] } : undefined,
+  };
+}
+
 export default async function ProductDetailPage({
   params,
   searchParams,
@@ -109,7 +123,7 @@ export default async function ProductDetailPage({
           <div className="product-detail-visual">
             {product.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.image_url} alt={product.product_name} />
+              <img src={product.image_url} alt={`${product.product_name} product image`} loading="lazy" decoding="async" />
             ) : productMark(product)}
           </div>
           <div>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -14,6 +15,18 @@ async function loadClinic(slug: string): Promise<PublicClinic | null> {
   const supabase = await createClient();
   const { data } = await supabase.from("public_clinics").select("id, slug, clinic_name, facility_type, description, city, province, address, public_phone, public_email, website, working_hours, emergency_service, services, species, profile_verified").eq("slug", slug).maybeSingle();
   return (data as PublicClinic | null) ?? sample ?? null;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const clinic = await loadClinic(slug);
+  if (!clinic) return { title: "Veterinary Clinic" };
+  return {
+    title: `${clinic.clinic_name} | Veterinary Clinic in ${clinic.city || "Pakistan"}`,
+    description: clinic.description || `${clinic.clinic_name} veterinary facility profile on VetConnect Pakistan.`,
+    alternates: { canonical: `/clinics/${slug}` },
+    robots: clinic.is_sample ? { index: false, follow: true } : undefined,
+  };
 }
 
 export default async function ClinicDetailPage({ params }: { params: Promise<{ slug: string }> }) {

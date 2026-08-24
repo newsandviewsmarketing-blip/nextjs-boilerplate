@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -5,6 +6,12 @@ import ProfilePhoto from "../components/ProfilePhoto";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { initials, sampleProfessionals, type PublicProfessional } from "@/lib/directories";
+
+export const metadata: Metadata = {
+  title: "Veterinary & Animal Health Professionals",
+  description: "Discover veterinary and allied animal-health professionals across Pakistan.",
+  alternates: { canonical: "/professionals" },
+};
 
 export const dynamic = "force-dynamic";
 

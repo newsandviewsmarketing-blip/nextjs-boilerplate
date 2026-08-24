@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -8,6 +9,12 @@ import {
   sampleCompanies,
   type PublicCompany,
 } from "@/lib/marketplace";
+
+export const metadata: Metadata = {
+  title: "Veterinary & Animal Health Companies in Pakistan",
+  description: "Browse approved veterinary, livestock, poultry, dairy, feed, diagnostics and animal-health companies in Pakistan.",
+  alternates: { canonical: "/companies" },
+};
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +90,7 @@ export default async function CompaniesPage({
                 <article key={company.user_id ?? company.company_name}>
                   {company.logo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="company-mark large company-logo" src={company.logo_url} alt="" />
+                    <img className="company-mark large company-logo" src={company.logo_url} alt={`${company.company_name} logo`} loading="lazy" decoding="async" />
                   ) : (
                     <div className="company-mark large">{companyInitials(company.company_name)}</div>
                   )}

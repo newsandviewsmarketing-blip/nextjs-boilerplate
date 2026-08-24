@@ -1,6 +1,6 @@
-# VetConnect Pakistan — Phase 4 Admin Control
+# VetConnect Pakistan — Consolidated Release Candidate 2026-08-24
 
-Vercel-ready Next.js source for the upgraded VetConnect platform. Phase 4 preserves the Phase 3 public directories, Supabase authentication, database records and orange/navy identity, then adds a permission-based administration hierarchy, complete product lifecycle management, multi-role staff access, recoverable archiving and operational audit visibility.
+Release-candidate Next.js source for VetConnect Pakistan. It preserves the corrected Phase 3 public-directory and database work, includes the Phase 4 permission-based administration hierarchy and controlled product lifecycle, and adds deployment-state documentation, read-only database preflight checks, SEO/indexing foundations, image accessibility improvements and a SHA-256 release manifest. The visual identity and supplied public assets are preserved.
 
 ## Public modules
 
@@ -50,13 +50,8 @@ npm run dev
 
 ## Deployment
 
-1. Create the `vetconnect-phase-4` branch from the current production source.
-2. Confirm all Phase 1 to Phase 3 migrations already applied successfully.
-3. Apply `202608170001_phase4_admin_control.sql` before deploying the Phase 4 frontend.
-4. Keep the existing Supabase project, Vercel project, email OTP setup and domain.
-5. Deploy a Vercel Preview and test every staff role with a separate account.
-6. Merge to `main` only after the complete acceptance checklist passes.
+Start with `START-HERE.md` and `docs/FINAL-RELEASE-RUNBOOK.md`. The current screenshots do not prove which database migrations were executed manually, so run the read-only preflight before applying SQL. Use a feature branch and Vercel Preview, then merge to `main` only after database, permission, editorial, responsive and SEO acceptance checks pass.
 
-Detailed instructions: `docs/PHASE4-SETUP.md`, `docs/PHASE4-IMPLEMENTATION-AUDIT.md` and `docs/PHASE4-RELEASE-CHECKLIST.md`. Phase 3 documents remain included as migration history.
+Phase 3 and Phase 4 setup/audit documents remain included as migration and implementation history.
 
 Never commit an email password, Supabase service-role key, `.env.local`, `.next`, `node_modules` or a project ZIP.

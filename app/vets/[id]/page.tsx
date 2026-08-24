@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -25,6 +26,20 @@ async function loadVeterinarian(id: string): Promise<PublicVeterinarian | null> 
     .eq("user_id", id)
     .maybeSingle();
   return (data as PublicVeterinarian | null) ?? sample ?? null;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const veterinarian = await loadVeterinarian(id);
+  if (!veterinarian) return { title: "Veterinarian Profile" };
+  const title = `${veterinarian.full_name} | ${veterinarian.specialization || "Veterinarian"} in ${veterinarian.city || "Pakistan"}`;
+  const description = `${veterinarian.full_name}, ${veterinarian.qualifications || "veterinary professional"}. ${veterinarian.specialization || "Veterinary services"} in ${veterinarian.city || "Pakistan"}.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/vets/${id}` },
+    robots: veterinarian.is_sample ? { index: false, follow: true } : undefined,
+  };
 }
 
 export default async function VeterinarianProfilePage({

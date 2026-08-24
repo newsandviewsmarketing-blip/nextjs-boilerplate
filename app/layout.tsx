@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { siteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
     default:
       "VetConnect Pakistan | Vets, Labs, Companies, Products & Careers",
@@ -29,6 +31,7 @@ export const metadata: Metadata = {
     siteName: "VetConnect Pakistan",
   },
   robots: { index: true, follow: true },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({

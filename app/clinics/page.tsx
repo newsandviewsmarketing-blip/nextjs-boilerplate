@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { initials, sampleClinics, type PublicClinic } from "@/lib/directories";
+
+export const metadata: Metadata = {
+  title: "Veterinary Clinics & Hospitals in Pakistan",
+  description: "Find veterinary clinics and hospitals in Pakistan by location, facility type and service.",
+  alternates: { canonical: "/clinics" },
+};
 
 export const dynamic = "force-dynamic";
 

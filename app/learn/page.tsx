@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+
+export const metadata: Metadata = {
+  title: "Veterinary Learning & Professional Development",
+  description: "Explore veterinary, livestock, poultry, dairy, fisheries and animal-health learning opportunities on VetConnect.",
+  alternates: { canonical: "/learn" },
+};
 
 const courses = [
   [

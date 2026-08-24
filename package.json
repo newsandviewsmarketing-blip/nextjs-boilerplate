@@ -1,6 +1,6 @@
 {
   "name": "vetconnect-pakistan",
-  "version": "4.0.0",
+  "version": "4.1.0-rc.20260824",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,7 +11,10 @@
     "test": "node --test scripts/source.test.mjs",
     "typecheck": "tsc --noEmit",
     "security:audit": "npm audit --audit-level=high",
-    "check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build"
+    "check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build",
+    "release:gate": "node scripts/release-gate.mjs",
+    "release:manifest": "node scripts/create-release-manifest.mjs",
+    "release:check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build && npm run release:gate"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

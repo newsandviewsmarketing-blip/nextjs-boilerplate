@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { sampleJobs, type PublicJob } from "@/lib/jobs";
+
+export const metadata: Metadata = {
+  title: "Veterinary Jobs in Pakistan",
+  description: "Find veterinary, livestock, poultry, dairy, animal-health, feed and allied jobs in Pakistan.",
+  alternates: { canonical: "/jobs" },
+};
 
 export const dynamic = "force-dynamic";
 

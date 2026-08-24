@@ -14,6 +14,8 @@ export default function ProfilePhoto({
       className="profile-photo"
       src={imageUrl}
       alt={`${name} profile photograph`}
+      loading="lazy"
+      decoding="async"
     />
   ) : fallback;
 }

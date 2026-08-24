@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -9,6 +10,18 @@ import { initials, sampleLaboratories, type PublicLaboratory } from "@/lib/direc
 export const dynamic = "force-dynamic";
 
 async function loadLaboratory(slug: string): Promise<PublicLaboratory | null> { const sample = sampleLaboratories.find((item) => item.slug === slug); if (!isSupabaseConfigured()) return sample ?? null; const supabase = await createClient(); const { data } = await supabase.from("public_laboratories").select("id, slug, laboratory_name, laboratory_type, description, city, province, address, public_phone, public_email, website, working_hours, emergency_service, species_served, tests_offered, profile_verified, accreditation_verified").eq("slug", slug).maybeSingle(); return (data as PublicLaboratory | null) ?? sample ?? null; }
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const lab = await loadLaboratory(slug);
+  if (!lab) return { title: "Veterinary Diagnostic Laboratory" };
+  return {
+    title: `${lab.laboratory_name} | Veterinary Diagnostic Laboratory`,
+    description: lab.description || `${lab.laboratory_name} diagnostic laboratory profile on VetConnect Pakistan.`,
+    alternates: { canonical: `/labs/${slug}` },
+    robots: lab.is_sample ? { index: false, follow: true } : undefined,
+  };
+}
 
 export default async function LaboratoryDetailPage({ params }: { params: Promise<{ slug: string }> }) { const { slug } = await params; const lab = await loadLaboratory(slug); if (!lab) notFound(); return <main><SiteHeader />
   <section className="page-hero"><div className="shell company-profile-hero"><div className="company-mark company-profile-logo">{initials(lab.laboratory_name)}</div><div><span className="section-kicker">{lab.is_sample ? "SAMPLE LABORATORY" : "VETCONNECT VERIFIED LABORATORY"}</span><h1>{lab.laboratory_name}</h1><p>{lab.description || lab.laboratory_type}</p><div className="profile-chips"><span>{lab.laboratory_type}</span><span>{lab.city || "Pakistan"}</span>{lab.accreditation_verified && <span>Accreditation verified</span>}</div></div></div></section>

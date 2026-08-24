@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -15,6 +16,18 @@ async function loadProfessional(slug: string): Promise<PublicProfessional | null
   const supabase = await createClient();
   const { data } = await supabase.from("public_professionals").select("user_id, slug, full_name, professional_type, headline, current_position, organization_name, city, province, years_experience, skills, profile_verified, image_url").eq("slug", slug).maybeSingle();
   return (data as PublicProfessional | null) ?? sample ?? null;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const profile = await loadProfessional(slug);
+  if (!profile) return { title: "Professional Profile" };
+  return {
+    title: `${profile.full_name} | ${profile.professional_type} in ${profile.city || "Pakistan"}`,
+    description: profile.headline || `${profile.full_name} is listed on VetConnect Pakistan as ${profile.professional_type}.`,
+    alternates: { canonical: `/professionals/${slug}` },
+    robots: profile.is_sample ? { index: false, follow: true } : undefined,
+  };
 }
 
 export default async function ProfessionalDetailPage({ params }: { params: Promise<{ slug: string }> }) {

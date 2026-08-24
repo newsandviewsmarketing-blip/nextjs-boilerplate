@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { initials, sampleLaboratories, type PublicLaboratory } from "@/lib/directories";
+
+export const metadata: Metadata = {
+  title: "Veterinary Diagnostic Laboratories in Pakistan",
+  description: "Search veterinary and animal-health diagnostic laboratories in Pakistan by test, species and city.",
+  alternates: { canonical: "/labs" },
+};
 
 export const dynamic = "force-dynamic";
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -17,6 +18,18 @@ async function loadJob(slug: string): Promise<PublicJob | null> {
   const supabase = await createClient();
   const { data } = await supabase.from("public_jobs").select("id, slug, title, description, sector, city, province, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_name").eq("slug", slug).maybeSingle();
   return (data as PublicJob | null) ?? sample ?? null;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const job = await loadJob(slug);
+  if (!job) return { title: "Veterinary Job" };
+  return {
+    title: `${job.title} at ${job.company_name} in ${job.city || "Pakistan"}`,
+    description: job.description,
+    alternates: { canonical: `/jobs/${slug}` },
+    robots: job.is_sample ? { index: false, follow: true } : undefined,
+  };
 }
 
 export default async function JobDetailPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ error?: string; message?: string }> }) {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -9,6 +10,12 @@ import {
   sampleVeterinarians,
   type PublicVeterinarian,
 } from "@/lib/directories";
+
+export const metadata: Metadata = {
+  title: "Veterinarians in Pakistan",
+  description: "Find VetConnect-listed veterinarians in Pakistan by city, specialization and veterinary service.",
+  alternates: { canonical: "/vets" },
+};
 
 export const dynamic = "force-dynamic";
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -79,6 +80,18 @@ async function loadCompany(id: string) {
   return { company: company as PublicCompany | null, products: publicProducts };
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const { company } = await loadCompany(id);
+  if (!company) return { title: "Veterinary Company" };
+  return {
+    title: `${company.company_name} | Veterinary Company Profile`,
+    description: company.description || `${company.company_name} animal-health company profile on VetConnect Pakistan.`,
+    alternates: { canonical: `/companies/${id}` },
+    robots: company.is_sample ? { index: false, follow: true } : undefined,
+  };
+}
+
 export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { company, products } = await loadCompany(id);
@@ -90,7 +103,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
         <div className="shell company-profile-hero">
           {company.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="company-profile-logo" src={company.logo_url} alt="" />
+            <img className="company-profile-logo" src={company.logo_url} alt={`${company.company_name} logo`} loading="lazy" decoding="async" />
           ) : (
             <div className="company-mark company-profile-logo">{companyInitials(company.company_name)}</div>
           )}
