@@ -4,7 +4,12 @@ export type AccountRole =
   | "user"
   | "veterinarian"
   | "company"
-  | "candidate";
+  | "candidate"
+  | "professional"
+  | "laboratory"
+  | "verification_officer"
+  | "content_admin"
+  | "analyst";
 
 export type VerificationStatus = "pending" | "approved" | "rejected";
 

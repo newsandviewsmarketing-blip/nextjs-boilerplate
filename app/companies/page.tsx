@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -9,17 +10,22 @@ import {
   type PublicCompany,
 } from "@/lib/marketplace";
 
+export const metadata: Metadata = {
+  title: "Veterinary & Animal Health Companies in Pakistan",
+  description: "Browse approved veterinary, livestock, poultry, dairy, feed, diagnostics and animal-health companies in Pakistan.",
+  alternates: { canonical: "/companies" },
+};
+
 export const dynamic = "force-dynamic";
 
 async function loadCompanies() {
   if (!isSupabaseConfigured()) return sampleCompanies;
   const supabase = await createClient();
   const { data } = await supabase
-    .from("company_profiles")
+    .from("public_companies")
     .select(
       "user_id, company_name, business_type, city, address, description, website, contact_email, logo_url",
     )
-    .eq("verification_status", "approved")
     .order("company_name");
   return data?.length ? (data as PublicCompany[]) : sampleCompanies;
 }
@@ -84,7 +90,7 @@ export default async function CompaniesPage({
                 <article key={company.user_id ?? company.company_name}>
                   {company.logo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="company-mark large company-logo" src={company.logo_url} alt="" />
+                    <img className="company-mark large company-logo" src={company.logo_url} alt={`${company.company_name} logo`} loading="lazy" decoding="async" />
                   ) : (
                     <div className="company-mark large">{companyInitials(company.company_name)}</div>
                   )}
