@@ -2490,7 +2490,7 @@ textarea:focus {
   margin: 0;
   font-size: 12px;
 }
-@media (max-width: 1000px) {
+@media (max-width: 780px) {
   .admin-control-layout {
     grid-template-columns: 1fr;
     gap: 24px;
