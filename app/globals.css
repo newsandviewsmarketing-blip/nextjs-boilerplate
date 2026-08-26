@@ -2881,3 +2881,74 @@ textarea:focus {
     flex-direction: column;
   }
 }
+
+/* =========================================
+   FINAL ADMIN LAYOUT STABILIZATION
+   Desktop / Laptop = fixed left column
+   Mobile = full-width navigation
+   ========================================= */
+
+@media (min-width: 641px) {
+  .admin-control-layout {
+    display: grid;
+    grid-template-columns: 245px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .admin-navigation {
+    position: static;
+    top: auto;
+
+    width: 245px;
+    max-width: 245px;
+    max-height: none;
+
+    overflow: visible;
+    margin-bottom: 0;
+
+    align-self: start;
+    z-index: auto;
+  }
+
+  .admin-navigation nav {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-control-content {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+
+/* Mobile only */
+@media (max-width: 640px) {
+  .admin-control-layout {
+    display: block;
+  }
+
+  .admin-navigation {
+    position: static;
+    top: auto;
+
+    width: 100%;
+    max-width: none;
+    max-height: none;
+
+    overflow: visible;
+    margin-bottom: 24px;
+  }
+
+  .admin-navigation nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 520px) {
+  .admin-navigation nav {
+    grid-template-columns: 1fr;
+  }
+}
