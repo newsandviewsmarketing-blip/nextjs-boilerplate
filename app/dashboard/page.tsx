@@ -18,6 +18,31 @@ function statusLabel(status?: string | null) {
   return "Pending review";
 }
 
+const companyRoleOptions = [
+  ["manufacturer", "Manufacturer"],
+  ["principal", "Principal"],
+  ["importer", "Importer"],
+  ["distributor", "Distributor"],
+  ["marketer", "Marketer"],
+  ["indentor", "Indentor"],
+  ["registration_holder", "Registration Holder"],
+  ["service_provider", "Service Provider"],
+] as const;
+
+const sectorOptions = [
+  "Poultry",
+  "Livestock",
+  "Dairy",
+  "Pets / Companion Animals",
+  "Equine",
+  "Aquaculture / Fisheries",
+  "Feed / Nutrition",
+  "Diagnostics / Laboratory",
+  "Biosecurity",
+  "Equipment / Technology",
+  "One Health",
+] as const;
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -54,6 +79,8 @@ export default async function DashboardPage({
   const role = identity.profile?.primary_role ?? identity.roles[0] ?? "user";
   const isAdmin = identity.roles.some(isAdminRole);
   let specialistProfile: Record<string, unknown> | null = null;
+  let companyRoleRows: { role_type: string; details: string }[] = [];
+  let companySectorRows: { sector: string }[] = [];
 
   if (role === "veterinarian") {
     const { data } = await supabase
@@ -63,10 +90,26 @@ export default async function DashboardPage({
       .maybeSingle();
     specialistProfile = data;
   } else if (role === "company") {
+    const [{ data }, { data: roles }, { data: sectors }] = await Promise.all([
+      supabase.from("company_profiles").select("*").eq("user_id", identity.userId).maybeSingle(),
+      supabase.from("company_roles").select("role_type, details").eq("company_user_id", identity.userId).eq("is_active", true),
+      supabase.from("company_sectors").select("sector").eq("company_user_id", identity.userId),
+    ]);
+    specialistProfile = data;
+    companyRoleRows = roles ?? [];
+    companySectorRows = sectors ?? [];
+  } else if (role === "professional" || role === "candidate") {
     const { data } = await supabase
-      .from("company_profiles")
+      .from("professional_profiles")
       .select("*")
       .eq("user_id", identity.userId)
+      .maybeSingle();
+    specialistProfile = data;
+  } else if (role === "laboratory") {
+    const { data } = await supabase
+      .from("laboratories")
+      .select("*")
+      .eq("owner_id", identity.userId)
       .maybeSingle();
     specialistProfile = data;
   }
@@ -108,7 +151,7 @@ export default async function DashboardPage({
               <span>Account</span>
               <b>{identity.profile?.account_status ?? "active"}</b>
             </div>
-            {(role === "veterinarian" || role === "company") && (
+            {(["veterinarian", "company", "professional", "candidate", "laboratory"] as string[]).includes(role) && (
               <div className="dashboard-stat">
                 <span>Verification</span>
                 <b
@@ -251,6 +294,30 @@ export default async function DashboardPage({
                         )}
                       />
                     </div>
+                    <div className="form-span-2">
+                      <label>Company roles and role details</label>
+                      <div className="role-check-grid">
+                        {companyRoleOptions.map(([value, label]) => {
+                          const saved = companyRoleRows.find((item) => item.role_type === value);
+                          return (
+                            <div className="role-check-row" key={value}>
+                              <label>
+                                <input type="checkbox" name="company_roles" value={value} defaultChecked={Boolean(saved)} />
+                                {label}
+                              </label>
+                              <input name={`role_details_${value}`} defaultValue={saved?.details ?? ""} placeholder={`What does the company do as ${label.toLowerCase()}?`} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="form-span-2">
+                      <label htmlFor="company_sectors">Sector coverage</label>
+                      <select id="company_sectors" name="company_sectors" multiple defaultValue={companySectorRows.map((item) => item.sector)}>
+                        {sectorOptions.map((sector) => <option key={sector}>{sector}</option>)}
+                      </select>
+                      <p className="form-help">Use Ctrl or Command to select more than one sector.</p>
+                    </div>
                     <div>
                       <label htmlFor="registration_number">
                         NTN / registration number
@@ -310,6 +377,104 @@ export default async function DashboardPage({
                         defaultValue={String(specialistProfile?.logo_url ?? "")}
                       />
                     </div>
+                  </>
+                )}
+                {(role === "professional" || role === "candidate") && (
+                  <>
+                    <div>
+                      <label htmlFor="professional_type">Professional type</label>
+                      <input id="professional_type" name="professional_type" defaultValue={String(specialistProfile?.professional_type ?? (role === "candidate" ? "Student / Job Seeker" : "Animal Health Professional"))} />
+                    </div>
+                    <div>
+                      <label htmlFor="headline">Professional headline</label>
+                      <input id="headline" name="headline" defaultValue={String(specialistProfile?.headline ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="current_position">Current position</label>
+                      <input id="current_position" name="current_position" defaultValue={String(specialistProfile?.current_position ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="organization_name">Organization</label>
+                      <input id="organization_name" name="organization_name" defaultValue={String(specialistProfile?.organization_name ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="province">Province</label>
+                      <input id="province" name="province" defaultValue={String(specialistProfile?.province ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="years_experience">Years of experience</label>
+                      <input id="years_experience" name="years_experience" type="number" min="0" defaultValue={String(specialistProfile?.years_experience ?? 0)} />
+                    </div>
+                    <div className="form-span-2">
+                      <label htmlFor="skills">Skills, separated by commas</label>
+                      <input id="skills" name="skills" defaultValue={Array.isArray(specialistProfile?.skills) ? specialistProfile.skills.join(", ") : ""} />
+                    </div>
+                    <div className="form-span-2">
+                      <label htmlFor="public_summary">Public professional summary</label>
+                      <textarea id="public_summary" name="public_summary" defaultValue={String(specialistProfile?.public_summary ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="profile_visibility">Profile visibility</label>
+                      <select id="profile_visibility" name="profile_visibility" defaultValue={String(specialistProfile?.profile_visibility ?? "owner_only")}>
+                        <option value="owner_only">Only me</option>
+                        <option value="registered_users">Registered users</option>
+                        <option value="authorized_company">Approved recruiters</option>
+                        <option value="public">Public professional summary</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+                {role === "laboratory" && (
+                  <>
+                    <div>
+                      <label htmlFor="laboratory_name">Laboratory name</label>
+                      <input id="laboratory_name" name="laboratory_name" defaultValue={String(specialistProfile?.laboratory_name ?? "")} required />
+                    </div>
+                    <div>
+                      <label htmlFor="laboratory_type">Laboratory type</label>
+                      <input id="laboratory_type" name="laboratory_type" defaultValue={String(specialistProfile?.laboratory_type ?? "Diagnostic Laboratory")} />
+                    </div>
+                    <div>
+                      <label htmlFor="technical_head">Technical head</label>
+                      <input id="technical_head" name="technical_head" defaultValue={String(specialistProfile?.technical_head ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="province">Province</label>
+                      <input id="province" name="province" defaultValue={String(specialistProfile?.province ?? "")} />
+                    </div>
+                    <div className="form-span-2">
+                      <label htmlFor="address">Laboratory address</label>
+                      <input id="address" name="address" defaultValue={String(specialistProfile?.address ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="public_phone">Public phone</label>
+                      <input id="public_phone" name="public_phone" defaultValue={String(specialistProfile?.public_phone ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="public_email">Public email</label>
+                      <input id="public_email" name="public_email" type="email" defaultValue={String(specialistProfile?.public_email ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="website">Website</label>
+                      <input id="website" name="website" type="url" defaultValue={String(specialistProfile?.website ?? "")} />
+                    </div>
+                    <div>
+                      <label htmlFor="working_hours">Working hours</label>
+                      <input id="working_hours" name="working_hours" defaultValue={String(specialistProfile?.working_hours ?? "")} />
+                    </div>
+                    <div className="form-span-2">
+                      <label htmlFor="tests_offered">Tests offered, separated by commas</label>
+                      <input id="tests_offered" name="tests_offered" defaultValue={Array.isArray(specialistProfile?.tests_offered) ? specialistProfile.tests_offered.join(", ") : ""} />
+                    </div>
+                    <div className="form-span-2">
+                      <label htmlFor="species_served">Species or sectors served, separated by commas</label>
+                      <input id="species_served" name="species_served" defaultValue={Array.isArray(specialistProfile?.species_served) ? specialistProfile.species_served.join(", ") : ""} />
+                    </div>
+                    <div className="form-span-2">
+                      <label htmlFor="description">Laboratory description</label>
+                      <textarea id="description" name="description" defaultValue={String(specialistProfile?.description ?? "")} />
+                    </div>
+                    <label className="checkbox-line"><input type="checkbox" name="emergency_service" defaultChecked={Boolean(specialistProfile?.emergency_service)} /> Emergency service available</label>
                   </>
                 )}
               </div>

@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { siteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
     default:
-      "VetConnect Pakistan | Veterinarians, Marketplace, Jobs & Learning",
+      "VetConnect Pakistan | Vets, Labs, Companies, Products & Careers",
     template: "%s | VetConnect Pakistan",
   },
   description:
-    "VetConnect Pakistan connects veterinary professionals, farmers, pet owners, companies, employers and students through verified profiles, appointments, marketplace listings, jobs and learning.",
+    "VetConnect Pakistan connects verified veterinarians, clinics, diagnostic laboratories, animal-health professionals, companies, products, careers and learning through one structured platform.",
   keywords: [
     "VetConnect Pakistan",
     "veterinarian Pakistan",
     "veterinary jobs Pakistan",
     "animal health marketplace",
+    "veterinary diagnostic laboratories Pakistan",
+    "veterinary companies Pakistan",
     "livestock veterinarian",
     "pet veterinarian",
     "veterinary courses",
@@ -21,12 +25,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "VetConnect Pakistan",
     description:
-      "One connected platform for veterinary care, products, careers and learning.",
+      "Verified veterinary professionals, diagnostics, business information, products and careers in one connected platform.",
     type: "website",
     url: "https://www.vetconnect.com.pk",
     siteName: "VetConnect Pakistan",
   },
   robots: { index: true, follow: true },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({

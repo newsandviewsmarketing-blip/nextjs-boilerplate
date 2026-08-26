@@ -23,6 +23,16 @@ const roles = [
     "Career profile, CV, jobs, internships and learning.",
   ],
   [
+    "professional",
+    "Industry Professional",
+    "Structured profile for nutrition, laboratory, research, academia, farm and technical roles.",
+  ],
+  [
+    "laboratory",
+    "Diagnostic Laboratory",
+    "Laboratory identity, locations, test menu and verification.",
+  ],
+  [
     "user",
     "Animal Owner / Farmer",
     "Veterinary services, bookings and relevant products.",
@@ -137,9 +147,9 @@ export default async function RegisterPage({
               </div>
             </div>
             <p className="form-help">
-              Veterinarian and company accounts remain pending until VetConnect
-              administration reviews the submitted profile. A six-digit code
-              will be sent to your email to complete registration.
+              Veterinarian, professional, laboratory and company accounts remain
+              pending until VetConnect reviews the submitted profile. A
+              six-digit code will be sent to your email to complete registration.
             </p>
             <FormSubmitButton pendingLabel="Sending code...">
               Send registration code

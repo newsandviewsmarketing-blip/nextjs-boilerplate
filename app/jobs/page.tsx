@@ -1,39 +1,29 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
+import { sampleJobs, type PublicJob } from "@/lib/jobs";
 
-const jobs = [
-  [
-    "Veterinary Officer",
-    "Animal Health Company",
-    "Lahore",
-    "Livestock",
-    "Full-time",
-  ],
-  [
-    "Technical Sales Executive",
-    "Veterinary Nutrition Company",
-    "Faisalabad",
-    "Feed & Nutrition",
-    "Full-time",
-  ],
-  ["Poultry Veterinarian", "Poultry Company", "Lahore", "Poultry", "Full-time"],
-  ["Veterinary Intern", "Clinical Practice", "Islamabad", "Pets", "Internship"],
-  [
-    "Quality Assurance Officer",
-    "Animal Health Manufacturer",
-    "Karachi",
-    "Pharmaceutical",
-    "Full-time",
-  ],
-  [
-    "Research Assistant",
-    "Veterinary Research Project",
-    "Multan",
-    "Research",
-    "Contract",
-  ],
-];
+export const metadata: Metadata = {
+  title: "Veterinary Jobs in Pakistan",
+  description: "Find veterinary, livestock, poultry, dairy, animal-health, feed and allied jobs in Pakistan.",
+  alternates: { canonical: "/jobs" },
+};
+
+export const dynamic = "force-dynamic";
+
+async function loadJobs(): Promise<PublicJob[]> {
+  if (!isSupabaseConfigured()) return sampleJobs;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("public_jobs")
+    .select("id, slug, title, description, sector, city, province, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_name")
+    .order("deadline", { ascending: true, nullsFirst: false });
+  if (error || !data?.length) return sampleJobs;
+  return data as PublicJob[];
+}
 
 export default async function JobsPage({
   searchParams,
@@ -41,13 +31,16 @@ export default async function JobsPage({
   searchParams: Promise<{ q?: string; city?: string }>;
 }) {
   const params = await searchParams;
+  const jobs = await loadJobs();
   const query = (params.q ?? "").toLowerCase();
   const visibleJobs = jobs.filter(
     (job) =>
       (!query ||
-        `${job[0]} ${job[1]} ${job[3]}`.toLowerCase().includes(query)) &&
-      (!params.city || params.city === "All cities" || job[2] === params.city),
+        `${job.title} ${job.company_name} ${job.sector ?? ""}`.toLowerCase().includes(query)) &&
+      (!params.city || params.city === "All cities" || job.city === params.city),
   );
+  const cities = [...new Set(jobs.map((job) => job.city).filter(Boolean))] as string[];
+  const showingSamples = jobs.some((job) => job.is_sample);
   return (
     <main>
       <SiteHeader />
@@ -115,7 +108,7 @@ export default async function JobsPage({
           <div className="directory-top">
             <div>
               <b>{visibleJobs.length} opportunities</b>
-              <span>Searchable sample job board</span>
+              <span>{showingSamples ? "Sample opportunities until approved jobs are published" : "Verified employer job board"}</span>
             </div>
             <form className="market-search" method="get">
               <input
@@ -125,11 +118,7 @@ export default async function JobsPage({
               />
               <select name="city" defaultValue={params.city ?? "All cities"}>
                 <option>All cities</option>
-                <option>Lahore</option>
-                <option>Faisalabad</option>
-                <option>Islamabad</option>
-                <option>Karachi</option>
-                <option>Multan</option>
+                {cities.map((city) => <option key={city}>{city}</option>)}
               </select>
               <button className="button button-primary" type="submit">
                 Search
@@ -144,18 +133,18 @@ export default async function JobsPage({
           ) : (
             <div className="job-board">
               {visibleJobs.map((job, index) => (
-                <article key={job[0]}>
+                <article key={job.slug}>
                   <div className="job-logo">
                     {String(index + 1).padStart(2, "0")}
                   </div>
                   <div className="job-main">
-                    <span>{job[3]}</span>
-                    <h3>{job[0]}</h3>
+                    <span>{job.sector || "Animal health"}</span>
+                    <h3>{job.title}</h3>
                     <p>
-                      {job[1]} • {job[2]}
+                      {job.company_name} • {job.city || "Pakistan"}
                     </p>
                     <div className="profile-chips">
-                      <span>{job[4]}</span>
+                      <span>{job.employment_type}</span>
                       <span>Profile matching</span>
                     </div>
                   </div>
@@ -163,7 +152,7 @@ export default async function JobsPage({
                     <small>Posted recently</small>
                     <Link
                       className="button button-primary"
-                      href="/coming-soon?feature=Job%20applications"
+                      href={job.is_sample ? "/coming-soon?feature=Job%20applications" : `/jobs/${job.slug}`}
                     >
                       View & apply
                     </Link>

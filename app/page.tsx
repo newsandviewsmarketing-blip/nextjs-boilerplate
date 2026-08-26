@@ -18,6 +18,27 @@ const modules = [
     link: "Explore marketplace",
   },
   {
+    tag: "CLN",
+    title: "Clinics & Veterinary Hospitals",
+    text: "Facility profiles organized by location, services, species, public contacts, working hours and linked veterinary professionals.",
+    href: "/clinics",
+    link: "Find a facility",
+  },
+  {
+    tag: "LAB",
+    title: "Diagnostic Laboratory Network",
+    text: "Laboratory profiles, branches, test menus, species coverage and evidence-based accreditation status in a dedicated directory.",
+    href: "/labs",
+    link: "Explore laboratories",
+  },
+  {
+    tag: "PRO",
+    title: "Animal Health Professionals",
+    text: "A separate professional network for nutrition, laboratory, research, academia, farm management, regulatory and technical roles.",
+    href: "/professionals",
+    link: "Find professionals",
+  },
+  {
     tag: "JOB",
     title: "Jobs & Talent Matching",
     text: "A career bridge where companies can publish openings and students or professionals can build profiles, upload CVs and discover relevant opportunities.",
@@ -132,10 +153,9 @@ export default function Home() {
               <em>Connected.</em>
             </h1>
             <p className="hero-lead">
-              VetConnect is a sector platform built to help people find the
-              right veterinary professional, discover trusted animal-health
-              products, connect employers with talent, and access professional
-              learning.
+              VetConnect brings verified veterinary professionals, facilities,
+              diagnostic laboratories, animal-health companies, products,
+              careers and learning into one structured platform.
             </p>
             <div className="hero-actions">
               <Link href="/vets" className="button button-primary">
@@ -146,9 +166,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="trust-row">
-              <span>PVMC verification workflow</span>
+              <span>Separate PVMC and profile verification</span>
               <span>Location & expertise matching</span>
-              <span>B2B + B2C marketplace</span>
+              <span>Verified company and product data</span>
               <span>English + Urdu ready</span>
             </div>
           </div>
@@ -159,7 +179,7 @@ export default function Home() {
                 <small>SMART MATCHING</small>
                 <h2>What do you need today?</h2>
               </div>
-              <span className="status-pill">Platform Preview</span>
+              <span className="status-pill">Structured Discovery</span>
             </div>
             <div className="search-tabs">
               <Link className="active" href="/vets">
@@ -219,8 +239,8 @@ export default function Home() {
             <span>Search verified professional profiles</span>
           </Link>
           <Link href="/marketplace">
-            <b>Buy Animal Health Products</b>
-            <span>Explore company and product listings</span>
+            <b>Find Animal Health Products</b>
+            <span>Explore verified information and suppliers</span>
           </Link>
           <Link href="/jobs">
             <b>Find a Job</b>
@@ -376,9 +396,9 @@ export default function Home() {
             <h2>Structured product listings, backed by company profiles.</h2>
             <p>
               Companies can build verified business profiles and list products
-              with sector, category, generic/brand information, pack size,
-              pricing, offers, delivery, documents, availability and customer
-              feedback.
+              with category, generic and brand information, pack sizes,
+              technical details, regulatory review status, documents,
+              availability and quotation requests.
             </p>
             <div className="category-cloud">
               {marketCategories.map((c) => (
