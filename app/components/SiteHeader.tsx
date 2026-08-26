@@ -72,10 +72,7 @@ export default async function SiteHeader() {
           )}
         </div>
 
-        <MobileNav
-          items={navItems}
-          isAuthenticated={isAuthenticated}
-        />
+       <MobileNav items={navItems} isAuthenticated={isAuthenticated} />
       </div>
     </header>
   );
