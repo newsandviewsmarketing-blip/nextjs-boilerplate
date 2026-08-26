@@ -2057,9 +2057,30 @@ textarea:focus {
   }
 }
 @media (max-width: 780px) {
+  .admin-control-layout {
+    display: block;
+  }
+
+  .admin-navigation {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  .admin-navigation nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-navigation nav {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 780px) {
   .shell {
     width: min(100% - 26px, 1180px);
   }
+
   .header-row {
     height: 70px;
     gap: 12px;
@@ -2225,7 +2246,6 @@ textarea:focus {
     min-height: auto;
   }
 }
-
 /* Phase 4 administrator control centre */
 .admin-control-layout {
   display: grid;
@@ -2233,9 +2253,11 @@ textarea:focus {
   gap: 28px;
   align-items: start;
 }
+
 .admin-control-content {
   min-width: 0;
 }
+
 .admin-navigation {
   position: sticky;
   top: 92px;
@@ -2468,19 +2490,27 @@ textarea:focus {
   margin: 0;
   font-size: 12px;
 }
-
 @media (max-width: 1000px) {
   .admin-control-layout {
     grid-template-columns: 1fr;
+    gap: 24px;
   }
+
   .admin-navigation {
     position: static;
+    top: auto;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    z-index: auto;
   }
+
   .admin-navigation nav {
+    display: grid;
     grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
   }
-}
-
+} 
 @media (max-width: 780px) {
   .admin-module-grid,
   .admin-data-list > article,
@@ -2816,6 +2846,25 @@ textarea:focus {
 }
 
 @media (max-width: 780px) {
+  .admin-control-layout {
+    display: block;
+  }
+
+  .admin-navigation {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  .admin-navigation nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-navigation nav {
+    grid-template-columns: 1fr;
+  }
+
   .company-summary,
   .inquiry-grid,
   .product-information-grid,
@@ -2823,9 +2872,11 @@ textarea:focus {
   .company-profile-hero {
     grid-template-columns: 1fr;
   }
+
   .product-detail-visual {
     min-height: 260px;
   }
+
   .resend-form {
     flex-direction: column;
   }
