@@ -108,7 +108,9 @@ export default async function AdminOverviewPage() {
       </section>
       <section className="section compact-section">
         <div className="shell admin-control-layout">
-          <AdminNav roles={identity.roles} />
+         <aside className="admin-control-sidebar">
+  <AdminNav roles={identity.roles} />
+</aside>
           <div className="admin-control-content">
             <div className="section-heading">
               <span className="section-kicker">TODAY&apos;S WORK</span>
