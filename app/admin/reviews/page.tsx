@@ -193,12 +193,18 @@ export default async function AdminPage({
             <p>Signed in as {identity.email}</p>
           </div>
         </div>
-      </section>
-      <section className="section compact-section">
-        <div className="shell">
-          <AdminNav roles={identity.roles} />
-          <FormMessage {...params} />
-          <div className="admin-summary">
+        </section>
+     <section className="section compact-section">
+  <div className="shell admin-control-layout">
+    <AdminNav roles={identity.roles} />
+
+    <div className="admin-control-content">
+      <FormMessage {...params} />
+
+      <div className="admin-summary">
+
+            
+            
             <article>
               <b>{pending.length}</b>
               <span>Pending profiles</span>
@@ -429,14 +435,88 @@ export default async function AdminPage({
           <div className="admin-review-list">
             {regulatoryRows.length === 0 && <div className="empty-state"><h2>No regulatory records are waiting for review.</h2></div>}
             {regulatoryRows.map((row) => { const product = regulatoryProductMap.get(row.product_id); return <article key={`regulatory-${row.product_id}`}><div className="review-header"><div><span className="module-tag">REGULATORY</span><h2>{product?.product_name || "Product"}</h2><p>{product?.category || "Animal health product"}</p></div><span className="status-pill">Pending</span></div><dl className="review-details"><div><dt>Private registration reference</dt><dd>{row.registration_number || "Not provided"}</dd></div><div><dt>Submitted status</dt><dd>{row.registration_status || "Not provided"}</dd></div><div><dt>Applicability</dt><dd>{row.applicability || "Requires reviewer determination"}</dd></div></dl><form action={reviewProductRegulatoryAction}><input type="hidden" name="product_id" value={row.product_id} /><label htmlFor={`regulatory-note-${row.product_id}`}>Verification source and reviewer note</label><input id={`regulatory-note-${row.product_id}`} name="notes" placeholder="Record the source and basis for this decision" /><div className="review-actions"><FormSubmitButton className="button button-primary" pendingLabel="Saving..." name="decision" value="verified">Verify registration</FormSubmitButton><button className="button button-secondary" type="submit" name="decision" value="not_applicable">Mark reviewed: not applicable</button><button className="button button-secondary" type="submit" name="decision" value="returned">Return for correction</button></div></form></article>; })}
+        
+                   </div>
+
+          <div className="section-heading admin-product-heading">
+            <span className="section-kicker">JOB MODERATION</span>
+            <h2>Employer opportunities.</h2>
+            <p>Approve complete, credible job information before it becomes public.</p>
           </div>
-          <div className="section-heading admin-product-heading"><span className="section-kicker">JOB MODERATION</span><h2>Employer opportunities.</h2><p>Approve complete, credible job information before it becomes public.</p></div>
+
           <div className="admin-review-list">
-            {jobRows.length === 0 && <div className="empty-state"><h2>No jobs are waiting for review.</h2><p>New opportunities from approved companies will appear here.</p></div>}
-            {jobRows.map((job) => <article key={job.id}><div className="review-header"><div><span className="module-tag">{job.sector || "JOB"}</span><h2>{job.title}</h2><p>{productCompanyMap.get(job.company_user_id) || "Verified company"} · {job.city || "Pakistan"}</p></div><span className="status-pill">Pending</span></div><dl className="review-details"><div><dt>Employment type</dt><dd>{job.employment_type}</dd></div><div><dt>Qualification</dt><dd>{job.minimum_qualification || "Not provided"}</dd></div><div><dt>Experience</dt><dd>{job.minimum_experience} years</dd></div><div><dt>Deadline</dt><dd>{job.deadline || "Not provided"}</dd></div></dl><p>{job.description}</p><form action={reviewJobAction}><input type="hidden" name="job_id" value={job.id} /><div className="review-actions"><FormSubmitButton className="button button-primary" pendingLabel="Saving..." name="decision" value="approved">Approve and publish</FormSubmitButton><button className="button button-secondary" type="submit" name="decision" value="rejected">Reject</button></div></form></article>)}
+            {jobRows.length === 0 && (
+              <div className="empty-state">
+                <h2>No jobs are waiting for review.</h2>
+                <p>New opportunities from approved companies will appear here.</p>
+              </div>
+            )}
+
+            {jobRows.map((job) => (
+              <article key={job.id}>
+                <div className="review-header">
+                  <div>
+                    <span className="module-tag">{job.sector || "JOB"}</span>
+                    <h2>{job.title}</h2>
+                    <p>
+                      {productCompanyMap.get(job.company_user_id) || "Verified company"} ·{" "}
+                      {job.city || "Pakistan"}
+                    </p>
+                  </div>
+                  <span className="status-pill">Pending</span>
+                </div>
+
+                <dl className="review-details">
+                  <div>
+                    <dt>Employment type</dt>
+                    <dd>{job.employment_type}</dd>
+                  </div>
+                  <div>
+                    <dt>Qualification</dt>
+                    <dd>{job.minimum_qualification || "Not provided"}</dd>
+                  </div>
+                  <div>
+                    <dt>Experience</dt>
+                    <dd>{job.minimum_experience} years</dd>
+                  </div>
+                  <div>
+                    <dt>Deadline</dt>
+                    <dd>{job.deadline || "Not provided"}</dd>
+                  </div>
+                </dl>
+
+                <p>{job.description}</p>
+
+                <form action={reviewJobAction}>
+                  <input type="hidden" name="job_id" value={job.id} />
+
+                  <div className="review-actions">
+                    <FormSubmitButton
+                      className="button button-primary"
+                      pendingLabel="Saving..."
+                      name="decision"
+                      value="approved"
+                    >
+                      Approve and publish
+                    </FormSubmitButton>
+
+                    <button
+                      className="button button-secondary"
+                      type="submit"
+                      name="decision"
+                      value="rejected"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </form>
+              </article>
+            ))}
           </div>
+
         </div>
-      </section>
+      </div>
+    </section>
       <SiteFooter />
     </main>
   );
