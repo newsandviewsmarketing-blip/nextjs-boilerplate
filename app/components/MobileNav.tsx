@@ -5,16 +5,27 @@ import { useEffect, useState } from "react";
 
 type NavigationItem = readonly [label: string, href: string];
 
-export default function MobileNav({ items }: { items: readonly NavigationItem[] }) {
+export default function MobileNav({
+  items,
+  isAuthenticated = false,
+}: {
+  items: readonly NavigationItem[];
+  isAuthenticated?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsOpen(false);
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
     }
 
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, []);
 
   return (
@@ -24,7 +35,9 @@ export default function MobileNav({ items }: { items: readonly NavigationItem[] 
         type="button"
         aria-expanded={isOpen}
         aria-controls="mobile-navigation-panel"
-        aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+        aria-label={
+          isOpen ? "Close navigation menu" : "Open navigation menu"
+        }
         onClick={() => setIsOpen((open) => !open)}
       >
         <span aria-hidden="true">{isOpen ? "×" : "☰"}</span>
@@ -38,10 +51,15 @@ export default function MobileNav({ items }: { items: readonly NavigationItem[] 
         hidden={!isOpen}
       >
         {items.map(([label, href]) => (
-          <Link key={href} href={href} onClick={() => setIsOpen(false)}>
+          <Link
+            key={href}
+            href={href}
+            onClick={() => setIsOpen(false)}
+          >
             {label}
           </Link>
         ))}
+
         <a
           href="https://vetnewsandviews.com"
           target="_blank"
@@ -50,9 +68,24 @@ export default function MobileNav({ items }: { items: readonly NavigationItem[] 
         >
           VNV News
         </a>
-        <Link className="mobile-sign-in" href="/login" onClick={() => setIsOpen(false)}>
-          Sign in
-        </Link>
+
+        {isAuthenticated ? (
+          <Link
+            className="mobile-sign-in"
+            href="/dashboard"
+            onClick={() => setIsOpen(false)}
+          >
+            My VetConnect
+          </Link>
+        ) : (
+          <Link
+            className="mobile-sign-in"
+            href="/login"
+            onClick={() => setIsOpen(false)}
+          >
+            Sign in
+          </Link>
+        )}
       </nav>
     </div>
   );

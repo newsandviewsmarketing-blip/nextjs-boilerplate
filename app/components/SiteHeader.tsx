@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import MobileNav from "./MobileNav";
+import { getCurrentIdentity } from "@/lib/auth";
 
 const navItems = [
   ["Find a Vet", "/vets"],
@@ -13,7 +14,10 @@ const navItems = [
   ["Professionals", "/professionals"],
 ] as const;
 
-export default function SiteHeader() {
+export default async function SiteHeader() {
+  const identity = await getCurrentIdentity();
+  const isAuthenticated = Boolean(identity);
+
   return (
     <header className="site-header">
       <div className="shell header-row">
@@ -34,6 +38,7 @@ export default function SiteHeader() {
               {label}
             </Link>
           ))}
+
           <a
             href="https://vetnewsandviews.com"
             target="_blank"
@@ -44,15 +49,30 @@ export default function SiteHeader() {
         </nav>
 
         <div className="header-actions">
-          <Link className="text-link" href="/login">
-            Sign in
-          </Link>
-          <Link className="button button-small button-primary" href="/register">
-            Join VetConnect
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              className="button button-small button-primary"
+              href="/dashboard"
+            >
+              My VetConnect
+            </Link>
+          ) : (
+            <>
+              <Link className="text-link" href="/login">
+                Sign in
+              </Link>
+
+              <Link
+                className="button button-small button-primary"
+                href="/register"
+              >
+                Join VetConnect
+              </Link>
+            </>
+          )}
         </div>
 
-        <MobileNav items={navItems} />
+       <MobileNav items={navItems} isAuthenticated={isAuthenticated} />
       </div>
     </header>
   );
