@@ -527,9 +527,49 @@ create index if not exists
   product_ingredients_variant_id_idx
 on public.product_ingredients(variant_id);
 
+-- ============================================================
+-- 8. DATABASE-LEVEL VARIANT / PRODUCT INTEGRITY
+--
+-- A variant-linked ingredient must always reference the
+-- same product that owns the selected variant.
+--
+-- This protects integrity even if product_variants.product_id
+-- is later changed directly.
+-- ============================================================
+
+create unique index if not exists
+  product_variants_id_product_id_unique_idx
+on public.product_variants(
+  id,
+  product_id
+);
+
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.product_ingredients'::regclass
+      and conname = 'product_ingredients_variant_product_fkey'
+  ) then
+    alter table public.product_ingredients
+      add constraint product_ingredients_variant_product_fkey
+      foreign key (
+        variant_id,
+        product_id
+      )
+      references public.product_variants(
+        id,
+        product_id
+      )
+      on update restrict;
+  end if;
+end
+$$;
 
 -- ============================================================
--- 8. GUARANTEE VARIANT BELONGS TO PRODUCT
+-- 9. GUARANTEE VARIANT BELONGS TO PRODUCT
 -- ============================================================
 
 create or replace function
