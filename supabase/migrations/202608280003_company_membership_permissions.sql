@@ -171,6 +171,9 @@ begin
       raise exception 'A membership request is already pending';
     end if;
 
+if v_existing.membership_status = 'suspended' then
+  raise exception 'This membership is suspended and cannot be re-requested';
+end if;
     update public.company_members
     set
       member_role = p_relationship_type,
@@ -470,12 +473,16 @@ begin
       raise exception 'User is already an active company member';
     end if;
 
-    if v_existing.membership_status = 'pending' then
-      raise exception 'A membership request or invitation is already pending';
-    end if;
+   if v_existing.membership_status = 'pending' then
+  raise exception 'A membership request or invitation is already pending';
+end if;
 
-    update public.company_members
-    set
+if v_existing.membership_status = 'suspended' then
+  raise exception 'Suspended membership requires separate administrative review';
+end if;
+
+update public.company_members
+set
       member_role = p_member_role,
       designation = nullif(btrim(p_designation), ''),
       department = nullif(btrim(p_department), ''),
