@@ -176,10 +176,11 @@ on public.professional_experience(
 );
 
 
--- One company membership must not verify multiple CV experience rows.
+-- One company membership may support multiple experience rows
+-- for promotions or role changes within the same company.
 
-create unique index if not exists
-  professional_experience_company_member_unique_idx
+create index if not exists
+  professional_experience_company_member_idx
 on public.professional_experience(company_member_id)
 where company_member_id is not null;
 
@@ -475,14 +476,18 @@ begin
   end if;
 
 
-  select c.canonical_name
-  into v_company_name
-  from public.companies c
-  where c.id = v_membership_company_id;
+ select c.canonical_name
+into v_company_name
+from public.companies c
+where c.id = v_membership_company_id
+  and c.record_status = 'active'
+  and c.verification_status =
+    'approved'::public.approval_status;
 
-  if not found then
-    raise exception 'Canonical company record not found';
-  end if;
+if not found then
+  raise exception
+    'Canonical company must be active and approved before affiliation can be verified';
+end if;
 
 
   update public.professional_experience
