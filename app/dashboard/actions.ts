@@ -64,13 +64,30 @@ export async function updateProfileAction(formData: FormData) {
       })
       .eq("user_id", identity.userId);
     if (error) redirect(message("error", error.message));
-
     const selectedRoles = formData
       .getAll("company_roles")
       .map((item) => String(item))
       .filter(Boolean);
+
+    // Reconcile company roles.
+    // First deactivate the previous selection so unchecked roles
+    // do not remain active in the database.
+    const { error: deactivateRolesError } = await supabase
+      .from("company_roles")
+      .update({ is_active: false })
+      .eq("company_user_id", identity.userId);
+
+    if (deactivateRolesError) {
+      redirect(message("error", deactivateRolesError.message));
+    }
+
+    // Reactivate/upsert only the roles currently selected by the user.
     for (const roleType of selectedRoles) {
-      const details = value(formData, `role_details_${roleType}`);
+      const details = value(
+        formData,
+        `role_details_${roleType}`,
+      );
+
       const { error: roleError } = await supabase
         .from("company_roles")
         .upsert(
@@ -80,23 +97,48 @@ export async function updateProfileAction(formData: FormData) {
             details,
             is_active: true,
           },
-          { onConflict: "company_user_id,role_type" },
+          {
+            onConflict: "company_user_id,role_type",
+          },
         );
-      if (roleError) redirect(message("error", roleError.message));
+
+      if (roleError) {
+        redirect(message("error", roleError.message));
+      }
     }
 
     const selectedSectors = formData
       .getAll("company_sectors")
       .map((item) => String(item))
       .filter(Boolean);
-    for (const sector of selectedSectors) {
+
+    // company_sectors has no active/inactive flag.
+    // Rebuild the user's current selection so removed sectors
+    // do not remain stored after editing.
+    const { error: clearSectorsError } = await supabase
+      .from("company_sectors")
+      .delete()
+      .eq("company_user_id", identity.userId);
+
+    if (clearSectorsError) {
+      redirect(message("error", clearSectorsError.message));
+    }
+
+    if (selectedSectors.length > 0) {
       const { error: sectorError } = await supabase
         .from("company_sectors")
-        .upsert({ company_user_id: identity.userId, sector });
-      if (sectorError) redirect(message("error", sectorError.message));
-    }
-  }
+        .insert(
+          selectedSectors.map((sector) => ({
+            company_user_id: identity.userId,
+            sector,
+          })),
+        );
 
+      if (sectorError) {
+        redirect(message("error", sectorError.message));
+      }
+    }
+    
   if (["professional", "candidate"].includes(identity.profile?.primary_role ?? "")) {
     const skills = value(formData, "skills")
       .split(",")
