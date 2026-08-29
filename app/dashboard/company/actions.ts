@@ -1,295 +1,457 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentIdentity } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { isUuid, readProductInput } from "@/lib/product-input";
+import {
+  requireCompanyPermission,
+  type CompanyPermission,
+} from "./workspace";
 
-function field(formData: FormData, name: string) {
+const COMPANY_PATH = "/dashboard/company";
+
+function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
-function result(kind: "error" | "message", text: string) {
-  return `/dashboard/company?${kind}=${encodeURIComponent(text)}`;
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 58);
-}
-
-async function requireCompany() {
-  const identity = await getCurrentIdentity();
-  if (!identity) redirect("/login?next=/dashboard/company");
-  if (!identity.roles.includes("company")) {
-    redirect(result("error", "A company account is required."));
-  }
-  return identity;
-}
-
-export async function createProductAction(formData: FormData) {
-  const identity = await requireCompany();
-  const supabase = await createClient();
-  const productName = field(formData, "product_name");
-  const category = field(formData, "category");
-  if (!productName || !category) {
-    redirect(result("error", "Product name and category are required."));
-  }
-
-  const { data: company } = await supabase
-    .from("company_profiles")
-    .select("verification_status")
-    .eq("user_id", identity.userId)
-    .maybeSingle();
-  if (company?.verification_status !== "approved") {
-    redirect(
-      result("error", "Your company must be approved before submitting products."),
-    );
-  }
-
-  const packSizes = field(formData, "pack_sizes")
+function listValue(formData: FormData, name: string) {
+  return value(formData, name)
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-  const list = (name: string) =>
-    field(formData, name)
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-  const sectors = list("sectors");
-  const species = list("species");
-  const productionSystems = list("production_systems");
-  const useAreas = list("use_areas");
-  const routes = list("routes");
-  const regulatoryNumber = field(formData, "regulatory_number");
-  const slug = `${slugify(productName) || "product"}-${crypto.randomUUID().slice(0, 8)}`;
-  const { data: product, error } = await supabase.from("products").insert({
-    company_user_id: identity.userId,
-    slug,
-    product_name: productName,
-    product_code: field(formData, "product_code") || null,
-    brand_name: field(formData, "brand_name") || null,
-    generic_name: field(formData, "generic_name") || null,
-    category,
-    subclass: field(formData, "subclass") || null,
-    therapeutic_class: field(formData, "therapeutic_class") || null,
-    sector: sectors[0] || null,
-    sectors,
-    species,
-    production_systems: productionSystems,
-    use_areas: useAreas,
-    routes,
-    composition: field(formData, "composition") || null,
-    strength: field(formData, "strength") || null,
-    dosage_form: field(formData, "dosage_form") || null,
-    pack_sizes: packSizes,
-    indications: field(formData, "indications") || null,
-    precautions: field(formData, "precautions") || null,
-    contraindications: field(formData, "contraindications") || null,
-    warnings: field(formData, "warnings") || null,
-    meat_withdrawal: field(formData, "meat_withdrawal") || null,
-    milk_withdrawal: field(formData, "milk_withdrawal") || null,
-    egg_withdrawal: field(formData, "egg_withdrawal") || null,
-    description: field(formData, "description") || null,
-    storage_instructions: field(formData, "storage_instructions") || null,
-    cold_chain: formData.get("cold_chain") === "on",
-    temperature_range: field(formData, "temperature_range") || null,
-    shelf_life: field(formData, "shelf_life") || null,
-    country_of_origin: field(formData, "country_of_origin") || null,
-    image_url: field(formData, "image_url") || null,
-    availability: field(formData, "availability") || null,
-    regulatory_review_status: regulatoryNumber ? "pending" : "not_provided",
-    last_edited_by: identity.userId,
-  }).select("id").single();
-  if (error) redirect(result("error", error.message));
+}
 
-  if (regulatoryNumber && product) {
-    const { error: complianceError } = await supabase
+function integerValue(formData: FormData, name: string) {
+  const raw = value(formData, name);
+  if (!raw) return 0;
+
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function message(kind: "error" | "message", text: string) {
+  return `${COMPANY_PATH}?${kind}=${encodeURIComponent(text)}`;
+}
+
+function productMessage(
+  productId: string,
+  kind: "error" | "message",
+  text: string,
+) {
+  return `${COMPANY_PATH}/products/${encodeURIComponent(productId)}?${kind}=${encodeURIComponent(text)}`;
+}
+
+function slugBase(input: string) {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70);
+}
+
+function uniqueSlug(input: string) {
+  const base = slugBase(input) || "item";
+  return `${base}-${randomUUID().slice(0, 8)}`;
+}
+
+function requireText(formData: FormData, name: string, label: string) {
+  const result = value(formData, name);
+  if (!result) {
+    redirect(message("error", `${label} is required.`));
+  }
+  return result;
+}
+
+function ensureApprovedCompany(status: string) {
+  if (status !== "approved") {
+    redirect(
+      message(
+        "error",
+        "The company must be approved before submitting products or jobs.",
+      ),
+    );
+  }
+}
+
+async function requireWorkspace(permission: CompanyPermission) {
+  return requireCompanyPermission(permission);
+}
+
+export async function updateCompanyProfileAction(formData: FormData) {
+  const { supabase, workspace } = await requireWorkspace("company.manage");
+
+  const companyName = requireText(formData, "company_name", "Company name");
+  const yearEstablishedRaw = value(formData, "year_established");
+  const yearEstablished = yearEstablishedRaw
+    ? Number.parseInt(yearEstablishedRaw, 10)
+    : null;
+
+  if (
+    yearEstablished !== null &&
+    (!Number.isInteger(yearEstablished) ||
+      yearEstablished < 1800 ||
+      yearEstablished > new Date().getFullYear())
+  ) {
+    redirect(message("error", "Enter a valid year established."));
+  }
+
+  const { error } = await supabase
+    .from("company_profiles")
+    .update({
+      company_name: companyName,
+      legal_name: value(formData, "legal_name") || null,
+      trade_name: value(formData, "trade_name") || null,
+      business_type: value(formData, "business_type") || null,
+      registration_number: value(formData, "registration_number") || null,
+      owner_name: value(formData, "owner_name") || null,
+      chief_executive_name: value(formData, "chief_executive_name") || null,
+      year_established: yearEstablished,
+      country: value(formData, "country") || "Pakistan",
+      city: value(formData, "city") || null,
+      address: value(formData, "address") || null,
+      description: value(formData, "description") || null,
+      short_description: value(formData, "short_description") || null,
+      website: value(formData, "website") || null,
+      contact_email: value(formData, "contact_email") || null,
+      logo_url: value(formData, "logo_url") || null,
+      cover_image_url: value(formData, "cover_image_url") || null,
+    })
+    .eq("user_id", workspace.legacy_company_user_id);
+
+  if (error) {
+    redirect(message("error", error.message));
+  }
+
+  revalidatePath(COMPANY_PATH);
+  redirect(message("message", "Company profile saved successfully."));
+}
+
+export async function createProductAction(formData: FormData) {
+  const { identity, supabase, workspace } =
+    await requireWorkspace("products.manage");
+
+  ensureApprovedCompany(workspace.company_verification_status);
+
+  const productName = requireText(formData, "product_name", "Product name");
+  const category = requireText(formData, "category", "Product category");
+  const description = requireText(formData, "description", "Public description");
+  const sectors = listValue(formData, "sectors");
+  const packSizes = listValue(formData, "pack_sizes");
+  const species = listValue(formData, "species");
+  const productionSystems = listValue(formData, "production_systems");
+  const useAreas = listValue(formData, "use_areas");
+  const routes = listValue(formData, "routes");
+
+  const { data: product, error: productError } = await supabase
+    .from("products")
+    .insert({
+      company_user_id: workspace.legacy_company_user_id,
+      slug: uniqueSlug(productName),
+      product_name: productName,
+      brand_name: value(formData, "brand_name") || null,
+      generic_name: value(formData, "generic_name") || null,
+      category,
+      sector: sectors[0] ?? null,
+      product_code: value(formData, "product_code") || null,
+      subclass: value(formData, "subclass") || null,
+      therapeutic_class: value(formData, "therapeutic_class") || null,
+      sectors,
+      species,
+      production_systems: productionSystems,
+      use_areas: useAreas,
+      routes,
+      composition: value(formData, "composition") || null,
+      indications: value(formData, "indications") || null,
+      precautions: value(formData, "precautions") || null,
+      contraindications: value(formData, "contraindications") || null,
+      warnings: value(formData, "warnings") || null,
+      meat_withdrawal: value(formData, "meat_withdrawal") || null,
+      milk_withdrawal: value(formData, "milk_withdrawal") || null,
+      egg_withdrawal: value(formData, "egg_withdrawal") || null,
+      description,
+      dosage_form: value(formData, "dosage_form") || null,
+      strength: value(formData, "strength") || null,
+      pack_sizes: packSizes,
+      storage_instructions: value(formData, "storage_instructions") || null,
+      temperature_range: value(formData, "temperature_range") || null,
+      shelf_life: value(formData, "shelf_life") || null,
+      country_of_origin: value(formData, "country_of_origin") || null,
+      cold_chain: formData.get("cold_chain") === "on",
+      availability: value(formData, "availability") || null,
+      image_url: value(formData, "image_url") || null,
+      verification_status: "pending",
+      is_published: false,
+      last_edited_by: identity.userId,
+    })
+    .select("id")
+    .single();
+
+  if (productError || !product) {
+    redirect(message("error", productError?.message ?? "Product could not be created."));
+  }
+
+  const regulatoryNumber = value(formData, "regulatory_number");
+
+  if (regulatoryNumber) {
+    const { error: regulatoryError } = await supabase
       .from("product_regulatory")
       .insert({
         product_id: product.id,
-        company_user_id: identity.userId,
+        company_user_id: workspace.legacy_company_user_id,
+        applicability: "provided",
+        registration_status: "submitted",
         registration_number: regulatoryNumber,
         verification_status: "pending",
       });
-    if (complianceError) {
-      await supabase.from("products").delete().eq("id", product.id);
-      redirect(result("error", complianceError.message));
+
+    if (regulatoryError) {
+      await supabase
+        .from("products")
+        .delete()
+        .eq("id", product.id)
+        .eq("company_user_id", workspace.legacy_company_user_id)
+        .neq("verification_status", "approved");
+
+      redirect(message("error", regulatoryError.message));
     }
   }
 
-  await supabase.from("audit_logs").insert({
-    actor_id: identity.userId,
-    action: "product.submitted",
-    entity_type: "product",
-    metadata: { product_name: productName, slug },
-  });
-  revalidatePath("/dashboard/company");
-  revalidatePath("/admin");
-  redirect(result("message", "Product submitted for administrator approval."));
+  revalidatePath(COMPANY_PATH);
+  revalidatePath("/marketplace");
+  redirect(message("message", "Product submitted for review."));
 }
 
-export async function deletePendingProductAction(formData: FormData) {
-  const identity = await requireCompany();
-  const productId = field(formData, "product_id");
-  if (!productId) redirect(result("error", "Product ID is missing."));
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("products")
-    .delete()
-    .eq("id", productId)
-    .eq("company_user_id", identity.userId);
-  if (error) redirect(result("error", error.message));
-  revalidatePath("/dashboard/company");
-  redirect(result("message", "Pending product removed."));
-}
+export async function updateProductAction(formData: FormData) {
+  const { identity, supabase, workspace } =
+    await requireWorkspace("products.manage");
 
-export async function updateCompanyProductAction(productId: string, formData: FormData) {
-  const identity = await requireCompany();
-  const returnPath = `/dashboard/company/products/${productId}`;
-  if (!isUuid(productId)) {
-    redirect(`${returnPath}?error=${encodeURIComponent("Invalid product record.")}`);
-  }
-  const input = readProductInput(formData);
-  if (input.error) {
-    redirect(`${returnPath}?error=${encodeURIComponent(input.error)}`);
-  }
+  const productId = requireText(formData, "product_id", "Product ID");
+  const productName = requireText(formData, "product_name", "Product name");
+  const category = requireText(formData, "category", "Product category");
+  const description = requireText(formData, "description", "Public description");
+  const sectors = listValue(formData, "sectors");
 
-  const supabase = await createClient();
-  const { data: product } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("products")
-    .select("id, company_user_id, product_name, verification_status")
+    .select("id")
     .eq("id", productId)
-    .eq("company_user_id", identity.userId)
+    .eq("company_user_id", workspace.legacy_company_user_id)
     .maybeSingle();
-  if (!product) {
-    redirect(result("error", "Product record not found."));
+
+  if (existingError) {
+    redirect(productMessage(productId, "error", existingError.message));
   }
 
-  const { error } = await supabase
-    .from("products")
-    .update({ ...input.data, last_edited_by: identity.userId })
-    .eq("id", productId)
-    .eq("company_user_id", identity.userId);
-  if (error) redirect(`${returnPath}?error=${encodeURIComponent(error.message)}`);
+  if (!existing) {
+    redirect(productMessage(productId, "error", "Product not found or access denied."));
+  }
 
-  const { data: regulatory } = await supabase
-    .from("product_regulatory")
-    .select("registration_number")
-    .eq("product_id", productId)
-    .eq("company_user_id", identity.userId)
-    .maybeSingle();
-  if (input.regulatoryNumber !== (regulatory?.registration_number ?? "")) {
+  const { error: updateError } = await supabase
+    .from("products")
+    .update({
+      product_name: productName,
+      brand_name: value(formData, "brand_name") || null,
+      generic_name: value(formData, "generic_name") || null,
+      category,
+      sector: sectors[0] ?? null,
+      product_code: value(formData, "product_code") || null,
+      subclass: value(formData, "subclass") || null,
+      therapeutic_class: value(formData, "therapeutic_class") || null,
+      sectors,
+      species: listValue(formData, "species"),
+      production_systems: listValue(formData, "production_systems"),
+      use_areas: listValue(formData, "use_areas"),
+      routes: listValue(formData, "routes"),
+      composition: value(formData, "composition") || null,
+      indications: value(formData, "indications") || null,
+      precautions: value(formData, "precautions") || null,
+      contraindications: value(formData, "contraindications") || null,
+      warnings: value(formData, "warnings") || null,
+      meat_withdrawal: value(formData, "meat_withdrawal") || null,
+      milk_withdrawal: value(formData, "milk_withdrawal") || null,
+      egg_withdrawal: value(formData, "egg_withdrawal") || null,
+      description,
+      dosage_form: value(formData, "dosage_form") || null,
+      strength: value(formData, "strength") || null,
+      pack_sizes: listValue(formData, "pack_sizes"),
+      storage_instructions: value(formData, "storage_instructions") || null,
+      temperature_range: value(formData, "temperature_range") || null,
+      shelf_life: value(formData, "shelf_life") || null,
+      country_of_origin: value(formData, "country_of_origin") || null,
+      cold_chain: formData.get("cold_chain") === "on",
+      availability: value(formData, "availability") || null,
+      image_url: value(formData, "image_url") || null,
+      last_edited_by: identity.userId,
+    })
+    .eq("id", productId)
+    .eq("company_user_id", workspace.legacy_company_user_id);
+
+  if (updateError) {
+    redirect(productMessage(productId, "error", updateError.message));
+  }
+
+  const regulatoryNumber = value(formData, "regulatory_number");
+
+  if (regulatoryNumber) {
     const { error: regulatoryError } = await supabase
       .from("product_regulatory")
       .upsert(
         {
           product_id: productId,
-          company_user_id: identity.userId,
-          registration_number: input.regulatoryNumber || null,
+          company_user_id: workspace.legacy_company_user_id,
+          applicability: "provided",
+          registration_status: "submitted",
+          registration_number: regulatoryNumber,
           verification_status: "pending",
         },
         { onConflict: "product_id" },
       );
+
     if (regulatoryError) {
-      redirect(`${returnPath}?error=${encodeURIComponent(regulatoryError.message)}`);
+      redirect(productMessage(productId, "error", regulatoryError.message));
     }
   }
 
-  await supabase.from("audit_logs").insert({
-    actor_id: identity.userId,
-    action: "product.owner_updated",
-    entity_type: "product",
-    entity_id: productId,
-    metadata: {
-      product_name: input.data.product_name,
-      previous_status: product.verification_status,
-    },
-  });
-  revalidatePath("/dashboard/company");
-  revalidatePath(returnPath);
-  revalidatePath("/admin/products");
-  revalidatePath("/admin/reviews");
-  redirect(`${returnPath}?message=${encodeURIComponent("Product saved and returned to review where required.")}`);
+  revalidatePath(COMPANY_PATH);
+  revalidatePath(`${COMPANY_PATH}/products/${productId}`);
+  revalidatePath("/marketplace");
+  redirect(productMessage(productId, "message", "Product saved successfully."));
+}
+
+export async function deletePendingProductAction(formData: FormData) {
+  const { supabase, workspace } = await requireWorkspace("products.manage");
+  const productId = requireText(formData, "product_id", "Product ID");
+
+  const { data, error } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", productId)
+    .eq("company_user_id", workspace.legacy_company_user_id)
+    .neq("verification_status", "approved")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    redirect(message("error", error.message));
+  }
+
+  if (!data) {
+    redirect(
+      message(
+        "error",
+        "Only a non-approved product belonging to this company can be removed.",
+      ),
+    );
+  }
+
+  revalidatePath(COMPANY_PATH);
+  redirect(message("message", "Product removed."));
 }
 
 export async function updateInquiryStatusAction(formData: FormData) {
-  const identity = await requireCompany();
-  const inquiryId = field(formData, "inquiry_id");
-  const status = field(formData, "status");
-  if (!inquiryId || !["reviewing", "responded", "closed"].includes(status)) {
-    redirect(result("error", "Invalid inquiry update."));
+  const { supabase, workspace } = await requireWorkspace("products.manage");
+  const inquiryId = requireText(formData, "inquiry_id", "Inquiry ID");
+  const status = value(formData, "status");
+  const allowed = new Set(["reviewing", "responded", "closed"]);
+
+  if (!allowed.has(status)) {
+    redirect(message("error", "Choose a valid inquiry status."));
   }
-  const supabase = await createClient();
-  const { error } = await supabase
+
+  const { data, error } = await supabase
     .from("product_inquiries")
     .update({ status })
     .eq("id", inquiryId)
-    .eq("company_user_id", identity.userId);
-  if (error) redirect(result("error", error.message));
-  revalidatePath("/dashboard/company");
-  redirect(result("message", "Inquiry status updated."));
+    .eq("company_user_id", workspace.legacy_company_user_id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    redirect(message("error", error.message));
+  }
+
+  if (!data) {
+    redirect(message("error", "Inquiry not found or access denied."));
+  }
+
+  revalidatePath(COMPANY_PATH);
+  redirect(message("message", "Inquiry status updated."));
 }
 
 export async function createJobAction(formData: FormData) {
-  const identity = await requireCompany();
-  const supabase = await createClient();
-  const title = field(formData, "title");
-  const description = field(formData, "job_description");
-  if (!title || !description) {
-    redirect(result("error", "Job title and description are required."));
-  }
-  const { data: company } = await supabase
-    .from("company_profiles")
-    .select("verification_status")
-    .eq("user_id", identity.userId)
-    .maybeSingle();
-  if (company?.verification_status !== "approved") {
-    redirect(result("error", "Your company must be approved before posting jobs."));
-  }
-  const slug = `${slugify(title) || "job"}-${crypto.randomUUID().slice(0, 8)}`;
+  const { supabase, workspace } = await requireWorkspace("jobs.manage");
+
+  ensureApprovedCompany(workspace.company_verification_status);
+
+  const title = requireText(formData, "title", "Job title");
+  const description = requireText(
+    formData,
+    "job_description",
+    "Job description",
+  );
+  const employmentType = requireText(
+    formData,
+    "employment_type",
+    "Employment type",
+  );
+
+  const deadline = value(formData, "deadline") || null;
+  const minimumExperience = integerValue(formData, "minimum_experience");
+
   const { error } = await supabase.from("jobs").insert({
-    company_user_id: identity.userId,
-    slug,
+    company_id: workspace.company_id,
+    company_user_id: workspace.legacy_company_user_id,
+    slug: uniqueSlug(title),
     title,
     description,
-    sector: field(formData, "job_sector") || null,
-    city: field(formData, "job_city") || null,
-    province: field(formData, "job_province") || null,
-    employment_type: field(formData, "employment_type") || "Full-time",
-    minimum_qualification: field(formData, "minimum_qualification") || null,
-    minimum_experience: Number(field(formData, "minimum_experience") || 0),
-    deadline: field(formData, "deadline") || null,
+    sector: value(formData, "job_sector") || null,
+    city: value(formData, "job_city") || null,
+    province: value(formData, "job_province") || null,
+    employment_type: employmentType,
+    minimum_qualification: value(formData, "minimum_qualification") || null,
+    minimum_experience: minimumExperience,
+    deadline,
+    verification_status: "pending",
+    is_published: false,
   });
-  if (error) redirect(result("error", error.message));
-  await supabase.from("audit_logs").insert({
-    actor_id: identity.userId,
-    action: "job.submitted",
-    entity_type: "job",
-    metadata: { title, slug },
-  });
-  revalidatePath("/dashboard/company");
-  revalidatePath("/admin");
-  redirect(result("message", "Job submitted for administrator approval."));
+
+  if (error) {
+    redirect(message("error", error.message));
+  }
+
+  revalidatePath(COMPANY_PATH);
+  revalidatePath("/jobs");
+  redirect(message("message", "Job submitted for review."));
 }
 
 export async function deletePendingJobAction(formData: FormData) {
-  const identity = await requireCompany();
-  const jobId = field(formData, "job_id");
-  if (!jobId) redirect(result("error", "Job ID is missing."));
-  const supabase = await createClient();
-  const { error } = await supabase
+  const { supabase, workspace } = await requireWorkspace("jobs.manage");
+  const jobId = requireText(formData, "job_id", "Job ID");
+
+  const { data, error } = await supabase
     .from("jobs")
     .delete()
     .eq("id", jobId)
-    .eq("company_user_id", identity.userId)
-    .neq("verification_status", "approved");
-  if (error) redirect(result("error", error.message));
-  revalidatePath("/dashboard/company");
-  redirect(result("message", "Pending job removed."));
+    .eq("company_id", workspace.company_id)
+    .neq("verification_status", "approved")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    redirect(message("error", error.message));
+  }
+
+  if (!data) {
+    redirect(
+      message(
+        "error",
+        "Only a non-approved job belonging to this company can be removed.",
+      ),
+    );
+  }
+
+  revalidatePath(COMPANY_PATH);
+  redirect(message("message", "Job removed."));
 }
