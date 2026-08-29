@@ -44,10 +44,6 @@ from public;
 
 grant execute
 on function public.company_id_from_legacy_user(uuid)
-to authenticated;
-
-grant execute
-on function public.company_id_from_legacy_user(uuid)
 to service_role;
 
 
@@ -334,6 +330,10 @@ drop policy if exists
 on public.company_relationships;
 
 
+drop policy if exists
+  company_relationships_select_parties
+on public.company_relationships;
+
 create policy company_relationships_select_parties
 on public.company_relationships
 for select
@@ -359,6 +359,10 @@ using (
 );
 
 
+drop policy if exists
+  company_relationships_insert_source
+on public.company_relationships;
+
 create policy company_relationships_insert_source
 on public.company_relationships
 for insert
@@ -371,6 +375,10 @@ with check (
   or public.is_admin()
 );
 
+
+drop policy if exists
+  company_relationships_update_source
+on public.company_relationships;
 
 create policy company_relationships_update_source
 on public.company_relationships
@@ -391,6 +399,10 @@ with check (
   or public.is_admin()
 );
 
+
+drop policy if exists
+  company_relationships_delete_source
+on public.company_relationships;
 
 create policy company_relationships_delete_source
 on public.company_relationships
