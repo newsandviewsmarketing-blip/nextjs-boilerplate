@@ -11,6 +11,7 @@ export const selfRegistrationRoles = [
 ] as const;
 
 export type SelfRegistrationRole = (typeof selfRegistrationRoles)[number];
+
 export type AccountRole =
   | SelfRegistrationRole
   | "career_admin"
@@ -71,13 +72,23 @@ export function isAllowedSelfRegistrationRole(
 }
 
 export async function getCurrentIdentity(): Promise<CurrentIdentity | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
 
   const supabase = await createClient();
+
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
-  const userId = typeof claims?.sub === "string" ? claims.sub : null;
-  if (error || !userId) return null;
+
+  const userId =
+    typeof claims?.sub === "string"
+      ? claims.sub
+      : null;
+
+  if (error || !userId) {
+    return null;
+  }
 
   const [{ data: profile }, { data: roleRows }] = await Promise.all([
     supabase
@@ -85,14 +96,33 @@ export async function getCurrentIdentity(): Promise<CurrentIdentity | null> {
       .select("full_name, phone, city, primary_role, account_status")
       .eq("id", userId)
       .maybeSingle(),
-    supabase.from("user_roles").select("role").eq("user_id", userId),
+
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId),
   ]);
 
-  const email = typeof claims?.email === "string" ? claims.email : "";
+  const typedProfile = profile as CurrentIdentity["profile"];
+
+  // Security gate:
+  // Suspended accounts must not receive an application identity,
+  // even if an existing Supabase session is still valid.
+  if (typedProfile?.account_status === "suspended") {
+    return null;
+  }
+
+  const email =
+    typeof claims?.email === "string"
+      ? claims.email
+      : "";
+
   return {
     userId,
     email,
-    profile: profile as CurrentIdentity["profile"],
-    roles: (roleRows ?? []).map((row) => row.role as AccountRole),
+    profile: typedProfile,
+    roles: (roleRows ?? []).map(
+      (row) => row.role as AccountRole,
+    ),
   };
 }
