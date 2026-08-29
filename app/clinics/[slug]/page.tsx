@@ -8,6 +8,8 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import ProfilePhoto from "../../components/ProfilePhoto";
+import { PublicContactLinks } from "../../components/ExternalLinks";
+import { requestClinicAppointmentAction } from "../actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
@@ -41,10 +43,10 @@ async function loadClinic(slug: string): Promise<ClinicPageData | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("public_clinics")
-    .select("id, slug, clinic_name, facility_type, description, city, province, district, tehsil, logo_url, cover_image_url, address, public_phone, public_email, website, working_hours, emergency_service, services, species, profile_verified")
+    .select("id, slug, clinic_name, facility_type, description, city, province, district, tehsil, logo_url, cover_image_url, address, public_phone, public_email, website, google_maps_url, working_hours, emergency_service, services, species, profile_verified")
     .eq("slug", slug)
     .maybeSingle();
-  const clinic = (data as PublicClinic | null) ?? sample ?? null;
+  const clinic = (data as PublicClinic | null) ?? null;
   if (!clinic) return null;
 
   if (!clinic.id || clinic.is_sample) return { clinic, services: [] };
@@ -144,7 +146,7 @@ export default async function ClinicDetailPage({
           <FormMessage {...messages} />
           <div className="company-contact-grid">
             <article><span>Location</span><b>{clinic.address || [clinic.city, clinic.tehsil, clinic.district, clinic.province].filter(Boolean).join(", ") || "Pakistan"}</b></article>
-            <article><span>Public contact</span><b>{clinic.public_phone || clinic.public_email || "Contact details not published"}</b></article>
+            <article><span>Public contact</span>{clinic.public_phone || clinic.public_email || clinic.website ? <PublicContactLinks phone={clinic.public_phone} email={clinic.public_email} website={clinic.website} mapUrl={clinic.google_maps_url} /> : <b>Contact details not published</b>}</article>
             <article><span>Working hours</span><b>{clinic.working_hours || "Not provided"}</b></article>
           </div>
         </div>
@@ -176,7 +178,7 @@ export default async function ClinicDetailPage({
           </div>
           <div><h3>Species served</h3><div className="profile-chips">{clinic.species.map((item) => <span key={item}>{item}</span>)}</div></div>
           <div><h3>Verification</h3><p>{clinic.profile_verified ? "Facility profile verified by VetConnect." : clinic.is_sample ? "This is a sample profile." : "Verification review is pending."}</p></div>
-          <div><h3>Appointments</h3><p>Structured service records can mark booking availability. Appointment scheduling itself remains a separate module.</p></div>
+          <div><h3>Appointments</h3><p>Send an appointment request directly to the facility. The clinic can contact the requester and update the request status.</p></div>
         </div>
       </section>
 
@@ -206,12 +208,24 @@ export default async function ClinicDetailPage({
         </section>
       )}
 
-      <section className="section compact-section">
-        <div className="shell card-actions">
-          <Link className="button button-primary" href="/coming-soon?feature=Clinic%20appointments">Request appointment</Link>
-          <Link className="button button-secondary" href="/clinics">Back to facilities</Link>
-        </div>
-      </section>
+      {clinic.id && !clinic.is_sample && (
+        <section className="section compact-section">
+          <div className="shell two-col">
+            <div><span className="section-kicker">APPOINTMENT REQUEST</span><h2>Request a clinic appointment.</h2><p>This creates a structured request record. It does not confirm a booking until the clinic responds.</p></div>
+            <form className="backend-form-card" action={requestClinicAppointmentAction}>
+              <input type="hidden" name="clinic_id" value={clinic.id} /><input type="hidden" name="slug" value={clinic.slug} />
+              <label>Your name</label><input name="contact_name" required />
+              <label>Email</label><input name="contact_email" type="email" />
+              <label>Phone</label><input name="contact_phone" />
+              <label>Animal / species</label><input name="animal_species" />
+              <div className="two-field-row"><div><label>Preferred date</label><input name="preferred_date" type="date" /></div><div><label>Preferred time</label><input name="preferred_time" placeholder="e.g. Morning" /></div></div>
+              <label>Reason for visit</label><textarea name="reason" rows={3} required />
+              <FormSubmitButton pendingLabel="Sending request...">Send appointment request</FormSubmitButton>
+            </form>
+          </div>
+        </section>
+      )}
+      <section className="section compact-section"><div className="shell card-actions"><Link className="button button-secondary" href="/clinics">Back to facilities</Link></div></section>
       <SiteFooter />
     </main>
   );

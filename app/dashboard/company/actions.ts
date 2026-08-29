@@ -124,6 +124,26 @@ export async function updateCompanyProfileAction(formData: FormData) {
     redirect(message("error", error.message));
   }
 
+  const { error: canonicalError } = await supabase
+    .from("companies")
+    .update({
+      company_name: companyName,
+      legal_name: value(formData, "legal_name") || null,
+      trade_name: value(formData, "trade_name") || null,
+      business_type: value(formData, "business_type") || null,
+      registration_number: value(formData, "registration_number") || null,
+      city: value(formData, "city") || null,
+      address: value(formData, "address") || null,
+      description: value(formData, "description") || null,
+      website: value(formData, "website") || null,
+      public_email: value(formData, "contact_email") || null,
+      logo_url: value(formData, "logo_url") || null,
+    })
+    .eq("id", workspace.company_id);
+  if (canonicalError) {
+    redirect(message("error", canonicalError.message));
+  }
+
   revalidatePath(COMPANY_PATH);
   redirect(message("message", "Company profile saved successfully."));
 }
@@ -147,6 +167,7 @@ export async function createProductAction(formData: FormData) {
   const { data: product, error: productError } = await supabase
     .from("products")
     .insert({
+      company_id: workspace.company_id,
       company_user_id: workspace.legacy_company_user_id,
       slug: uniqueSlug(productName),
       product_name: productName,
@@ -173,6 +194,14 @@ export async function createProductAction(formData: FormData) {
       description,
       dosage_form: value(formData, "dosage_form") || null,
       strength: value(formData, "strength") || null,
+      presentation: value(formData, "presentation") || null,
+      packaging_type: value(formData, "packaging_type") || null,
+      pack_size_value: value(formData, "pack_size_value") ? Number(value(formData, "pack_size_value")) : null,
+      pack_size_unit: value(formData, "pack_size_unit") || null,
+      vaccine_type: value(formData, "vaccine_type") || null,
+      concentration_value: value(formData, "concentration_value") ? Number(value(formData, "concentration_value")) : null,
+      concentration_unit: value(formData, "concentration_unit") || null,
+      administration_route: value(formData, "administration_route") || null,
       pack_sizes: packSizes,
       storage_instructions: value(formData, "storage_instructions") || null,
       temperature_range: value(formData, "temperature_range") || null,
@@ -409,6 +438,8 @@ export async function createJobAction(formData: FormData) {
     sector: value(formData, "job_sector") || null,
     city: value(formData, "job_city") || null,
     province: value(formData, "job_province") || null,
+    district: value(formData, "job_district") || null,
+    tehsil: value(formData, "job_tehsil") || null,
     employment_type: employmentType,
     minimum_qualification: value(formData, "minimum_qualification") || null,
     minimum_experience: minimumExperience,

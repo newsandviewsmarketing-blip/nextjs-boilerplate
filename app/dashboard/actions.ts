@@ -498,6 +498,12 @@ export async function updateProfileAction(formData: FormData) {
             "website",
           ) || null,
 
+        google_maps_url:
+          value(
+            formData,
+            "google_maps_url",
+          ) || null,
+
         working_hours:
           value(
             formData,

@@ -29,6 +29,8 @@ export default async function AdminOverviewPage() {
   let totalClinics = 0;
   let totalLaboratories = 0;
   let totalProfessionals = 0;
+  let adminTeamCount = 0;
+  let reviewerPerformance: Array<{ actorId: string; name: string; email: string; approved: number; rejected: number; returned: number; total: number }> = [];
   let recentAudit: Array<{
     id: string;
     action: string;
@@ -114,6 +116,34 @@ export default async function AdminOverviewPage() {
     newProducts24h = newProducts.count ?? 0;
     newJobs24h = newJobs.count ?? 0;
     pendingClinicClaims = clinicClaims.count ?? 0;
+    const { data: staffRows } = await supabase.from("user_roles").select("user_id, role").in("role", ["super_admin", "verification_officer", "content_admin", "career_admin", "analyst"]);
+    adminTeamCount = new Set((staffRows ?? []).map((row) => row.user_id)).size;
+  }
+
+  if (hasAdminPermission(identity, "review.analytics")) {
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: decisionRows } = await supabase
+      .from("audit_logs")
+      .select("actor_id, action, created_at")
+      .gte("created_at", since30d)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    const decisions = (decisionRows ?? []).filter((row) => row.actor_id && (row.action.endsWith(".approved") || row.action.endsWith(".verified") || row.action.endsWith(".not_applicable") || row.action.endsWith(".rejected") || row.action.endsWith(".returned")));
+    const actorIds = [...new Set(decisions.map((row) => row.actor_id).filter(Boolean))] as string[];
+    const { data: actorProfiles } = actorIds.length ? await supabase.from("profiles").select("id, full_name, email").in("id", actorIds) : { data: [] };
+    const actorMap = new Map<string, { id: string; full_name: string | null; email: string }>((((actorProfiles ?? []) as Array<{ id: string; full_name: string | null; email: string }>)).map((row) => [row.id, row]));
+    const perf = new Map<string, { actorId: string; name: string; email: string; approved: number; rejected: number; returned: number; total: number }>();
+    for (const row of decisions) {
+      const actorId = String(row.actor_id);
+      const actor = actorMap.get(actorId);
+      const current = perf.get(actorId) ?? { actorId, name: actor?.full_name || "Administrator", email: actor?.email || "Account unavailable", approved: 0, rejected: 0, returned: 0, total: 0 };
+      if (row.action.endsWith(".rejected")) current.rejected += 1;
+      else if (row.action.endsWith(".returned")) current.returned += 1;
+      else current.approved += 1;
+      current.total += 1;
+      perf.set(actorId, current);
+    }
+    reviewerPerformance = [...perf.values()].sort((a, b) => b.total - a.total).slice(0, 8);
   }
 
   if (hasAdminPermission(identity, "audit.view")) {
@@ -126,6 +156,33 @@ export default async function AdminOverviewPage() {
   }
 
   const modules = [
+    {
+      allowed:
+        hasAdminPermission(identity, "profiles.create") ||
+        hasAdminPermission(identity, "companies.create") ||
+        hasAdminPermission(identity, "clinics.manage") ||
+        hasAdminPermission(identity, "laboratories.manage") ||
+        hasAdminPermission(identity, "products.create") ||
+        hasAdminPermission(identity, "jobs.create"),
+      tag: "ASSISTED ENTRY",
+      title: "Create records for clients",
+      text: "Staff-assisted entry for professionals, companies, clinics, laboratories, products and jobs without requiring the client to create the record first.",
+      href: "/admin/create",
+    },
+    {
+      allowed: hasAdminPermission(identity, "directories.manage") || hasAdminPermission(identity, "users.manage"),
+      tag: "MASTER DIRECTORY",
+      title: "Operational database table",
+      text: "Search linked users, professionals, companies, clinics, laboratories, products and jobs with direct record links.",
+      href: "/admin/directory",
+    },
+    {
+      allowed: hasAdminPermission(identity, "master_data.manage"),
+      tag: "DATA STUDIO",
+      title: "Manage dropdowns and master data",
+      text: "Add cities, sectors, services, facility types, tests, product packaging, vaccine types, job sectors and other reusable options without a code deployment.",
+      href: "/admin/data",
+    },
     {
       allowed:
         hasAdminPermission(identity, "profiles.review") ||
@@ -149,6 +206,13 @@ export default async function AdminOverviewPage() {
       title: "Users and hierarchy",
       text: "Activate accounts and assign multiple staff roles without changing user-owned profiles.",
       href: "/admin/users",
+    },
+    {
+      allowed: hasAdminPermission(identity, "review.analytics"),
+      tag: "ACCOUNTABILITY",
+      title: "Reviewer performance",
+      text: "See who approved, rejected or returned records and review the full decision register.",
+      href: "/admin/review-history",
     },
     {
       allowed: hasAdminPermission(identity, "audit.view"),
@@ -201,6 +265,7 @@ export default async function AdminOverviewPage() {
               {hasAdminPermission(identity, "users.manage") && (
                 <>
                   <article><b>{activeUsers}</b><span>Active user accounts</span></article>
+                  <article><b>{adminTeamCount}</b><span>Administrator accounts</span></article>
                   <article><b>{totalVeterinarians}</b><span>Total veterinarians</span></article>
                   <article><b>{approvedVeterinarians}</b><span>Approved veterinarians</span></article>
                   <article><b>{totalCompanies}</b><span>Registered companies</span></article>
@@ -225,6 +290,26 @@ export default async function AdminOverviewPage() {
                   <article><b>{totalClinics}</b><span>Clinics in database</span></article>
                   <article><b>{totalLaboratories}</b><span>Laboratories in database</span></article>
                 </div>
+              </section>
+            )}
+
+            {hasAdminPermission(identity, "review.analytics") && (
+              <section className="admin-reviewer-performance" aria-labelledby="reviewer-performance-heading">
+                <div className="admin-activity-header">
+                  <div><span className="section-kicker">LAST 30 DAYS</span><h2 id="reviewer-performance-heading">Reviewer accountability.</h2><p>Approval and rejection counts by administrator.</p></div>
+                  <Link href="/admin/review-history">Open full review history →</Link>
+                </div>
+                {reviewerPerformance.length === 0 ? (
+                  <div className="empty-state"><h2>No review decisions recorded yet.</h2></div>
+                ) : (
+                  <div className="admin-directory-table-wrap">
+                    <table className="admin-directory-table reviewer-table">
+                      <thead><tr><th>Administrator</th><th>Approved / verified</th><th>Rejected</th><th>Returned</th><th>Total</th></tr></thead>
+                      <tbody>{reviewerPerformance.map((reviewer) => <tr key={reviewer.actorId}><td><b>{reviewer.name}</b><small>{reviewer.email}</small></td><td>{reviewer.approved}</td><td>{reviewer.rejected}</td><td>{reviewer.returned}</td><td><b>{reviewer.total}</b></td></tr>)}</tbody>
+                    </table>
+                  </div>
+                )}
+                {hasAdminPermission(identity, "users.manage") && <div className="management-links"><Link className="button button-secondary" href="/admin/users#staff-roles">Manage administrator roles & permissions</Link></div>}
               </section>
             )}
 

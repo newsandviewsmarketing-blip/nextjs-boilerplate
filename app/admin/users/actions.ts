@@ -108,3 +108,26 @@ export async function updateUserStatusAction(formData: FormData) {
   revalidatePath("/admin/users");
   redirect(result("message", `${profile.full_name || profile.email} is now ${status}.`));
 }
+
+export async function updateUserPermissionsAction(formData: FormData) {
+  const identity = await requireAdminPermission("users.manage", "/admin/users");
+  const userId = formField(formData, "user_id");
+  if (!isUuid(userId)) redirect(result("error", "Invalid user account."));
+  const granted = [...new Set(formData.getAll("granted_permissions").map(String))];
+  const revoked = [...new Set(formData.getAll("revoked_permissions").map(String))];
+  const overlaps = granted.filter((item) => revoked.includes(item));
+  if (overlaps.length) redirect(result("error", `A permission cannot be both granted and revoked: ${overlaps.join(", ")}`));
+  const supabase = await createClient();
+  const { error } = await supabase.from("admin_user_permissions").upsert({
+    user_id: userId,
+    granted_permissions: granted,
+    revoked_permissions: revoked,
+    assigned_by: identity.userId,
+    assigned_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  if (error) redirect(result("error", error.message));
+  await supabase.from("audit_logs").insert({ actor_id: identity.userId, action: "user.admin_permissions_updated", entity_type: "user", entity_id: userId, metadata: { granted_permissions: granted, revoked_permissions: revoked } });
+  revalidatePath("/admin/users");
+  redirect(result("message", "Individual administrator permissions updated."));
+}

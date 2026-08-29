@@ -18,9 +18,9 @@ export const dynamic = "force-dynamic";
 async function loadClinics(): Promise<PublicClinic[]> {
   if (!isSupabaseConfigured()) return sampleClinics;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("public_clinics").select("id, slug, clinic_name, facility_type, description, city, province, district, tehsil, logo_url, cover_image_url, address, public_phone, public_email, website, working_hours, emergency_service, services, species, profile_verified").order("clinic_name");
-  if (error || !data?.length) return sampleClinics;
-  return data as PublicClinic[];
+  const { data, error } = await supabase.from("public_clinics").select("id, slug, clinic_name, facility_type, description, city, province, district, tehsil, logo_url, cover_image_url, address, public_phone, public_email, website, google_maps_url, working_hours, emergency_service, services, species, profile_verified").order("clinic_name");
+  if (error) return [];
+  return (data ?? []) as PublicClinic[];
 }
 
 export default async function ClinicsPage({ searchParams }: { searchParams: Promise<{ q?: string; city?: string; type?: string }> }) {

@@ -17,9 +17,9 @@ export const dynamic = "force-dynamic";
 async function loadLaboratories(): Promise<PublicLaboratory[]> {
   if (!isSupabaseConfigured()) return sampleLaboratories;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("public_laboratories").select("id, slug, laboratory_name, laboratory_type, description, city, province, address, public_phone, public_email, website, working_hours, emergency_service, species_served, tests_offered, profile_verified, accreditation_verified").order("laboratory_name");
-  if (error || !data?.length) return sampleLaboratories;
-  return data as PublicLaboratory[];
+  const { data, error } = await supabase.from("public_laboratories").select("id, slug, laboratory_name, laboratory_type, description, city, province, district, tehsil, address, public_phone, public_email, website, google_maps_url, working_hours, emergency_service, species_served, tests_offered, profile_verified, accreditation_verified").order("laboratory_name");
+  if (error) return [];
+  return (data ?? []) as PublicLaboratory[];
 }
 
 export default async function LaboratoriesPage({ searchParams }: { searchParams: Promise<{ q?: string; city?: string; test?: string }> }) {

@@ -68,6 +68,7 @@ export async function createClinicAction(formData: FormData) {
       public_phone: nullableText(formData, "public_phone"),
       public_email: nullableText(formData, "public_email"),
       website: nullableText(formData, "website"),
+      google_maps_url: nullableText(formData, "google_maps_url"),
       working_hours: nullableText(formData, "working_hours"),
       emergency_service: formData.get("emergency_service") === "on",
       services: list(formData, "services"),
@@ -110,6 +111,7 @@ export async function updateClinicAction(formData: FormData) {
       public_phone: nullableText(formData, "public_phone"),
       public_email: nullableText(formData, "public_email"),
       website: nullableText(formData, "website"),
+      google_maps_url: nullableText(formData, "google_maps_url"),
       working_hours: nullableText(formData, "working_hours"),
       emergency_service: formData.get("emergency_service") === "on",
       services: list(formData, "services"),
@@ -232,4 +234,20 @@ export async function requestClinicMembershipAction(formData: FormData) {
   revalidatePath(path);
   revalidatePath("/dashboard/clinics");
   redirect(routeMessage(path, "message", "Clinic affiliation request submitted."));
+}
+
+export async function updateClinicAppointmentStatusAction(formData: FormData) {
+  const clinicId = text(formData, "clinic_id");
+  const id = text(formData, "request_id");
+  const status = text(formData, "status");
+  const path = `/dashboard/clinics/${clinicId}`;
+  const identity = await requireClinicUser(path);
+  if (!id || !["new","contacted","scheduled","completed","declined","closed"].includes(status)) redirect(routeMessage(path,"error","Invalid appointment update."));
+  const supabase = await createClient();
+  const { data: clinic } = await supabase.from("clinics").select("id").eq("id",clinicId).eq("owner_id",identity.userId).maybeSingle();
+  if (!clinic) redirect(routeMessage(path,"error","Clinic access denied."));
+  const { error } = await supabase.from("clinic_appointment_requests").update({ status }).eq("id",id).eq("clinic_id",clinicId);
+  if (error) redirect(routeMessage(path,"error",error.message));
+  revalidatePath(path);
+  redirect(routeMessage(path,"message","Appointment request updated."));
 }

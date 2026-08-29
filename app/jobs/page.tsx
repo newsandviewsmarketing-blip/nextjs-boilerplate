@@ -19,7 +19,7 @@ async function loadJobs(): Promise<PublicJob[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("public_jobs")
-    .select("id, slug, title, description, sector, city, province, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_name")
+    .select("id, slug, title, description, sector, city, province, district, tehsil, address, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_id, company_name")
     .order("deadline", { ascending: true, nullsFirst: false });
   if (error || !data?.length) return sampleJobs;
   return data as PublicJob[];

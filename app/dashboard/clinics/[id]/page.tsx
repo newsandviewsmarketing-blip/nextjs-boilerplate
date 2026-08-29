@@ -16,6 +16,7 @@ import {
   removeClinicServiceAction,
   updateClinicAction,
   uploadClinicMediaAction,
+  updateClinicAppointmentStatusAction,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ type ClinicRow = {
   public_phone: string | null;
   public_email: string | null;
   website: string | null;
+  google_maps_url: string | null;
   working_hours: string | null;
   emergency_service: boolean;
   services: string[];
@@ -64,6 +66,8 @@ type ClinicServiceRow = {
   booking_enabled: boolean;
 };
 
+type AppointmentRow = { id: string; contact_name: string; contact_email: string | null; contact_phone: string | null; animal_species: string | null; preferred_date: string | null; preferred_time: string | null; reason: string; status: string; created_at: string };
+
 type MemberRow = {
   professional_user_id: string;
   designation: string | null;
@@ -86,11 +90,12 @@ export default async function ClinicManagePage({
   if (!identity) redirect(`/login?next=${encodeURIComponent(`/dashboard/clinics/${id}`)}`);
 
   const supabase = await createClient();
-  const [clinicResult, catalogResult, servicesResult, membersResult] = await Promise.all([
-    supabase.from("clinics").select("id, slug, clinic_name, facility_type, description, province, district, tehsil, city, address, public_phone, public_email, website, working_hours, emergency_service, services, species, verification_status, rejection_reason, is_published, logo_url, cover_image_url").eq("id", id).eq("owner_id", identity.userId).maybeSingle(),
+  const [clinicResult, catalogResult, servicesResult, membersResult, appointmentsResult] = await Promise.all([
+    supabase.from("clinics").select("id, slug, clinic_name, facility_type, description, province, district, tehsil, city, address, public_phone, public_email, website, google_maps_url, working_hours, emergency_service, services, species, verification_status, rejection_reason, is_published, logo_url, cover_image_url").eq("id", id).eq("owner_id", identity.userId).maybeSingle(),
     supabase.from("service_catalog").select("id, service_name, category").eq("is_active", true).order("sort_order"),
     supabase.from("clinic_services").select("id, service_id, description, fee_min, fee_max, currency, duration_minutes, is_public, is_active, booking_enabled").eq("clinic_id", id).eq("is_active", true),
     supabase.from("clinic_members").select("professional_user_id, designation, membership_status, claim_source, is_public, is_primary").eq("clinic_id", id).order("created_at", { ascending: false }),
+    supabase.from("clinic_appointment_requests").select("id, contact_name, contact_email, contact_phone, animal_species, preferred_date, preferred_time, reason, status, created_at").eq("clinic_id", id).order("created_at", { ascending: false }).limit(100),
   ]);
 
   if (clinicResult.error || !clinicResult.data) notFound();
@@ -98,6 +103,7 @@ export default async function ClinicManagePage({
   const catalog = (catalogResult.data ?? []) as ServiceCatalogRow[];
   const clinicServices = (servicesResult.data ?? []) as ClinicServiceRow[];
   const members = (membersResult.data ?? []) as MemberRow[];
+  const appointments = (appointmentsResult.data ?? []) as AppointmentRow[];
   const catalogMap = new Map(catalog.map((item) => [item.id, item]));
 
   return (
@@ -130,6 +136,7 @@ export default async function ClinicManagePage({
             <article><b>{clinic.is_published ? "Live" : "Hidden"}</b><span>Public directory</span></article>
             <article><b>{clinicServices.length}</b><span>Standardized services</span></article>
             <article><b>{members.filter((row) => row.membership_status === "active").length}</b><span>Active team links</span></article>
+            <article><b>{appointments.filter((row) => row.status === "new").length}</b><span>New appointment requests</span></article>
           </div>
           {clinic.rejection_reason && <div className="form-message form-message-error">Review note: {clinic.rejection_reason}</div>}
 
@@ -169,7 +176,7 @@ export default async function ClinicManagePage({
               <div className="form-span-2"><label htmlFor="address">Address</label><input id="address" name="address" defaultValue={clinic.address ?? ""} /></div>
               <div><label htmlFor="public_phone">Public phone</label><input id="public_phone" name="public_phone" defaultValue={clinic.public_phone ?? ""} /></div>
               <div><label htmlFor="public_email">Public email</label><input id="public_email" name="public_email" type="email" defaultValue={clinic.public_email ?? ""} /></div>
-              <div><label htmlFor="website">Website</label><input id="website" name="website" type="url" defaultValue={clinic.website ?? ""} /></div>
+              <div><label htmlFor="website">Website</label><input id="website" name="website" type="url" defaultValue={clinic.website ?? ""} /></div><div><label htmlFor="google_maps_url">Google Maps URL</label><input id="google_maps_url" name="google_maps_url" type="url" defaultValue={clinic.google_maps_url ?? ""} placeholder="https://maps.google.com/..." /></div>
               <div><label htmlFor="working_hours">Working hours</label><input id="working_hours" name="working_hours" defaultValue={clinic.working_hours ?? ""} /></div>
               <div className="form-span-2"><label htmlFor="services">Legacy service summary</label><input id="services" name="services" defaultValue={clinic.services.join(", ")} /><p className="form-help">Use the standardized service catalogue below for structured listings.</p></div>
               <div className="form-span-2"><label htmlFor="species">Species served</label><input id="species" name="species" defaultValue={clinic.species.join(", ")} /></div>
@@ -178,6 +185,15 @@ export default async function ClinicManagePage({
             </div>
             <FormSubmitButton pendingLabel="Saving clinic...">Save clinic profile</FormSubmitButton>
           </form>
+
+          <section className="backend-form-card workspace-section-card workspace-heading-gap">
+            <div className="section-heading"><span className="section-kicker">APPOINTMENT REQUESTS</span><h2>Incoming clinic requests.</h2><p>Requests are not confirmed bookings until your team changes the status.</p></div>
+            <div className="workspace-record-list">
+              {appointments.length === 0 ? <p>No appointment requests yet.</p> : appointments.map((row) => (
+                <article key={row.id}><div><h3>{row.contact_name}</h3><p>{row.animal_species || "Species not provided"} · {row.preferred_date || "No preferred date"} {row.preferred_time || ""}</p><p>{row.reason}</p><p>{row.contact_email || ""} {row.contact_phone || ""}</p><span className={`status-pill status-${row.status}`}>{row.status}</span></div><form action={updateClinicAppointmentStatusAction}><input type="hidden" name="clinic_id" value={clinic.id}/><input type="hidden" name="request_id" value={row.id}/><select name="status" defaultValue={row.status}><option value="new">New</option><option value="contacted">Contacted</option><option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="declined">Declined</option><option value="closed">Closed</option></select><button className="button button-secondary" type="submit">Update</button></form></article>
+              ))}
+            </div>
+          </section>
 
           <div className="workspace-two-column workspace-heading-gap">
             <section className="backend-form-card workspace-section-card">
