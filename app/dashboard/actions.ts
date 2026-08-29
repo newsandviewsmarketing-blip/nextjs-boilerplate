@@ -24,6 +24,9 @@ export async function updateProfileAction(formData: FormData) {
   const fullName = value(formData, "full_name");
   const phone = value(formData, "phone");
   const city = value(formData, "city");
+  const province = value(formData, "province");
+  const district = value(formData, "district");
+  const tehsil = value(formData, "tehsil");
 
   if (!fullName) {
     redirect(
@@ -40,6 +43,9 @@ export async function updateProfileAction(formData: FormData) {
       full_name: fullName,
       phone: phone || null,
       city: city || null,
+      province: province || null,
+      district: district || null,
+      tehsil: tehsil || null,
     })
     .eq("id", identity.userId);
 
@@ -56,13 +62,7 @@ export async function updateProfileAction(formData: FormData) {
     identity.profile?.primary_role ===
     "veterinarian"
   ) {
-    const services = value(
-      formData,
-      "services",
-    )
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const services = formData.getAll("services").map((item) => String(item).trim()).filter(Boolean);
 
     const { error } = await supabase
       .from("veterinarian_profiles")
@@ -74,6 +74,8 @@ export async function updateProfileAction(formData: FormData) {
         qualifications:
           value(formData, "qualifications") ||
           null,
+
+        veterinary_sector: value(formData, "veterinary_sector") || null,
 
         specialization:
           value(formData, "specialization") ||
@@ -87,6 +89,9 @@ export async function updateProfileAction(formData: FormData) {
         ),
 
         city: city || null,
+        province: province || null,
+        district: district || null,
+        tehsil: tehsil || null,
 
         services,
       })
@@ -102,6 +107,25 @@ export async function updateProfileAction(formData: FormData) {
           error.message,
         ),
       );
+    }
+
+    // Every veterinarian also has a canonical professional identity.
+    // Keep shared location and experience fields synchronized without
+    // overwriting the richer LinkedIn-style professional summary.
+    const { error: professionalSyncError } = await supabase
+      .from("professional_profiles")
+      .update({
+        professional_type: "Veterinarian",
+        city: city || null,
+        province: province || null,
+        district: district || null,
+        tehsil: tehsil || null,
+        years_experience: Number(value(formData, "years_experience") || 0),
+      })
+      .eq("user_id", identity.userId);
+
+    if (professionalSyncError) {
+      redirect(message("error", professionalSyncError.message));
     }
   }
 
@@ -131,6 +155,9 @@ export async function updateProfileAction(formData: FormData) {
           ) || null,
 
         city: city || null,
+        province: province || null,
+        district: district || null,
+        tehsil: tehsil || null,
 
         address:
           value(
@@ -358,11 +385,9 @@ export async function updateProfileAction(formData: FormData) {
 
         city: city || null,
 
-        province:
-          value(
-            formData,
-            "province",
-          ) || null,
+        province: province || null,
+        district: district || null,
+        tehsil: tehsil || null,
 
         years_experience: Number(
           value(
@@ -445,11 +470,9 @@ export async function updateProfileAction(formData: FormData) {
 
         city: city || null,
 
-        province:
-          value(
-            formData,
-            "province",
-          ) || null,
+        province: province || null,
+        district: district || null,
+        tehsil: tehsil || null,
 
         address:
           value(

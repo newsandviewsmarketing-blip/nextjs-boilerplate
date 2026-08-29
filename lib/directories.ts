@@ -22,6 +22,9 @@ export type PublicProfessional = {
   organization_name: string | null;
   city: string | null;
   province: string | null;
+  district?: string | null;
+  tehsil?: string | null;
+  public_summary?: string | null;
   years_experience: number;
   skills: string[];
   image_url: string | null;
@@ -37,6 +40,10 @@ export type PublicClinic = {
   description: string | null;
   city: string | null;
   province: string | null;
+  district?: string | null;
+  tehsil?: string | null;
+  logo_url?: string | null;
+  cover_image_url?: string | null;
   address: string | null;
   public_phone: string | null;
   public_email: string | null;

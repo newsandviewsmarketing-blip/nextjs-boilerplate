@@ -148,3 +148,118 @@ test("new administrator mutations verify permissions inside server actions", () 
   assert.match(userActions, /cannot remove your own Super Administrator role/);
   assert.match(userActions, /cannot suspend your own administrator account/);
 });
+
+test("veterinarian profile uses standardized sector, specialization and service selectors", () => {
+  const dashboard = read("app/dashboard/page.tsx");
+  const fields = read("app/components/VeterinaryProfileFields.tsx");
+  const actions = read("app/dashboard/actions.ts");
+  assert.match(dashboard, /<VeterinaryProfileFields/);
+  assert.match(fields, /name="veterinary_sector"/);
+  assert.match(fields, /name="specialization"/);
+  assert.match(fields, /type="checkbox"[\s\S]*?name="services"|name="services"[\s\S]*?type="checkbox"/);
+  assert.match(actions, /formData\.getAll\("services"\)/);
+});
+
+test("account location uses dependent Pakistan administrative selectors", () => {
+  const dashboard = read("app/dashboard/page.tsx");
+  const locations = read("app/components/PakistanLocationFields.tsx");
+  const migration = read("supabase/migrations/202608300001_profile_standardization.sql");
+  assert.match(dashboard, /<PakistanLocationFields/);
+  assert.match(locations, /Province \/ Territory/);
+  assert.match(locations, /District/);
+  assert.match(locations, /Tehsil \/ Taluka/);
+  assert.match(locations, /open-admin-data\/pakistan-administrative-divisions/);
+  assert.match(migration, /^begin;$/m);
+  assert.match(migration, /^commit;$/m);
+  assert.doesNotMatch(migration, /\bdrop\s+table\b|\bdrop\s+column\b|\btruncate\b|\bdelete\s+from\b/i);
+});
+
+test("career workspace and veterinarian job application flow are active", () => {
+  const dashboard = read("app/dashboard/page.tsx");
+  const career = read("app/dashboard/career/page.tsx");
+  const jobs = read("app/jobs/actions.ts");
+  assert.match(dashboard, /href="\/dashboard\/career"/);
+  assert.match(career, /MY APPLICATIONS/);
+  assert.match(career, /job_applications/);
+  assert.match(jobs, /"veterinarian"/);
+  assert.match(jobs, /verification_status !== "approved"/);
+});
+
+test("admin directory supports standardized filters and CSV export", () => {
+  const users = read("app/admin/users/page.tsx");
+  const route = read("app/admin/users/export/route.ts");
+  assert.match(users, /Veterinary sector/);
+  assert.match(users, /All provinces/);
+  assert.match(users, /All districts/);
+  assert.match(users, /admin-directory-table/);
+  assert.match(users, /\/admin\/users\/export/);
+  assert.match(route, /vetconnect-users-directory\.csv/);
+  assert.match(route, /"PVMC"/);
+  assert.match(route, /"Veterinary Sector"/);
+});
+
+
+test("professional workspace supports rich profile, photo, education, experience and CV records", () => {
+  const page = read("app/dashboard/professional/page.tsx");
+  const actions = read("app/dashboard/professional/actions.ts");
+  const migration = read("supabase/migrations/202608300002_workspaces_and_media.sql");
+  const publicPage = read("app/professionals/[slug]/page.tsx");
+  assert.match(page, /PROFESSIONAL WORKSPACE/);
+  assert.match(page, /professional_education/);
+  assert.match(page, /professional_experience/);
+  assert.match(page, /professional_credentials/);
+  assert.match(page, /career_documents/);
+  assert.match(actions, /profile-media/);
+  assert.match(actions, /career-documents/);
+  assert.match(migration, /insert into storage\.buckets/);
+  assert.match(migration, /professional_education_public_read/);
+  assert.match(publicPage, /Professional experience/);
+  assert.match(publicPage, /VERIFIED CREDENTIALS/);
+});
+
+test("clinic workspace activates facility profile, media, services and affiliation request", () => {
+  const listPage = read("app/dashboard/clinics/page.tsx");
+  const detailPage = read("app/dashboard/clinics/[id]/page.tsx");
+  const actions = read("app/dashboard/clinics/actions.ts");
+  const publicPage = read("app/clinics/[slug]/page.tsx");
+  assert.match(listPage, /CLINIC WORKSPACE/);
+  assert.match(detailPage, /Standardized service catalogue/);
+  assert.match(detailPage, /uploadClinicMediaAction/);
+  assert.match(actions, /request_clinic_membership/);
+  assert.match(actions, /clinic_services/);
+  assert.match(publicPage, /Request clinic affiliation/);
+  assert.match(publicPage, /clinic_services/);
+});
+
+test("career workspace supports saved jobs and calculated job matches", () => {
+  const career = read("app/dashboard/career/page.tsx");
+  const jobActions = read("app/jobs/actions.ts");
+  const jobDetail = read("app/jobs/[slug]/page.tsx");
+  assert.match(career, /SAVED JOBS/);
+  assert.match(career, /JOB MATCHES/);
+  assert.match(career, /job_matches/);
+  assert.match(jobActions, /toggleSavedJobAction/);
+  assert.match(jobActions, /saved_jobs/);
+  assert.match(jobDetail, /Save job/);
+});
+
+test("new 30 August migrations are additive and transactional", () => {
+  for (const path of [
+    "supabase/migrations/202608300001_profile_standardization.sql",
+    "supabase/migrations/202608300002_workspaces_and_media.sql",
+  ]) {
+    const sql = read(path);
+    assert.match(sql, /^begin;$/m);
+    assert.match(sql, /^commit;$/m);
+    assert.doesNotMatch(sql, /\bdrop\s+table\b|\bdrop\s+column\b|\btruncate\b|\bdelete\s+from\b/i);
+  }
+});
+
+test("admin home provides operational pulse and eight-entry recent update summary", async () => {
+  const admin = await read("app/admin/page.tsx");
+  assert.match(admin, /LAST 24 HOURS/);
+  assert.match(admin, /New registrations/);
+  assert.match(admin, /Pending clinic affiliations/);
+  assert.match(admin, /Latest recorded actions/);
+  assert.match(admin, /\.limit\(8\)/);
+});

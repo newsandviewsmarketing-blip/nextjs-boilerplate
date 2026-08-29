@@ -4,6 +4,8 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import FormMessage from "../components/FormMessage";
 import FormSubmitButton from "../components/FormSubmitButton";
+import PakistanLocationFields from "../components/PakistanLocationFields";
+import VeterinaryProfileFields from "../components/VeterinaryProfileFields";
 import { signOutAction } from "../auth/actions";
 import { updateProfileAction } from "./actions";
 import { getCurrentIdentity, isAdminRole } from "@/lib/auth";
@@ -199,14 +201,12 @@ export default async function DashboardPage({
                     defaultValue={identity.profile?.phone ?? ""}
                   />
                 </div>
-                <div>
-                  <label htmlFor="city">City</label>
-                  <input
-                    id="city"
-                    name="city"
-                    defaultValue={identity.profile?.city ?? ""}
-                  />
-                </div>
+                <PakistanLocationFields
+                  defaultProvince={String(identity.profile?.province ?? specialistProfile?.province ?? "")}
+                  defaultDistrict={String(identity.profile?.district ?? specialistProfile?.district ?? "")}
+                  defaultTehsil={String(identity.profile?.tehsil ?? specialistProfile?.tehsil ?? "")}
+                  defaultCity={String(identity.profile?.city ?? specialistProfile?.city ?? "")}
+                />
                 {role === "veterinarian" && (
                   <>
                     <div>
@@ -231,16 +231,7 @@ export default async function DashboardPage({
                         )}
                       />
                     </div>
-                    <div>
-                      <label htmlFor="specialization">Specialization</label>
-                      <input
-                        id="specialization"
-                        name="specialization"
-                        defaultValue={String(
-                          specialistProfile?.specialization ?? "",
-                        )}
-                      />
-                    </div>
+
                     <div>
                       <label htmlFor="years_experience">
                         Years of experience
@@ -255,20 +246,11 @@ export default async function DashboardPage({
                         )}
                       />
                     </div>
-                    <div className="form-span-2">
-                      <label htmlFor="services">
-                        Services, separated by commas
-                      </label>
-                      <input
-                        id="services"
-                        name="services"
-                        defaultValue={
-                          Array.isArray(specialistProfile?.services)
-                            ? specialistProfile.services.join(", ")
-                            : ""
-                        }
-                      />
-                    </div>
+                    <VeterinaryProfileFields
+                      defaultSector={String(specialistProfile?.veterinary_sector ?? "")}
+                      defaultSpecialization={String(specialistProfile?.specialization ?? "")}
+                      defaultServices={Array.isArray(specialistProfile?.services) ? specialistProfile.services.map(String) : []}
+                    />
                   </>
                 )}
                 {role === "company" && (
@@ -398,10 +380,6 @@ export default async function DashboardPage({
                       <input id="organization_name" name="organization_name" defaultValue={String(specialistProfile?.organization_name ?? "")} />
                     </div>
                     <div>
-                      <label htmlFor="province">Province</label>
-                      <input id="province" name="province" defaultValue={String(specialistProfile?.province ?? "")} />
-                    </div>
-                    <div>
                       <label htmlFor="years_experience">Years of experience</label>
                       <input id="years_experience" name="years_experience" type="number" min="0" defaultValue={String(specialistProfile?.years_experience ?? 0)} />
                     </div>
@@ -437,10 +415,6 @@ export default async function DashboardPage({
                     <div>
                       <label htmlFor="technical_head">Technical head</label>
                       <input id="technical_head" name="technical_head" defaultValue={String(specialistProfile?.technical_head ?? "")} />
-                    </div>
-                    <div>
-                      <label htmlFor="province">Province</label>
-                      <input id="province" name="province" defaultValue={String(specialistProfile?.province ?? "")} />
                     </div>
                     <div className="form-span-2">
                       <label htmlFor="address">Laboratory address</label>
@@ -488,23 +462,38 @@ export default async function DashboardPage({
                 <h3>Account and verification</h3>
                 <p>Maintain identity, contact and role-specific information.</p>
               </article>
-              <article>
-                <span>JOBS</span>
-                <h3>Career workspace</h3>
-                <p>
-                  Job posting and application records will connect in the next
-                  module.
-                </p>
-              </article>
+              {["veterinarian", "professional", "candidate"].includes(role) && (
+                <article>
+                  <span>PROFESSIONAL</span>
+                  <h3>Professional profile & CV</h3>
+                  <p>Build a LinkedIn-style veterinary profile with photograph, experience, education, credentials and CV records.</p>
+                  <Link href="/dashboard/professional">Open professional workspace →</Link>
+                </article>
+              )}
+              {["veterinarian", "professional", "candidate"].includes(role) && (
+                <article>
+                  <span>JOBS</span>
+                  <h3>Career workspace</h3>
+                  <p>Browse verified vacancies, save opportunities and track applications.</p>
+                  <Link href="/dashboard/career">Open career workspace →</Link>
+                </article>
+              )}
+              {["veterinarian", "professional"].includes(role) && (
+                <article>
+                  <span>CLINICS</span>
+                  <h3>Clinic workspace</h3>
+                  <p>Create and manage clinic identity, services, team affiliation, public contacts and facility media.</p>
+                  <Link href="/dashboard/clinics">Open clinic workspace →</Link>
+                </article>
+              )}
               <article>
                 <span>MARKETPLACE</span>
                 <h3>Business listings</h3>
-                <p>
-                  Approved companies can submit products and answer customer
-                  requests.
-                </p>
-                {role === "company" && (
+                <p>Approved companies can submit products and answer customer requests.</p>
+                {role === "company" ? (
                   <Link href="/dashboard/company">Open company workspace →</Link>
+                ) : (
+                  <Link href="/marketplace">Open marketplace →</Link>
                 )}
               </article>
             </div>

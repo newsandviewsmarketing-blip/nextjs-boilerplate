@@ -17,6 +17,24 @@ export default async function AdminOverviewPage() {
   let publishedProducts = 0;
   let pendingJobs = 0;
   let activeUsers = 0;
+  let totalVeterinarians = 0;
+  let approvedVeterinarians = 0;
+  let totalCompanies = 0;
+  let jobApplications = 0;
+  let newRegistrations24h = 0;
+  let newApplications24h = 0;
+  let newProducts24h = 0;
+  let newJobs24h = 0;
+  let pendingClinicClaims = 0;
+  let totalClinics = 0;
+  let totalLaboratories = 0;
+  let totalProfessionals = 0;
+  let recentAudit: Array<{
+    id: string;
+    action: string;
+    entity_type: string;
+    created_at: string;
+  }> = [];
 
   if (hasAdminPermission(identity, "profiles.review")) {
     const [vets, companies, professionals, laboratories, credentials] =
@@ -53,11 +71,58 @@ export default async function AdminOverviewPage() {
   }
 
   if (hasAdminPermission(identity, "users.manage")) {
-    const { count } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("account_status", "active");
-    activeUsers = count ?? 0;
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [
+      users,
+      vets,
+      approvedVets,
+      companies,
+      applications,
+      professionals,
+      clinics,
+      laboratories,
+      newUsers,
+      newApplications,
+      newProducts,
+      newJobs,
+      clinicClaims,
+    ] = await Promise.all([
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("account_status", "active"),
+      supabase.from("veterinarian_profiles").select("user_id", { count: "exact", head: true }),
+      supabase.from("veterinarian_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "approved"),
+      supabase.from("company_profiles").select("user_id", { count: "exact", head: true }),
+      supabase.from("job_applications").select("id", { count: "exact", head: true }),
+      supabase.from("professional_profiles").select("user_id", { count: "exact", head: true }),
+      supabase.from("clinics").select("id", { count: "exact", head: true }),
+      supabase.from("laboratories").select("id", { count: "exact", head: true }),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+      supabase.from("job_applications").select("id", { count: "exact", head: true }).gte("applied_at", since24h),
+      supabase.from("products").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+      supabase.from("clinic_members").select("clinic_id", { count: "exact", head: true }).eq("membership_status", "pending"),
+    ]);
+    activeUsers = users.count ?? 0;
+    totalVeterinarians = vets.count ?? 0;
+    approvedVeterinarians = approvedVets.count ?? 0;
+    totalCompanies = companies.count ?? 0;
+    jobApplications = applications.count ?? 0;
+    totalProfessionals = professionals.count ?? 0;
+    totalClinics = clinics.count ?? 0;
+    totalLaboratories = laboratories.count ?? 0;
+    newRegistrations24h = newUsers.count ?? 0;
+    newApplications24h = newApplications.count ?? 0;
+    newProducts24h = newProducts.count ?? 0;
+    newJobs24h = newJobs.count ?? 0;
+    pendingClinicClaims = clinicClaims.count ?? 0;
+  }
+
+  if (hasAdminPermission(identity, "audit.view")) {
+    const { data } = await supabase
+      .from("audit_logs")
+      .select("id, action, entity_type, created_at")
+      .order("created_at", { ascending: false })
+      .limit(8);
+    recentAudit = (data ?? []) as typeof recentAudit;
   }
 
   const modules = [
@@ -134,9 +199,58 @@ export default async function AdminOverviewPage() {
                 <article><b>{pendingJobs}</b><span>Jobs to review</span></article>
               )}
               {hasAdminPermission(identity, "users.manage") && (
-                <article><b>{activeUsers}</b><span>Active user accounts</span></article>
+                <>
+                  <article><b>{activeUsers}</b><span>Active user accounts</span></article>
+                  <article><b>{totalVeterinarians}</b><span>Total veterinarians</span></article>
+                  <article><b>{approvedVeterinarians}</b><span>Approved veterinarians</span></article>
+                  <article><b>{totalCompanies}</b><span>Registered companies</span></article>
+                  <article><b>{jobApplications}</b><span>Job applications</span></article>
+                </>
               )}
             </div>
+            {hasAdminPermission(identity, "users.manage") && (
+              <section className="admin-pulse-panel" aria-labelledby="operational-pulse-heading">
+                <div className="section-heading compact-heading">
+                  <span className="section-kicker">LAST 24 HOURS</span>
+                  <h2 id="operational-pulse-heading">Operational pulse.</h2>
+                  <p>A quick summary of activity that needs attention or shows platform movement.</p>
+                </div>
+                <div className="admin-pulse-grid">
+                  <article><b>{newRegistrations24h}</b><span>New registrations</span></article>
+                  <article><b>{newApplications24h}</b><span>New job applications</span></article>
+                  <article><b>{newProducts24h}</b><span>New product records</span></article>
+                  <article><b>{newJobs24h}</b><span>New job records</span></article>
+                  <article><b>{pendingClinicClaims}</b><span>Pending clinic affiliations</span></article>
+                  <article><b>{totalProfessionals}</b><span>Professional profiles</span></article>
+                  <article><b>{totalClinics}</b><span>Clinics in database</span></article>
+                  <article><b>{totalLaboratories}</b><span>Laboratories in database</span></article>
+                </div>
+              </section>
+            )}
+
+            {hasAdminPermission(identity, "audit.view") && recentAudit.length > 0 && (
+              <section className="admin-recent-activity" aria-labelledby="recent-activity-heading">
+                <div className="admin-activity-header">
+                  <div>
+                    <span className="section-kicker">RECENT UPDATES</span>
+                    <h2 id="recent-activity-heading">Latest recorded actions.</h2>
+                  </div>
+                  <Link href="/admin/audit">Open full audit log →</Link>
+                </div>
+                <div className="admin-activity-list">
+                  {recentAudit.map((row, index) => (
+                    <article key={row.id}>
+                      <span className="admin-activity-index">{String(index + 1).padStart(2, "0")}</span>
+                      <div>
+                        <b>{row.action.replaceAll("_", " ").replaceAll(".", " · ")}</b>
+                        <span>{row.entity_type.replaceAll("_", " ")} · {new Date(row.created_at).toLocaleString("en-PK", { timeZone: "Asia/Karachi" })}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <div className="admin-module-grid">
               {modules.map((item) => (
                 <article key={item.href}>
