@@ -4,9 +4,9 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import AdminNav from "../components/AdminNav";
-import { requireAdminPermission, staffRoleOptions, staffRoleLabel, permissionOptions } from "@/lib/admin";
+import { requireAdminPermission, staffRoleOptions, staffRoleLabel } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
-import { updateStaffRolesAction, updateUserStatusAction, updateUserPermissionsAction } from "./actions";
+import { updateStaffRolesAction, updateUserStatusAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   const identity = await requireAdminPermission("users.manage", "/admin/users");
   const supabase = await createClient();
 
-  const [{ data: profiles, error: profilesError }, { data: roles }, { data: vets, error: vetsError }, { data: permissionRows }] = await Promise.all([
+  const [{ data: profiles, error: profilesError }, { data: roles }, { data: vets, error: vetsError }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, email, full_name, city, province, district, tehsil, primary_role, account_status, created_at")
@@ -57,7 +57,6 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     supabase
       .from("veterinarian_profiles")
       .select("user_id, pvmc_number, veterinary_sector, specialization, verification_status"),
-    supabase.from("admin_user_permissions").select("user_id, granted_permissions, revoked_permissions"),
   ]);
 
   const roleMap = new Map<string, string[]>();
@@ -69,8 +68,6 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
 
   const vetMap = new Map<string, VetRow>();
   for (const row of (vets ?? []) as VetRow[]) vetMap.set(row.user_id, row);
-  const permissionMap = new Map<string, { granted: string[]; revoked: string[] }>();
-  for (const row of permissionRows ?? []) permissionMap.set(row.user_id, { granted: row.granted_permissions ?? [], revoked: row.revoked_permissions ?? [] });
 
   const allRows = (profiles ?? []) as UserRow[];
   const query = (params.q ?? "").trim().toLowerCase();
@@ -161,7 +158,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                     const vet = vetMap.get(user.id);
                     return (
                       <tr key={user.id}>
-                        <td><Link href={`/admin/users/${user.id}`}><b>{user.full_name || "Unnamed account"}</b></Link><small>{user.email}</small></td>
+                        <td><b>{user.full_name || "Unnamed account"}</b><small>{user.email}</small></td>
                         <td>{user.primary_role.replaceAll("_", " ")}</td>
                         <td>{user.province || "—"}</td>
                         <td>{user.district || "—"}</td>
@@ -177,7 +174,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
               </table>
             </div>
 
-            <div className="section-heading admin-role-heading" id="staff-roles">
+            <div className="section-heading admin-role-heading">
               <span className="section-kicker">ADMINISTRATOR HIERARCHY</span>
               <h2>Staff roles and account control.</h2>
               <p>Super Administrators can assign controlled staff roles without changing the user-owned professional record.</p>
@@ -219,25 +216,6 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                           ))}
                         </fieldset>
                         <FormSubmitButton className="button button-secondary" pendingLabel="Saving roles...">Save roles</FormSubmitButton>
-                      </form>
-                      <form className="staff-permission-form" action={updateUserPermissionsAction}>
-                        <input type="hidden" name="user_id" value={user.id} />
-                        <fieldset>
-                          <legend>Individual permission overrides</legend>
-                          <div className="permission-override-grid">
-                            {permissionOptions.map((permission) => {
-                              const current = permissionMap.get(user.id) ?? { granted: [], revoked: [] };
-                              return (
-                                <div className="permission-override-row" key={permission.value}>
-                                  <span><b>{permission.label}</b><small>{permission.summary}</small></span>
-                                  <label><input type="checkbox" name="granted_permissions" value={permission.value} defaultChecked={current.granted.includes(permission.value)} /> Grant</label>
-                                  <label><input type="checkbox" name="revoked_permissions" value={permission.value} defaultChecked={current.revoked.includes(permission.value)} /> Revoke</label>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </fieldset>
-                        <FormSubmitButton className="button button-secondary" pendingLabel="Saving permissions...">Save permissions</FormSubmitButton>
                       </form>
                       <form className="inline-status-form" action={updateUserStatusAction}>
                         <input type="hidden" name="user_id" value={user.id} />

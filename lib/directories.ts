@@ -3,14 +3,6 @@ export type PublicVeterinarian = {
   full_name: string;
   qualifications: string | null;
   specialization: string | null;
-  veterinary_sector?: string | null;
-  province?: string | null;
-  district?: string | null;
-  tehsil?: string | null;
-  public_phone?: string | null;
-  contact_email?: string | null;
-  address?: string | null;
-  google_maps_url?: string | null;
   years_experience: number;
   city: string | null;
   services: string[];
@@ -36,10 +28,6 @@ export type PublicProfessional = {
   years_experience: number;
   skills: string[];
   image_url: string | null;
-  public_phone?: string | null;
-  contact_email?: string | null;
-  address?: string | null;
-  google_maps_url?: string | null;
   profile_verified: boolean;
   is_sample?: boolean;
 };
@@ -60,7 +48,6 @@ export type PublicClinic = {
   public_phone: string | null;
   public_email: string | null;
   website: string | null;
-  google_maps_url?: string | null;
   working_hours: string | null;
   emergency_service: boolean;
   services: string[];
@@ -77,13 +64,10 @@ export type PublicLaboratory = {
   description: string | null;
   city: string | null;
   province: string | null;
-  district?: string | null;
-  tehsil?: string | null;
   address: string | null;
   public_phone: string | null;
   public_email: string | null;
   website: string | null;
-  google_maps_url?: string | null;
   working_hours: string | null;
   emergency_service: boolean;
   species_served: string[];

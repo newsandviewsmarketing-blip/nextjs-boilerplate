@@ -431,9 +431,6 @@ export default async function DashboardPage({
                     <div>
                       <label htmlFor="website">Website</label>
                       <input id="website" name="website" type="url" defaultValue={String(specialistProfile?.website ?? "")} />
-                    </div>                    <div>
-                      <label htmlFor="google_maps_url">Google Maps URL</label>
-                      <input id="google_maps_url" name="google_maps_url" type="url" defaultValue={String(specialistProfile?.google_maps_url ?? "")} placeholder="https://maps.google.com/..." />
                     </div>
                     <div>
                       <label htmlFor="working_hours">Working hours</label>
@@ -487,14 +484,6 @@ export default async function DashboardPage({
                   <h3>Clinic workspace</h3>
                   <p>Create and manage clinic identity, services, team affiliation, public contacts and facility media.</p>
                   <Link href="/dashboard/clinics">Open clinic workspace →</Link>
-                </article>
-              )}
-              {role === "laboratory" && (
-                <article>
-                  <span>LABORATORY</span>
-                  <h3>Laboratory workspace</h3>
-                  <p>Manage public laboratory status and incoming test-information requests.</p>
-                  <Link href="/dashboard/laboratory">Open laboratory workspace →</Link>
                 </article>
               )}
               <article>
