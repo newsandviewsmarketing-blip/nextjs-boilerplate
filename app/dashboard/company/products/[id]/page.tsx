@@ -167,7 +167,9 @@ export default async function CompanyProductEditPage({
               <div><label htmlFor="availability">Availability</label><input id="availability" name="availability" defaultValue={row.availability ?? ""} /></div>
               <div className="form-span-2"><label htmlFor="image_url">Public image URL</label><input id="image_url" name="image_url" type="url" defaultValue={row.image_url ?? ""} /></div>
             </div>
-            <FormSubmitButton pendingLabel="Saving product...">Save product</FormSubmitButton>
+            <FormSubmitButton pendingLabel="Saving and submitting changes...">
+              Save and submit changes
+            </FormSubmitButton>
           </form>
         </div>
       </section>
