@@ -1,0 +1,16 @@
+begin;
+
+-- ============================================================
+-- VetConnect
+-- 011 RESTRICT LEGACY COMPANY MAPPING HELPER
+-- ============================================================
+
+revoke execute
+on function public.company_id_from_legacy_user(uuid)
+from anon;
+
+revoke execute
+on function public.company_id_from_legacy_user(uuid)
+from authenticated;
+
+commit;
