@@ -8,7 +8,8 @@ import FormSubmitButton from "../../components/FormSubmitButton";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { sampleJobs, type PublicJob } from "@/lib/jobs";
-import { applyToJobAction } from "../actions";
+import { applyToJobAction, toggleSavedJobAction } from "../actions";
+import { getCurrentIdentity } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +34,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function JobDetailPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ error?: string; message?: string }> }) {
-  const { slug } = await params; const messages = await searchParams; const job = await loadJob(slug); if (!job) notFound();
+  const { slug } = await params;
+  const messages = await searchParams;
+  const job = await loadJob(slug);
+  if (!job) notFound();
+  const identity = await getCurrentIdentity();
+  let isSaved = false;
+  if (identity && job.id && !job.is_sample) {
+    const supabase = await createClient();
+    const { data } = await supabase.from("saved_jobs").select("job_id").eq("user_id", identity.userId).eq("job_id", job.id).maybeSingle();
+    isSaved = Boolean(data);
+  }
   return <main><SiteHeader /><section className="page-hero"><div className="shell"><span className="section-kicker">{job.sector || "VETERINARY CAREER"}</span><h1>{job.title}</h1><p>{job.company_name} • {job.city || "Pakistan"} • {job.employment_type}</p><div className="profile-chips">{job.minimum_qualification && <span>{job.minimum_qualification}</span>}<span>{job.minimum_experience}+ years</span>{job.deadline && <span>Deadline: {job.deadline}</span>}</div></div></section>
     <section className="section compact-section"><div className="shell two-col"><div className="backend-form-card"><h2>Opportunity details</h2><p>{job.description}</p><dl className="product-specs"><div><dt>Employer</dt><dd>{job.company_name}</dd></div><div><dt>Location</dt><dd>{[job.city, job.province].filter(Boolean).join(", ") || "Pakistan"}</dd></div><div><dt>Employment type</dt><dd>{job.employment_type}</dd></div><div><dt>Minimum qualification</dt><dd>{job.minimum_qualification || "See job description"}</dd></div><div><dt>Minimum experience</dt><dd>{job.minimum_experience} years</dd></div></dl>{job.company_user_id && <Link className="button button-secondary" href={`/companies/${job.company_user_id}`}>View employer profile</Link>}</div>
-      <div className="backend-form-card"><FormMessage {...messages} /><span className="section-kicker">APPLY THROUGH VETCONNECT</span><h2>Submit your career profile.</h2>{job.is_sample || !job.id ? <div className="setup-notice"><p>This is sample data. Applications activate when an approved employer publishes the job.</p></div> : <form action={applyToJobAction}><input type="hidden" name="slug" value={job.slug} /><input type="hidden" name="job_id" value={job.id} /><label htmlFor="cover_note">Short application note</label><textarea id="cover_note" name="cover_note" placeholder="Briefly explain your fit for this role." /><FormSubmitButton pendingLabel="Submitting application...">Apply now</FormSubmitButton></form>}</div></div></section><SiteFooter /></main>;
+      <div className="backend-form-card"><FormMessage {...messages} /><span className="section-kicker">APPLY THROUGH VETCONNECT</span><h2>Submit your career profile.</h2>{job.is_sample || !job.id ? <div className="setup-notice"><p>This is sample data. Applications activate when an approved employer publishes the job.</p></div> : <><form action={applyToJobAction}><input type="hidden" name="slug" value={job.slug} /><input type="hidden" name="job_id" value={job.id} /><label htmlFor="cover_note">Short application note</label><textarea id="cover_note" name="cover_note" placeholder="Briefly explain your fit for this role." /><FormSubmitButton pendingLabel="Submitting application...">Apply now</FormSubmitButton></form><form action={toggleSavedJobAction} className="save-job-form"><input type="hidden" name="slug" value={job.slug} /><input type="hidden" name="job_id" value={job.id} /><button className="button button-secondary button-full" type="submit">{isSaved ? "Remove from saved jobs" : "Save job"}</button></form></>}</div></div></section><SiteFooter /></main>;
 }

@@ -50,20 +50,27 @@ export type PublicProduct = {
   country_of_origin?: string | null;
   regulatory_review_status?: string;
   company_user_id: string | null;
+  company_id?: string | null;
   company_name: string;
   company_city: string | null;
   is_sample?: boolean;
 };
 
 export type PublicCompany = {
+  id?: string | null;
   user_id: string | null;
   company_name: string;
   business_type: string | null;
   city: string | null;
+  province?: string | null;
+  district?: string | null;
+  tehsil?: string | null;
   address: string | null;
   description: string | null;
   website: string | null;
   contact_email: string | null;
+  public_phone?: string | null;
+  google_maps_url?: string | null;
   logo_url: string | null;
   is_sample?: boolean;
 };

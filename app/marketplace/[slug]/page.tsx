@@ -33,11 +33,9 @@ async function loadProduct(slug: string) {
     .eq("is_published", true)
     .maybeSingle();
   if (!row) return { product: sample ?? null, saved: false };
-  const { data: company } = await supabase
-    .from("public_companies")
-    .select("company_name, city")
-    .eq("user_id", row.company_user_id)
-    .maybeSingle();
+  const { data: company } = row.company_id
+    ? await supabase.from("public_company_directory").select("id, user_id, company_name, city").eq("id", row.company_id).maybeSingle()
+    : await supabase.from("public_companies").select("user_id, company_name, city").eq("user_id", row.company_user_id).maybeSingle();
   const identity = await getCurrentIdentity();
   const { data: saved } = identity
     ? await supabase
@@ -84,6 +82,7 @@ async function loadProduct(slug: string) {
     country_of_origin: row.country_of_origin,
     regulatory_review_status: row.regulatory_review_status,
     company_user_id: row.company_user_id,
+    company_id: row.company_id,
     company_name: company?.company_name ?? "Verified VetConnect company",
     company_city: company?.city ?? null,
   };
@@ -138,8 +137,8 @@ export default async function ProductDetailPage({
             </div>
             <div className="hero-actions">
               <a className="button button-primary" href="#request">Request information</a>
-              {product.company_user_id ? (
-                <Link className="button button-secondary" href={`/companies/${product.company_user_id}`}>View company</Link>
+              {product.company_id || product.company_user_id ? (
+                <Link className="button button-secondary" href={`/companies/${product.company_id ?? product.company_user_id}`}>View company</Link>
               ) : (
                 <Link className="button button-secondary" href="/companies">View companies</Link>
               )}

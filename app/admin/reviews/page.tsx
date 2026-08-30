@@ -18,13 +18,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
-type PendingRow = Record<string, unknown> & { user_id: string; entity_id?: string };
+type PendingRow = Record<string, unknown> & { user_id: string; entity_id?: string; record_source?: string };
 type PendingDisplayRow = PendingRow & {
-  profile_type: "veterinarian" | "company" | "professional" | "laboratory";
+  profile_type: "veterinarian" | "company" | "professional" | "laboratory" | "clinic";
 };
 type PendingProduct = {
   id: string;
-  company_user_id: string;
+  company_user_id: string | null;
+  company_id: string | null;
   product_name: string;
   brand_name: string | null;
   generic_name: string | null;
@@ -35,7 +36,8 @@ type PendingProduct = {
 };
 type PendingJob = {
   id: string;
-  company_user_id: string;
+  company_user_id: string | null;
+  company_id: string | null;
   title: string;
   description: string;
   sector: string | null;
@@ -99,38 +101,52 @@ export default async function AdminPage({
       .order("created_at"),
     supabase
       .from("products")
-      .select("id, company_user_id, product_name, brand_name, generic_name, category, sector, description, created_at")
+      .select("id, company_user_id, company_id, product_name, brand_name, generic_name, category, sector, description, created_at")
       .eq("verification_status", "pending")
       .order("created_at"),
     supabase
       .from("jobs")
-      .select("id, company_user_id, title, description, sector, city, employment_type, minimum_qualification, minimum_experience, deadline")
+      .select("id, company_user_id, company_id, title, description, sector, city, employment_type, minimum_qualification, minimum_experience, deadline")
       .eq("verification_status", "pending")
       .order("created_at"),
   ]);
-  const pending: PendingDisplayRow[] = [
-    ...((vets ?? []) as PendingRow[]).map((row) => ({
+  const [{ data: managedPeople }, { data: canonicalCompanies }, { data: clinics }, { data: managedCredentialVets }] = await Promise.all([
+    supabase.from("managed_people").select("*").eq("verification_status", "pending").order("created_at"),
+    supabase.from("companies").select("*").is("legacy_company_user_id", null).eq("verification_status", "pending").eq("record_status", "active").order("created_at"),
+    supabase.from("clinics").select("*").eq("verification_status", "pending").order("created_at"),
+    supabase.from("managed_people").select("id,full_name,pvmc_number,qualifications,specialization,city,pvmc_verification_status").eq("profile_kind", "veterinarian").eq("verification_status", "approved").eq("pvmc_verification_status", "pending").order("created_at"),
+  ]);
+
+  const credentialRows: PendingRow[] = [
+    ...((credentialVets ?? []) as PendingRow[]).map((row) => ({ ...row, record_source: "account" })),
+    ...((managedCredentialVets ?? []) as Array<Record<string, unknown> & { id: string }>).map((row) => ({
       ...row,
-      profile_type: "veterinarian" as const,
-    })),
-    ...((companies ?? []) as PendingRow[]).map((row) => ({
-      ...row,
-      profile_type: "company" as const,
-    })),
-    ...((professionals ?? []) as PendingRow[]).map((row) => ({
-      ...row,
-      profile_type: "professional" as const,
-    })),
-    ...((laboratories ?? []) as Array<Record<string, unknown> & { id: string; owner_id: string }>).map((row) => ({
-      ...row,
-      user_id: row.owner_id,
+      user_id: row.id,
       entity_id: row.id,
-      profile_type: "laboratory" as const,
+      record_source: "managed_people",
+    })),
+  ];
+
+  const pending: PendingDisplayRow[] = [
+    ...((vets ?? []) as PendingRow[]).map((row) => ({ ...row, profile_type: "veterinarian" as const, record_source: "account" })),
+    ...((companies ?? []) as PendingRow[]).map((row) => ({ ...row, profile_type: "company" as const, record_source: "account" })),
+    ...((professionals ?? []) as PendingRow[]).map((row) => ({ ...row, profile_type: "professional" as const, record_source: "account" })),
+    ...((laboratories ?? []) as Array<Record<string, unknown> & { id: string; owner_id: string | null }>).map((row) => ({
+      ...row, user_id: row.owner_id ?? row.id, entity_id: row.id, profile_type: "laboratory" as const, record_source: "laboratories",
+    })),
+    ...((managedPeople ?? []) as Array<Record<string, unknown> & { id: string; profile_kind: string }>).map((row) => ({
+      ...row, user_id: row.id, entity_id: row.id, profile_type: row.profile_kind === "veterinarian" ? "veterinarian" as const : "professional" as const, record_source: "managed_people",
+    })),
+    ...((canonicalCompanies ?? []) as Array<Record<string, unknown> & { id: string }>).map((row) => ({
+      ...row, user_id: row.id, entity_id: row.id, company_name: row.canonical_name, profile_type: "company" as const, record_source: "companies",
+    })),
+    ...((clinics ?? []) as Array<Record<string, unknown> & { id: string }>).map((row) => ({
+      ...row, user_id: row.id, entity_id: row.id, profile_type: "clinic" as const, record_source: "clinics",
     })),
   ];
   const ids = [...new Set([
-    ...pending.map((row) => row.user_id),
-    ...((credentialVets ?? []) as PendingRow[]).map((row) => row.user_id),
+    ...pending.filter((row) => row.record_source === "account").map((row) => row.user_id),
+    ...credentialRows.filter((row) => row.record_source === "account").map((row) => row.user_id),
   ])];
   const { data: profiles } = ids.length
     ? await supabase
@@ -152,25 +168,38 @@ export default async function AdminPage({
   const { data: regulatoryProducts } = regulatoryProductIds.length
     ? await supabase
         .from("products")
-        .select("id, product_name, company_user_id, category")
+        .select("id, product_name, company_user_id, company_id, category")
         .in("id", regulatoryProductIds)
     : { data: [] };
   const regulatoryProductMap = new Map(
     (regulatoryProducts ?? []).map((product) => [product.id, product]),
   );
-  const productCompanyIds = [...new Set([
+  const legacyCompanyIds = [...new Set([
     ...productRows.map((product) => product.company_user_id),
     ...jobRows.map((job) => job.company_user_id),
-  ])];
-  const { data: productCompanies } = productCompanyIds.length
-    ? await supabase
-        .from("public_companies")
-        .select("user_id, company_name")
-        .in("user_id", productCompanyIds)
-    : { data: [] };
-  const productCompanyMap = new Map(
-    (productCompanies ?? []).map((company) => [company.user_id, company.company_name]),
+  ].filter((value): value is string => Boolean(value)))];
+  const canonicalCompanyIds = [...new Set([
+    ...productRows.map((product) => product.company_id),
+    ...jobRows.map((job) => job.company_id),
+  ].filter((value): value is string => Boolean(value)))];
+  const [{ data: legacyProductCompanies }, { data: canonicalProductCompanies }] = await Promise.all([
+    legacyCompanyIds.length
+      ? supabase.from("public_companies").select("user_id, company_name").in("user_id", legacyCompanyIds)
+      : Promise.resolve({ data: [] }),
+    canonicalCompanyIds.length
+      ? supabase.from("companies").select("id, canonical_name").in("id", canonicalCompanyIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const legacyProductCompanyMap = new Map(
+    (legacyProductCompanies ?? []).map((company) => [company.user_id, company.company_name]),
   );
+  const canonicalProductCompanyMap = new Map(
+    (canonicalProductCompanies ?? []).map((company) => [company.id, company.canonical_name]),
+  );
+  const companyNameFor = (companyId: string | null, companyUserId: string | null) =>
+    (companyId ? canonicalProductCompanyMap.get(companyId) : null) ||
+    (companyUserId ? legacyProductCompanyMap.get(companyUserId) : null) ||
+    "Verified company";
   const productIds = productRows.map((product) => product.id);
   const { data: complianceRows } = productIds.length
     ? await supabase
@@ -181,6 +210,23 @@ export default async function AdminPage({
   const complianceMap = new Map(
     (complianceRows ?? []).map((row) => [row.product_id, row.registration_number]),
   );
+
+  const { data: adminDocuments } = await supabase
+    .from("admin_record_documents")
+    .select("entity_type,entity_id,document_kind,original_name,storage_path")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const signedDocuments = await Promise.all((adminDocuments ?? []).map(async (document) => {
+    const { data } = await supabase.storage.from("record-documents").createSignedUrl(document.storage_path, 3600);
+    return { ...document, signed_url: data?.signedUrl ?? null };
+  }));
+  const documentMap = new Map<string, typeof signedDocuments>();
+  for (const document of signedDocuments) {
+    const key = `${document.entity_type}:${document.entity_id}`;
+    const list = documentMap.get(key) ?? [];
+    list.push(document);
+    documentMap.set(key, list);
+  }
 
   return (
     <main>
@@ -214,11 +260,11 @@ export default async function AdminPage({
               <span>Veterinarians</span>
             </article>
             <article>
-              <b>{(credentialVets ?? []).length}</b>
+              <b>{credentialRows.length}</b>
               <span>PVMC checks</span>
             </article>
             <article>
-              <b>{(companies ?? []).length}</b>
+              <b>{(companies ?? []).length + (canonicalCompanies ?? []).length}</b>
               <span>Companies</span>
             </article>
             <article>
@@ -254,6 +300,8 @@ export default async function AdminPage({
             {pending.map((row) => {
               const profile = profileMap.get(row.user_id);
               const type = String(row.profile_type);
+              const documentEntityType = row.record_source === "managed_people" ? "person" : row.record_source === "companies" ? "company" : row.record_source === "clinics" ? "clinic" : row.record_source === "laboratories" ? "laboratory" : null;
+              const documents = documentEntityType ? documentMap.get(`${documentEntityType}:${String(row.entity_id || row.user_id)}`) ?? [] : [];
               return (
                 <article key={`${type}-${row.user_id}`}>
                   <div className="review-header">
@@ -261,10 +309,12 @@ export default async function AdminPage({
                       <span className="module-tag">{type}</span>
                       <h2>
                         {type === "company"
-                          ? String(row.company_name || profile?.full_name || "Company")
+                          ? String(row.company_name || row.canonical_name || profile?.full_name || "Company")
                           : type === "laboratory"
                             ? String(row.laboratory_name || profile?.full_name || "Laboratory")
-                            : String(profile?.full_name || (type === "professional" ? "Professional" : "Veterinarian"))}
+                            : type === "clinic"
+                              ? String(row.clinic_name || "Clinic / Hospital")
+                              : String(row.full_name || profile?.full_name || (type === "professional" ? "Professional" : "Veterinarian"))}
                       </h2>
                       <p>
                         {profile?.email} ·{" "}
@@ -316,6 +366,12 @@ export default async function AdminPage({
                         <div><dt>Headline</dt><dd>{String(row.headline || "Not provided")}</dd></div>
                         <div><dt>Organization</dt><dd>{String(row.organization_name || "Not provided")}</dd></div>
                       </>
+                    ) : type === "clinic" ? (
+                      <>
+                        <div><dt>Facility type</dt><dd>{String(row.facility_type || "Veterinary Clinic")}</dd></div>
+                        <div><dt>Services</dt><dd>{Array.isArray(row.services) ? row.services.join(", ") : "Not provided"}</dd></div>
+                        <div><dt>Address</dt><dd>{String(row.address || "Not provided")}</dd></div>
+                      </>
                     ) : (
                       <>
                         <div><dt>Laboratory type</dt><dd>{String(row.laboratory_type || "Not provided")}</dd></div>
@@ -324,8 +380,10 @@ export default async function AdminPage({
                       </>
                     )}
                   </dl>
+                  {documents.length > 0 && <div className="review-documents"><b>Private supporting documents</b>{documents.map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.original_name}</a> : <span key={document.storage_path}>{document.original_name}</span>)}</div>}
                   <form action={reviewProfileAction}>
                     <input type="hidden" name="profile_type" value={type} />
+                    <input type="hidden" name="record_source" value={row.record_source ?? "account"} />
                     <input type="hidden" name="user_id" value={row.user_id} />
                     <input type="hidden" name="entity_id" value={String(row.entity_id || row.user_id)} />
                     <label htmlFor={`reason-${type}-${row.user_id}`}>
@@ -365,17 +423,20 @@ export default async function AdminPage({
             <p>Registration numbers remain private. Only the verified status is published.</p>
           </div>
           <div className="admin-review-list">
-            {(credentialVets ?? []).length === 0 && (
+            {credentialRows.length === 0 && (
               <div className="empty-state"><h2>No PVMC credentials are waiting for review.</h2></div>
             )}
-            {((credentialVets ?? []) as PendingRow[]).map((row) => {
+            {credentialRows.map((row) => {
               const profile = profileMap.get(row.user_id);
+              const documents = row.record_source === "managed_people" ? documentMap.get(`person:${String(row.entity_id || row.user_id)}`) ?? [] : [];
               return (
                 <article key={`credential-${row.user_id}`}>
-                  <div className="review-header"><div><span className="module-tag">PVMC</span><h2>{profile?.full_name || "Veterinarian"}</h2><p>{profile?.email} · {profile?.city || row.city || "City not provided"}</p></div><span className="status-pill">Pending</span></div>
+                  <div className="review-header"><div><span className="module-tag">PVMC</span><h2>{String(row.full_name || profile?.full_name || "Veterinarian")}</h2><p>{profile?.email} · {profile?.city || row.city || "City not provided"}</p></div><span className="status-pill">Pending</span></div>
                   <dl className="review-details"><div><dt>Private PVMC number</dt><dd>{String(row.pvmc_number || "Not provided")}</dd></div><div><dt>Qualification</dt><dd>{String(row.qualifications || "Not provided")}</dd></div><div><dt>Specialization</dt><dd>{String(row.specialization || "Not provided")}</dd></div></dl>
+                  {documents.length > 0 && <div className="review-documents"><b>Credential evidence</b>{documents.map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.original_name}</a> : <span key={document.storage_path}>{document.original_name}</span>)}</div>}
                   <form action={reviewVeterinarianCredentialAction}>
                     <input type="hidden" name="user_id" value={row.user_id} />
+                    <input type="hidden" name="record_source" value={row.record_source ?? "account"} />
                     <label htmlFor={`credential-reason-${row.user_id}`}>Verification source or review note</label>
                     <input id={`credential-reason-${row.user_id}`} name="reason" placeholder="Record the source used for this decision" />
                     <div className="review-actions"><FormSubmitButton className="button button-primary" pendingLabel="Saving..." name="decision" value="approved">Verify credential</FormSubmitButton><button className="button button-secondary" type="submit" name="decision" value="rejected">Return / reject</button></div>
@@ -403,7 +464,7 @@ export default async function AdminPage({
                     <span className="module-tag">{product.category}</span>
                     <h2>{product.product_name}</h2>
                     <p>
-                      {productCompanyMap.get(product.company_user_id) || "Verified company"}
+                      {companyNameFor(product.company_id, product.company_user_id)}
                       {product.sector ? ` · ${product.sector}` : ""}
                     </p>
                   </div>
@@ -415,6 +476,7 @@ export default async function AdminPage({
                   <div><dt>Private regulatory reference</dt><dd>{complianceMap.get(product.id) || "Not provided"}</dd></div>
                 </dl>
                 <p>{product.description || "No product description was supplied."}</p>
+                {(documentMap.get(`product:${product.id}`) ?? []).length > 0 && <div className="review-documents"><b>Supporting documents</b>{(documentMap.get(`product:${product.id}`) ?? []).map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.original_name}</a> : <span key={document.storage_path}>{document.original_name}</span>)}</div>}
                 <form action={reviewProductAction}>
                   <input type="hidden" name="product_id" value={product.id} />
                   <label htmlFor={`product-reason-${product.id}`}>
@@ -459,7 +521,7 @@ export default async function AdminPage({
                     <span className="module-tag">{job.sector || "JOB"}</span>
                     <h2>{job.title}</h2>
                     <p>
-                      {productCompanyMap.get(job.company_user_id) || "Verified company"} ·{" "}
+                      {companyNameFor(job.company_id, job.company_user_id)} ·{" "}
                       {job.city || "Pakistan"}
                     </p>
                   </div>
@@ -486,6 +548,7 @@ export default async function AdminPage({
                 </dl>
 
                 <p>{job.description}</p>
+                {(documentMap.get(`job:${job.id}`) ?? []).length > 0 && <div className="review-documents"><b>Supporting documents</b>{(documentMap.get(`job:${job.id}`) ?? []).map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.original_name}</a> : <span key={document.storage_path}>{document.original_name}</span>)}</div>}
 
                 <form action={reviewJobAction}>
                   <input type="hidden" name="job_id" value={job.id} />

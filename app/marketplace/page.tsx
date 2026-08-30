@@ -29,16 +29,20 @@ async function loadProducts() {
     .eq("is_published", true)
     .order("created_at", { ascending: false });
   if (!data?.length) return sampleProducts;
-  const companyIds = [...new Set(data.map((row) => row.company_user_id))];
-  const { data: companies } = await supabase
-    .from("public_companies")
-    .select("user_id, company_name, city")
-    .in("user_id", companyIds);
-  const companyMap = new Map(
-    (companies ?? []).map((company) => [company.user_id, company]),
-  );
+  const canonicalIds = [...new Set(data.map((row) => row.company_id).filter(Boolean))] as string[];
+  const legacyIds = [...new Set(data.map((row) => row.company_user_id).filter(Boolean))] as string[];
+  const [{ data: canonicalCompanies }, { data: legacyCompanies }] = await Promise.all([
+    canonicalIds.length
+      ? supabase.from("public_company_directory").select("id, user_id, company_name, city").in("id", canonicalIds)
+      : Promise.resolve({ data: [] }),
+    legacyIds.length
+      ? supabase.from("public_companies").select("user_id, company_name, city").in("user_id", legacyIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const canonicalMap = new Map((canonicalCompanies ?? []).map((company) => [company.id, company]));
+  const legacyMap = new Map((legacyCompanies ?? []).map((company) => [company.user_id, company]));
   return data.map((row): PublicProduct => {
-    const company = companyMap.get(row.company_user_id);
+    const company = (row.company_id ? canonicalMap.get(row.company_id) : null) ?? legacyMap.get(row.company_user_id);
     return {
       id: row.id,
       slug: row.slug,
@@ -76,6 +80,7 @@ async function loadProducts() {
       country_of_origin: row.country_of_origin,
       regulatory_review_status: row.regulatory_review_status,
       company_user_id: row.company_user_id,
+      company_id: row.company_id,
       company_name: company?.company_name ?? "Verified VetConnect company",
       company_city: company?.city ?? null,
     };

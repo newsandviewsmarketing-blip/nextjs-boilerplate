@@ -4,7 +4,8 @@ import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
-import { productCategories } from "@/lib/marketplace";
+import MasterDataInput from "../../components/MasterDataInput";
+import PakistanLocationFields from "../../components/PakistanLocationFields";
 import {
   createJobAction,
   createProductAction,
@@ -432,19 +433,27 @@ export default async function CompanyDashboardPage({
                 <fieldset disabled={!approved}>
                   <div className="form-grid">
                     <div><label htmlFor="product_name">Product name</label><input id="product_name" name="product_name" required /></div>
-                    <div><label htmlFor="category">Category</label><select id="category" name="category" required defaultValue=""><option value="" disabled>Select category</option>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></div>
+                    <MasterDataInput category="product_category" name="category" label="Category" required allowCustom={false} />
                     <div><label htmlFor="brand_name">Brand</label><input id="brand_name" name="brand_name" /></div>
                     <div><label htmlFor="generic_name">Generic name</label><input id="generic_name" name="generic_name" /></div>
                     <div><label htmlFor="product_code">Product code / SKU</label><input id="product_code" name="product_code" /></div>
                     <div><label htmlFor="subclass">Product subclass</label><input id="subclass" name="subclass" placeholder="Live vaccine, feed additive..." /></div>
                     <div><label htmlFor="therapeutic_class">Therapeutic / functional class</label><input id="therapeutic_class" name="therapeutic_class" /></div>
-                    <div><label htmlFor="sectors">Sectors</label><input id="sectors" name="sectors" placeholder="Poultry, dairy, livestock" /></div>
+                    <MasterDataInput category="veterinary_sector" name="sectors" label="Primary sector" />
                     <div><label htmlFor="species">Species</label><input id="species" name="species" placeholder="Chicken, cattle, buffalo" /></div>
                     <div><label htmlFor="production_systems">Production systems</label><input id="production_systems" name="production_systems" placeholder="Broiler, layer, breeder" /></div>
                     <div><label htmlFor="use_areas">Disease / use areas</label><input id="use_areas" name="use_areas" placeholder="Respiratory disease, gut health" /></div>
-                    <div><label htmlFor="routes">Routes</label><input id="routes" name="routes" placeholder="Drinking water, spray, oral" /></div>
-                    <div><label htmlFor="dosage_form">Dosage / product form</label><input id="dosage_form" name="dosage_form" /></div>
+                    <MasterDataInput category="administration_route" name="routes" label="Administration route" />
+                    <MasterDataInput category="product_dosage_form" name="dosage_form" label="Dosage / product form" />
                     <div><label htmlFor="strength">Strength</label><input id="strength" name="strength" /></div>
+                    <MasterDataInput category="product_presentation" name="presentation" label="Presentation" />
+                    <MasterDataInput category="product_packaging" name="packaging_type" label="Packaging type" />
+                    <div><label htmlFor="pack_size_value">Pack size value</label><input id="pack_size_value" name="pack_size_value" placeholder="100 / 500 / 1000" /></div>
+                    <MasterDataInput category="product_packaging" name="pack_size_unit" label="Pack size unit" />
+                    <MasterDataInput category="vaccine_type" name="vaccine_type" label="Vaccine type (if applicable)" />
+                    <div><label htmlFor="concentration_value">Concentration</label><input id="concentration_value" name="concentration_value" placeholder="10 / 20 / 100" /></div>
+                    <MasterDataInput category="concentration_unit" name="concentration_unit" label="Concentration unit" />
+                    <MasterDataInput category="administration_route" name="administration_route" label="Administration route" />
                     <div><label htmlFor="pack_sizes">Pack sizes</label><input id="pack_sizes" name="pack_sizes" placeholder="100 ml, 500 ml" /></div>
                     <div className="form-span-2"><label htmlFor="composition">Composition</label><textarea id="composition" name="composition" /></div>
                     <div className="form-span-2"><label htmlFor="indications">Indications / intended use</label><textarea id="indications" name="indications" /></div>
@@ -515,10 +524,9 @@ export default async function CompanyDashboardPage({
                 <fieldset disabled={!approved}>
                   <div className="form-grid">
                     <div><label htmlFor="title">Job title</label><input id="title" name="title" required /></div>
-                    <div><label htmlFor="employment_type">Employment type</label><select id="employment_type" name="employment_type" defaultValue="Full-time"><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option><option>Consultancy</option></select></div>
-                    <div><label htmlFor="job_sector">Sector</label><input id="job_sector" name="job_sector" placeholder="Poultry, livestock, pets..." /></div>
-                    <div><label htmlFor="job_city">City</label><input id="job_city" name="job_city" /></div>
-                    <div><label htmlFor="job_province">Province</label><input id="job_province" name="job_province" /></div>
+                    <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="Full-time" allowCustom={false} />
+                    <MasterDataInput category="job_sector" name="job_sector" label="Sector" />
+                    <PakistanLocationFields fieldPrefix="job_" />
                     <div><label htmlFor="minimum_qualification">Minimum qualification</label><input id="minimum_qualification" name="minimum_qualification" placeholder="DVM, MSc, diploma..." /></div>
                     <div><label htmlFor="minimum_experience">Minimum experience</label><input id="minimum_experience" name="minimum_experience" type="number" min="0" defaultValue="0" /></div>
                     <div><label htmlFor="deadline">Application deadline</label><input id="deadline" name="deadline" type="date" /></div>

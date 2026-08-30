@@ -3,10 +3,18 @@ export type PublicVeterinarian = {
   full_name: string;
   qualifications: string | null;
   specialization: string | null;
+  veterinary_sector: string | null;
   years_experience: number;
   city: string | null;
+  province: string | null;
+  district: string | null;
+  tehsil: string | null;
   services: string[];
   image_url: string | null;
+  public_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  google_maps_url: string | null;
   profile_verified: boolean;
   pvmc_verified: boolean;
   is_sample?: boolean;
@@ -22,6 +30,9 @@ export type PublicProfessional = {
   organization_name: string | null;
   city: string | null;
   province: string | null;
+  district?: string | null;
+  tehsil?: string | null;
+  public_summary?: string | null;
   years_experience: number;
   skills: string[];
   image_url: string | null;
@@ -37,6 +48,10 @@ export type PublicClinic = {
   description: string | null;
   city: string | null;
   province: string | null;
+  district?: string | null;
+  tehsil?: string | null;
+  logo_url?: string | null;
+  cover_image_url?: string | null;
   address: string | null;
   public_phone: string | null;
   public_email: string | null;
@@ -57,10 +72,15 @@ export type PublicLaboratory = {
   description: string | null;
   city: string | null;
   province: string | null;
+  district: string | null;
+  tehsil: string | null;
   address: string | null;
   public_phone: string | null;
   public_email: string | null;
   website: string | null;
+  google_maps_url: string | null;
+  logo_url: string | null;
+  cover_image_url: string | null;
   working_hours: string | null;
   emergency_service: boolean;
   species_served: string[];
@@ -76,10 +96,18 @@ export const sampleVeterinarians: PublicVeterinarian[] = [
     full_name: "Dr. Sara Ahmed",
     qualifications: "DVM",
     specialization: "Small Animal & Pet Practice",
+    veterinary_sector: null,
     years_experience: 6,
     city: "Lahore",
+    province: null,
+    district: null,
+    tehsil: null,
     services: ["Clinic consultation", "Video consultation"],
     image_url: null,
+    public_phone: null,
+    contact_email: null,
+    address: null,
+    google_maps_url: null,
     profile_verified: false,
     pvmc_verified: false,
     is_sample: true,
@@ -89,10 +117,18 @@ export const sampleVeterinarians: PublicVeterinarian[] = [
     full_name: "Dr. M. Hassan",
     qualifications: "DVM",
     specialization: "Livestock & Herd Health",
+    veterinary_sector: null,
     years_experience: 8,
     city: "Faisalabad",
+    province: null,
+    district: null,
+    tehsil: null,
     services: ["Farm visit", "Herd advisory"],
     image_url: null,
+    public_phone: null,
+    contact_email: null,
+    address: null,
+    google_maps_url: null,
     profile_verified: false,
     pvmc_verified: false,
     is_sample: true,
@@ -102,10 +138,18 @@ export const sampleVeterinarians: PublicVeterinarian[] = [
     full_name: "Dr. R. Khan",
     qualifications: "DVM",
     specialization: "Poultry Health",
+    veterinary_sector: null,
     years_experience: 5,
     city: "Rawalpindi",
+    province: null,
+    district: null,
+    tehsil: null,
     services: ["On-site advisory", "Biosecurity"],
     image_url: null,
+    public_phone: null,
+    contact_email: null,
+    address: null,
+    google_maps_url: null,
     profile_verified: false,
     pvmc_verified: false,
     is_sample: true,
@@ -213,10 +257,15 @@ export const sampleLaboratories: PublicLaboratory[] = [
     description: "Sample profile showing the planned verified laboratory directory.",
     city: "Lahore",
     province: "Punjab",
+    district: null,
+    tehsil: null,
     address: null,
     public_phone: null,
     public_email: null,
     website: null,
+    google_maps_url: null,
+    logo_url: null,
+    cover_image_url: null,
     working_hours: "Profile-controlled",
     emergency_service: false,
     species_served: ["Poultry", "Livestock", "Pets"],
@@ -233,10 +282,15 @@ export const sampleLaboratories: PublicLaboratory[] = [
     description: "Sample profile for food-safety and farm-input testing services.",
     city: "Faisalabad",
     province: "Punjab",
+    district: null,
+    tehsil: null,
     address: null,
     public_phone: null,
     public_email: null,
     website: null,
+    google_maps_url: null,
+    logo_url: null,
+    cover_image_url: null,
     working_hours: "Profile-controlled",
     emergency_service: false,
     species_served: ["Dairy", "Poultry", "Livestock"],

@@ -6,11 +6,15 @@ export type PublicJob = {
   sector: string | null;
   city: string | null;
   province: string | null;
+  district?: string | null;
+  tehsil?: string | null;
+  address?: string | null;
   employment_type: string;
   minimum_qualification: string | null;
   minimum_experience: number;
   deadline: string | null;
   company_user_id: string | null;
+  company_id?: string | null;
   company_name: string;
   is_sample?: boolean;
 };

@@ -1,0 +1,60 @@
+VetConnect Batch 1 - Changed Files Only
+Date: 30 August 2026
+
+IMPORTANT
+- Use this ZIP only on a NEW Git branch created from the current production/main branch.
+- Do NOT upload this ZIP itself into the repository.
+- Extract this ZIP into the repository ROOT and allow the listed files to overwrite/merge.
+- Do NOT delete the .git folder.
+- Do NOT overwrite or publish any .env.local / secrets.
+- Do NOT merge to main before Vercel Preview QA.
+
+Database migrations in this batch
+1. supabase/migrations/202608300001_profile_standardization.sql
+2. supabase/migrations/202608300002_workspaces_and_media.sql
+
+Do NOT rerun older August migrations.
+
+Recommended branch name
+vetconnect-batch1-workspaces-2026-08-30
+
+Recommended sequence
+1. Create branch from current main.
+2. Extract this ZIP into repo root and overwrite the included paths.
+3. Review GitHub Desktop changes.
+4. Commit: "VetConnect Batch 1 workspaces and profile standardization"
+5. Push branch.
+6. Run the two NEW Supabase migrations in the order above after reviewing the live schema.
+7. Let Vercel create a Preview deployment from the branch.
+8. Test veterinarian profile, photo upload, professional profile, career workspace,
+   clinic workspace, public clinics/professionals, admin directory/export, jobs and marketplace.
+9. Merge only after Preview QA passes.
+
+Files included
+- app/admin/page.tsx
+- app/admin/users/export/route.ts
+- app/admin/users/page.tsx
+- app/clinics/[slug]/page.tsx
+- app/clinics/page.tsx
+- app/components/PakistanLocationFields.tsx
+- app/components/VeterinaryProfileFields.tsx
+- app/dashboard/actions.ts
+- app/dashboard/career/page.tsx
+- app/dashboard/clinics/[id]/page.tsx
+- app/dashboard/clinics/actions.ts
+- app/dashboard/clinics/page.tsx
+- app/dashboard/page.tsx
+- app/dashboard/professional/actions.ts
+- app/dashboard/professional/page.tsx
+- app/globals.css
+- app/jobs/[slug]/page.tsx
+- app/jobs/actions.ts
+- app/professionals/[slug]/page.tsx
+- docs/DEPLOYMENT-CHECKLIST-2026-08-30.md
+- docs/VETCONNECT-MASTER-IMPLEMENTATION-MATRIX-2026-08-30.md
+- lib/auth.ts
+- lib/directories.ts
+- scripts/audit-structure.mjs
+- scripts/source.test.mjs
+- supabase/migrations/202608300001_profile_standardization.sql
+- supabase/migrations/202608300002_workspaces_and_media.sql

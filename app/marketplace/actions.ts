@@ -37,7 +37,7 @@ export async function createProductInquiryAction(formData: FormData) {
   const supabase = await createClient();
   const { data: product, error: productError } = await supabase
     .from("products")
-    .select("id, company_user_id, slug")
+    .select("id, company_user_id, company_id, slug")
     .eq("id", productId)
     .eq("verification_status", "approved")
     .eq("is_published", true)
@@ -49,6 +49,7 @@ export async function createProductInquiryAction(formData: FormData) {
   const { error } = await supabase.from("product_inquiries").insert({
     product_id: product.id,
     company_user_id: product.company_user_id,
+    company_id: product.company_id,
     requester_id: identity.userId,
     inquiry_type: inquiryType,
     contact_name: contactName,

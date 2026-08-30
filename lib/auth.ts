@@ -29,6 +29,9 @@ export interface CurrentIdentity {
     full_name: string;
     phone: string | null;
     city: string | null;
+    province: string | null;
+    district: string | null;
+    tehsil: string | null;
     primary_role: AccountRole;
     account_status: string;
   } | null;
@@ -93,7 +96,7 @@ export async function getCurrentIdentity(): Promise<CurrentIdentity | null> {
   const [{ data: profile }, { data: roleRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("full_name, phone, city, primary_role, account_status")
+      .select("full_name, phone, city, province, district, tehsil, primary_role, account_status")
       .eq("id", userId)
       .maybeSingle(),
 
