@@ -16,8 +16,9 @@ function optional(form: FormData, key: string) { return text(form, key) || null;
 function list(form: FormData, key: string) { return text(form, key).split(",").map((x) => x.trim()).filter(Boolean); }
 function slugify(value: string) { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "record"; }
 function uniqueSlug(value: string) { return `${slugify(value)}-${Date.now().toString(36)}`; }
-function createError(type: string, message: string) { redirect(`/admin/create?type=${type}&error=${encodeURIComponent(message)}`); }
-
+function createError(type: string, message: string): never {
+  return redirect(`/admin/create?type=${type}&error=${encodeURIComponent(message)}`);
+}
 async function saveDocument(
   formData: FormData,
   key: string,
