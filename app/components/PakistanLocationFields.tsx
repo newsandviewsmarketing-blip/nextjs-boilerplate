@@ -12,11 +12,13 @@ const DATA_URL =
   "https://raw.githubusercontent.com/open-admin-data/pakistan-administrative-divisions/main/data/hierarchy.json";
 
 export default function PakistanLocationFields({
+  fieldPrefix = "",
   defaultProvince = "",
   defaultDistrict = "",
   defaultTehsil = "",
   defaultCity = "",
 }: {
+  fieldPrefix?: string;
   defaultProvince?: string;
   defaultDistrict?: string;
   defaultTehsil?: string;
@@ -28,6 +30,14 @@ export default function PakistanLocationFields({
   const [tehsil, setTehsil] = useState(defaultTehsil);
   const [city, setCity] = useState(defaultCity);
   const [loadError, setLoadError] = useState(false);
+
+  const provinceField = `${fieldPrefix}province`;
+  const districtField = `${fieldPrefix}district`;
+  const tehsilField = `${fieldPrefix}tehsil`;
+  const cityField = `${fieldPrefix}city`;
+  const cityListId = fieldPrefix
+    ? `${fieldPrefix}city-suggestions`
+    : "pakistan-city-suggestions";
 
   useEffect(() => {
     let active = true;
@@ -59,20 +69,20 @@ export default function PakistanLocationFields({
     return (
       <>
         <div>
-          <label htmlFor="province">Province / Territory</label>
-          <input id="province" name="province" defaultValue={defaultProvince} required />
+          <label htmlFor={provinceField}>Province / Territory</label>
+          <input id={provinceField} name={provinceField} defaultValue={defaultProvince} required />
         </div>
         <div>
-          <label htmlFor="district">District</label>
-          <input id="district" name="district" defaultValue={defaultDistrict} required />
+          <label htmlFor={districtField}>District</label>
+          <input id={districtField} name={districtField} defaultValue={defaultDistrict} required />
         </div>
         <div>
-          <label htmlFor="tehsil">Tehsil / Taluka</label>
-          <input id="tehsil" name="tehsil" defaultValue={defaultTehsil} required />
+          <label htmlFor={tehsilField}>Tehsil / Taluka</label>
+          <input id={tehsilField} name={tehsilField} defaultValue={defaultTehsil} required />
         </div>
         <div>
-          <label htmlFor="city">City / Town</label>
-          <input id="city" name="city" defaultValue={defaultCity} required />
+          <label htmlFor={cityField}>City / Town</label>
+          <input id={cityField} name={cityField} defaultValue={defaultCity} required />
           <p className="form-help">
             The Pakistan administrative list could not load, so manual entry is temporarily enabled.
           </p>
@@ -84,10 +94,10 @@ export default function PakistanLocationFields({
   return (
     <>
       <div>
-        <label htmlFor="province">Province / Territory</label>
+        <label htmlFor={provinceField}>Province / Territory</label>
         <select
-          id="province"
-          name="province"
+          id={provinceField}
+          name={provinceField}
           value={province}
           onChange={(event) => {
             setProvince(event.target.value);
@@ -106,10 +116,10 @@ export default function PakistanLocationFields({
         </select>
       </div>
       <div>
-        <label htmlFor="district">District</label>
+        <label htmlFor={districtField}>District</label>
         <select
-          id="district"
-          name="district"
+          id={districtField}
+          name={districtField}
           value={district}
           onChange={(event) => {
             setDistrict(event.target.value);
@@ -128,10 +138,10 @@ export default function PakistanLocationFields({
         </select>
       </div>
       <div>
-        <label htmlFor="tehsil">Tehsil / Taluka</label>
+        <label htmlFor={tehsilField}>Tehsil / Taluka</label>
         <select
-          id="tehsil"
-          name="tehsil"
+          id={tehsilField}
+          name={tehsilField}
           value={tehsil}
           onChange={(event) => {
             const nextTehsil = event.target.value;
@@ -150,17 +160,17 @@ export default function PakistanLocationFields({
         </select>
       </div>
       <div>
-        <label htmlFor="city">City / Town</label>
+        <label htmlFor={cityField}>City / Town</label>
         <input
-          id="city"
-          name="city"
-          list="pakistan-city-suggestions"
+          id={cityField}
+          name={cityField}
+          list={cityListId}
           value={city}
           onChange={(event) => setCity(event.target.value)}
           placeholder="Select or type city / town"
           required
         />
-        <datalist id="pakistan-city-suggestions">
+        <datalist id={cityListId}>
           {tehsils.map((item) => (
             <option key={item.id} value={item.name.en} />
           ))}
