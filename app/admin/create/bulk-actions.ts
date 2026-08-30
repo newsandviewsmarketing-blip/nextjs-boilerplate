@@ -18,14 +18,14 @@ function slugify(input: string) { return input.toLowerCase().replace(/[^a-z0-9]+
 function uniqueSlug(input: string) { return `${slugify(input)}-${randomUUID().slice(0, 8)}`; }
 
 async function requiredPermission(kind: Kind) {
-  const permission = {
-    person: "profiles.create",
-    company: "companies.create",
-    clinic: "clinics.manage",
-    laboratory: "laboratories.manage",
-    product: "products.create",
-    job: "jobs.create",
-  }[kind];
+  const permission = ({
+  person: "profiles.create",
+  company: "companies.create",
+  clinic: "clinics.manage",
+  laboratory: "laboratories.manage",
+  product: "products.create",
+  job: "jobs.create",
+} as const)[kind];
   return requireAdminPermission(permission, `/admin/create?type=${kind}`);
 }
 
