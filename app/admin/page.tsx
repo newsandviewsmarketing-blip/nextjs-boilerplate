@@ -71,6 +71,8 @@ export default async function AdminOverviewPage() {
   }
 
   if (hasAdminPermission(identity, "users.manage")) {
+    // Server-rendered admin metrics need a current rolling 24-hour cutoff.
+    // eslint-disable-next-line react-hooks/purity
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const [
       users,
