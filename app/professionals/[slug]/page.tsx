@@ -60,13 +60,40 @@ async function loadProfessional(slug: string): Promise<ProfessionalPageData | nu
   }
 
   const supabase = await createClient();
-  const { data } = await supabase
+const select =
+  "user_id, slug, full_name, professional_type, headline, current_position, organization_name, city, province, years_experience, skills, profile_verified, image_url, public_summary, district, tehsil";
+
+const [accountResult, managedResult] = await Promise.all([
+  supabase
     .from("public_professionals")
-    .select("user_id, slug, full_name, professional_type, headline, current_position, organization_name, city, province, years_experience, skills, profile_verified, image_url, public_summary, district, tehsil")
+    .select(select)
     .eq("slug", slug)
-    .maybeSingle();
-  const profile = (data as PublicProfessional | null) ?? sample ?? null;
-  if (!profile) return null;
+    .maybeSingle(),
+
+  supabase
+    .from("public_managed_professionals")
+    .select(select)
+    .eq("slug", slug)
+    .maybeSingle(),
+]);
+
+const accountProfile = accountResult.data as PublicProfessional | null;
+const managedProfile = managedResult.data as PublicProfessional | null;
+
+const profile = accountProfile ?? managedProfile ?? sample ?? null;
+if (!profile) return null;
+
+const isManagedProfile = !accountProfile && Boolean(managedProfile);
+
+if (isManagedProfile || !profile.user_id || profile.is_sample) {
+  return {
+    profile,
+    education: [],
+    experience: [],
+    credentials: [],
+  };
+}
+  
   if (!profile.user_id || profile.is_sample) {
     return { profile, education: [], experience: [], credentials: [] };
   }
