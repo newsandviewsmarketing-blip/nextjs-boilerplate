@@ -181,7 +181,15 @@ export default async function ProfessionalDetailPage({ params }: { params: Promi
             </article>
             <article>
               <span className="section-kicker">LOCATION</span>
-              <p>{[profile.city, profile.tehsil, profile.district, profile.province].filter(Boolean).join(", ") || "Pakistan"}</p>
+             <p>
+  {[
+    ...new Set(
+      [profile.city, profile.tehsil, profile.district, profile.province]
+        .filter((value): value is string => Boolean(value))
+        .map((value) => value.trim())
+    ),
+  ].join(", ") || "Pakistan"}
+</p>
             </article>
             <article>
               <span className="section-kicker">SKILLS</span>
