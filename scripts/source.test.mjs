@@ -263,3 +263,68 @@ test("admin home provides operational pulse and eight-entry recent update summar
   assert.match(admin, /Latest recorded actions/);
   assert.match(admin, /\.limit\(8\)/);
 });
+
+test("release closure preserves assisted-entry data and adds media/document uploads", () => {
+  const page = read("app/admin/create/page.tsx");
+  const persistentForm = read("app/admin/create/PersistentForm.tsx");
+  const uploads = read("lib/admin-uploads.ts");
+  assert.match(page, /<PersistentForm/);
+  assert.match(page, /type="file"/);
+  assert.match(uploads, /record-documents/);
+  assert.match(persistentForm, /localStorage/);
+  assert.match(persistentForm, /clearSaved/);
+  assert.match(uploads, /uploadPublicImage/);
+  assert.match(uploads, /uploadPrivateDocument/);
+  assert.match(uploads, /admin_record_documents/);
+});
+
+test("release closure provides guarded CSV and XLSX assisted imports", () => {
+  const page = read("app/admin/create/page.tsx");
+  const actions = read("app/admin/create/bulk-actions.ts");
+  const parser = read("lib/tabular-import.ts");
+  assert.match(page, /bulkImportAction/);
+  assert.match(page, /accept="\.csv,\.xlsx/);
+  assert.match(actions, /maximum%20of%20250/);
+  assert.match(actions, /verification_status: "pending"/);
+  assert.match(actions, /is_published: false/);
+  assert.match(parser, /parseCsv/);
+  assert.match(parser, /parseXlsx/);
+});
+
+test("release closure publishes approved professional records through controlled review", () => {
+  const actions = read("app/admin/actions.ts");
+  const reviews = read("app/admin/reviews/page.tsx");
+  assert.match(actions, /profile_visibility: decision === "approved" \? "public" : "owner_only"/);
+  assert.match(actions, /recordSource === "managed_people"/);
+  assert.match(actions, /recordSource === "companies"/);
+  assert.match(actions, /recordSource === "clinics"/);
+  assert.match(reviews, /managed_people/);
+  assert.match(reviews, /canonicalCompanies/);
+  assert.match(reviews, /admin_record_documents/);
+});
+
+test("release closure migration is transactional and adds private evidence storage", () => {
+  const sql = read("supabase/migrations/202608300004_release_closure_uploads.sql");
+  assert.match(sql, /^begin;$/m);
+  assert.match(sql, /^commit;$/m);
+  assert.match(sql, /create table if not exists public\.admin_record_documents/);
+  assert.match(sql, /'record-documents'/);
+  assert.match(sql, /add column if not exists company_id uuid references public\.companies/);
+  assert.match(sql, /coalesce\(c\.canonical_name/);
+  assert.doesNotMatch(sql, /\btruncate\b|\bdelete\s+from\b/i);
+});
+
+test("marketplace and review queues resolve canonical companies", () => {
+  const marketplace = read("app/marketplace/page.tsx") + read("app/marketplace/[slug]/page.tsx");
+  const reviews = read("app/admin/reviews/page.tsx");
+  assert.match(marketplace, /company_id/);
+  assert.match(marketplace, /public_company_directory/);
+  assert.match(reviews, /canonicalProductCompanyMap/);
+  assert.match(reviews, /companyNameFor/);
+});
+
+test("master closure migration can build canonical public jobs before release closure", () => {
+  const sql = read("supabase/migrations/202608300003_master_closure_operations.sql");
+  assert.match(sql, /coalesce\(c\.canonical_name, cp\.trade_name, cp\.company_name/);
+  assert.doesNotMatch(sql, /coalesce\(c\.company_name, cp\.trade_name/);
+});

@@ -127,7 +127,7 @@ export async function updateCompanyProfileAction(formData: FormData) {
   const { error: canonicalError } = await supabase
     .from("companies")
     .update({
-      company_name: companyName,
+      canonical_name: companyName,
       legal_name: value(formData, "legal_name") || null,
       trade_name: value(formData, "trade_name") || null,
       business_type: value(formData, "business_type") || null,
@@ -138,6 +138,7 @@ export async function updateCompanyProfileAction(formData: FormData) {
       website: value(formData, "website") || null,
       public_email: value(formData, "contact_email") || null,
       logo_url: value(formData, "logo_url") || null,
+      cover_image_url: value(formData, "cover_image_url") || null,
     })
     .eq("id", workspace.company_id);
   if (canonicalError) {

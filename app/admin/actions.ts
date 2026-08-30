@@ -13,82 +13,157 @@ import {
 export async function reviewProfileAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles))
-    redirect("/dashboard?error=Admin%20access%20is%20required.");
+  if (!identity.roles.some(canReviewProfiles)) redirect("/dashboard?error=Admin%20access%20is%20required.");
 
   const profileType = String(formData.get("profile_type") ?? "");
+  const recordSource = String(formData.get("record_source") ?? "account");
   const userId = String(formData.get("user_id") ?? "");
   const entityId = String(formData.get("entity_id") ?? userId);
   const decision = String(formData.get("decision") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
-  if (
-    !userId ||
-    !["veterinarian", "company", "professional", "laboratory"].includes(profileType) ||
-    !["approved", "rejected"].includes(decision)
-  ) {
+  if (!entityId || !["veterinarian", "company", "professional", "laboratory", "clinic"].includes(profileType) || !["approved", "rejected"].includes(decision)) {
     redirect("/admin/reviews?error=Invalid%20review%20request.");
   }
 
   const supabase = await createClient();
-  const table = {
-    veterinarian: "veterinarian_profiles",
-    company: "company_profiles",
-    professional: "professional_profiles",
-    laboratory: "laboratories",
-  }[profileType] as "veterinarian_profiles" | "company_profiles" | "professional_profiles" | "laboratories";
-  const key = profileType === "laboratory" ? "id" : "user_id";
-  const { error } = await supabase
-    .from(table)
-    .update({
+  const reviewedAt = decision === "approved" ? new Date().toISOString() : null;
+  let error: { message: string } | null = null;
+
+  if (recordSource === "managed_people") {
+    const { data: managed } = await supabase
+      .from("managed_people")
+      .select("profile_kind,pvmc_verification_status")
+      .eq("id", entityId)
+      .maybeSingle();
+    const publishNow = decision === "approved" && managed?.profile_kind === "professional";
+    const result = await supabase.from("managed_people").update({
       verification_status: decision,
-      rejection_reason:
-        decision === "rejected"
-          ? reason || "Please update the submitted information."
-          : null,
-      verified_at: decision === "approved" ? new Date().toISOString() : null,
+      is_published: publishNow,
+      verified_at: reviewedAt,
       verified_by: decision === "approved" ? identity.userId : null,
-      ...(profileType === "laboratory" ? { is_published: decision === "approved" } : {}),
-    })
-    .eq(key, entityId);
+      updated_by: identity.userId,
+    }).eq("id", entityId);
+    error = result.error;
+  } else if (recordSource === "companies") {
+    const result = await supabase.from("companies").update({
+      verification_status: decision,
+      is_published: decision === "approved",
+      verified_at: reviewedAt,
+      verified_by: decision === "approved" ? identity.userId : null,
+    }).eq("id", entityId);
+    error = result.error;
+  } else if (recordSource === "clinics") {
+    const result = await supabase.from("clinics").update({
+      verification_status: decision,
+      rejection_reason: decision === "rejected" ? reason || "Please update the submitted clinic information." : null,
+      is_published: decision === "approved",
+      verified_at: reviewedAt,
+      verified_by: decision === "approved" ? identity.userId : null,
+    }).eq("id", entityId);
+    error = result.error;
+  } else if (recordSource === "laboratories" || profileType === "laboratory") {
+    const result = await supabase.from("laboratories").update({
+      verification_status: decision,
+      rejection_reason: decision === "rejected" ? reason || "Please update the submitted laboratory information." : null,
+      is_published: decision === "approved",
+      verified_at: reviewedAt,
+      verified_by: decision === "approved" ? identity.userId : null,
+    }).eq("id", entityId);
+    error = result.error;
+  } else {
+    if (!userId) redirect("/admin/reviews?error=User%20profile%20ID%20is%20missing.");
+    const table = {
+      veterinarian: "veterinarian_profiles",
+      company: "company_profiles",
+      professional: "professional_profiles",
+    }[profileType] as "veterinarian_profiles" | "company_profiles" | "professional_profiles" | undefined;
+    if (!table) redirect("/admin/reviews?error=Invalid%20account%20profile%20type.");
+    const result = await supabase.from(table).update({
+      verification_status: decision,
+      rejection_reason: decision === "rejected" ? reason || "Please update the submitted information." : null,
+      verified_at: reviewedAt,
+      verified_by: decision === "approved" ? identity.userId : null,
+      ...(profileType === "professional" ? { profile_visibility: decision === "approved" ? "public" : "owner_only" } : {}),
+    }).eq("user_id", entityId);
+    error = result.error;
+
+    if (!error && profileType === "company") {
+      const { data: companyProfile } = await supabase
+        .from("company_profiles")
+        .select("company_name,legal_name,trade_name,business_type,description,city,address,website,contact_email,logo_url")
+        .eq("user_id", entityId)
+        .maybeSingle();
+      if (companyProfile) {
+        const canonicalResult = await supabase.from("companies").update({
+          canonical_name: companyProfile.legal_name || companyProfile.trade_name || companyProfile.company_name || "Unnamed Company",
+          legal_name: companyProfile.legal_name,
+          trade_name: companyProfile.trade_name,
+          business_type: companyProfile.business_type,
+          description: companyProfile.description,
+          city: companyProfile.city,
+          address: companyProfile.address,
+          website: companyProfile.website,
+          public_email: companyProfile.contact_email,
+          logo_url: companyProfile.logo_url,
+          verification_status: decision,
+          is_published: decision === "approved",
+          verified_at: reviewedAt,
+          verified_by: decision === "approved" ? identity.userId : null,
+        }).eq("legacy_company_user_id", entityId);
+        error = canonicalResult.error;
+      }
+    }
+  }
 
   if (error) redirect(`/admin/reviews?error=${encodeURIComponent(error.message)}`);
   await supabase.from("audit_logs").insert({
     actor_id: identity.userId,
-    action: `${profileType}.${decision}`,
+    action: `${recordSource}.${profileType}.${decision}`,
     entity_type: profileType,
     entity_id: entityId,
-    metadata: { reason: reason || null },
+    metadata: { reason: reason || null, record_source: recordSource },
   });
   revalidatePath("/admin");
   revalidatePath("/admin/reviews");
+  revalidatePath("/admin/directory");
+  revalidatePath("/vets");
+  revalidatePath("/professionals");
+  revalidatePath("/companies");
+  revalidatePath("/clinics");
+  revalidatePath("/labs");
   redirect(`/admin/reviews?message=${encodeURIComponent(`Profile ${decision}.`)}`);
 }
 
 export async function reviewVeterinarianCredentialAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles)) {
-    redirect("/dashboard?error=Verification%20access%20is%20required.");
-  }
+  if (!identity.roles.some(canReviewProfiles)) redirect("/dashboard?error=Verification%20access%20is%20required.");
 
   const userId = String(formData.get("user_id") ?? "");
+  const recordSource = String(formData.get("record_source") ?? "account");
   const decision = String(formData.get("decision") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
-  if (!userId || !["approved", "rejected"].includes(decision)) {
-    redirect("/admin/reviews?error=Invalid%20credential%20review%20request.");
-  }
+  if (!userId || !["approved", "rejected"].includes(decision)) redirect("/admin/reviews?error=Invalid%20credential%20review%20request.");
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("veterinarian_profiles")
-    .update({
+  const reviewedAt = decision === "approved" ? new Date().toISOString() : null;
+  if (recordSource === "managed_people") {
+    const { data: managed } = await supabase.from("managed_people").select("verification_status").eq("id", userId).maybeSingle();
+    const result = await supabase.from("managed_people").update({
       pvmc_verification_status: decision,
-      pvmc_verified_at: decision === "approved" ? new Date().toISOString() : null,
+      is_published: decision === "approved" && managed?.verification_status === "approved",
+      updated_by: identity.userId,
+    }).eq("id", userId);
+    if (result.error) redirect(`/admin/reviews?error=${encodeURIComponent(result.error.message)}`);
+  } else {
+    const result = await supabase.from("veterinarian_profiles").update({
+      pvmc_verification_status: decision,
+      pvmc_verified_at: reviewedAt,
       pvmc_verified_by: decision === "approved" ? identity.userId : null,
       rejection_reason: decision === "rejected" ? reason || "PVMC credential verification could not be completed." : null,
-    })
-    .eq("user_id", userId);
-  if (error) redirect(`/admin/reviews?error=${encodeURIComponent(error.message)}`);
+    }).eq("user_id", userId);
+    if (result.error) redirect(`/admin/reviews?error=${encodeURIComponent(result.error.message)}`);
+  }
 
   await supabase.from("verification_records").insert({
     entity_type: "veterinarian",
@@ -101,13 +176,14 @@ export async function reviewVeterinarianCredentialAction(formData: FormData) {
   });
   await supabase.from("audit_logs").insert({
     actor_id: identity.userId,
-    action: `veterinarian.pvmc.${decision}`,
+    action: `${recordSource}.veterinarian.pvmc.${decision}`,
     entity_type: "veterinarian",
     entity_id: userId,
-    metadata: { reason: reason || null },
+    metadata: { reason: reason || null, record_source: recordSource },
   });
   revalidatePath("/admin");
   revalidatePath("/admin/reviews");
+  revalidatePath("/admin/directory");
   revalidatePath("/vets");
   redirect(`/admin/reviews?message=${encodeURIComponent(`PVMC credential ${decision}.`)}`);
 }

@@ -1,0 +1,2 @@
+laboratory_name,laboratory_type,technical_head,working_hours,public_email,public_phone,website,province,district,tehsil,city,address,google_maps_url,tests_offered,species_served,description
+Example Diagnostic Lab,Diagnostic Laboratory,Dr Example,9am-5pm,lab@example.com,+92-300-0000000,https://example.com,Punjab,Lahore,Lahore City,Lahore,Example address,,"PCR, Serology","Poultry, Livestock",Laboratory profile summary

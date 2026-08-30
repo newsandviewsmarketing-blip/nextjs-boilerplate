@@ -3337,3 +3337,25 @@ textarea:focus {
     flex-direction: column;
   }
 }
+
+.admin-import-panel {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(15, 39, 81, 0.12);
+}
+
+.review-documents {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(15, 39, 81, 0.12);
+  border-radius: 12px;
+  background: rgba(245, 248, 253, 0.8);
+}
+
+.review-documents b {
+  width: 100%;
+}

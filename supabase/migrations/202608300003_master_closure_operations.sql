@@ -306,7 +306,8 @@ where p.account_status='active' and v.verification_status='approved' and v.pvmc_
 
 create or replace view public.public_professionals with (security_barrier=true) as
 select pp.user_id,pp.slug,p.full_name,pp.professional_type,pp.headline,pp.current_position,pp.organization_name,coalesce(pp.city,p.city) as city,pp.province,pp.years_experience,pp.skills,true as profile_verified,pp.image_url,
-       pp.district,pp.tehsil,pp.public_summary,p.phone as public_phone,p.email as contact_email,null::text as address,null::text as google_maps_url
+       pp.public_summary,pp.district,pp.tehsil,
+       p.phone as public_phone,p.email as contact_email,null::text as address,null::text as google_maps_url
 from public.professional_profiles pp join public.profiles p on p.id=pp.user_id
 where p.account_status='active' and pp.verification_status='approved' and pp.profile_visibility='public';
 
@@ -472,10 +473,11 @@ from public.companies c where j.company_id is null and c.legacy_company_user_id=
 
 create or replace view public.public_jobs with (security_barrier = true) as
 select
-  j.id, j.slug, j.title, j.description, j.sector, j.city, j.province, j.district, j.tehsil, j.address,
+  j.id, j.slug, j.title, j.description, j.sector, j.city, j.province,
   j.employment_type, j.minimum_qualification, j.minimum_experience, j.deadline,
-  j.company_user_id, j.company_id,
-  coalesce(c.company_name, cp.trade_name, cp.company_name, 'VetConnect Employer') as company_name
+  j.company_user_id,
+  coalesce(c.canonical_name, cp.trade_name, cp.company_name, 'VetConnect Employer') as company_name,
+  j.district, j.tehsil, j.address, j.company_id
 from public.jobs j
 left join public.companies c on c.id = j.company_id
 left join public.company_profiles cp on cp.user_id = j.company_user_id

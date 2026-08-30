@@ -79,6 +79,8 @@ export type PublicLaboratory = {
   public_email: string | null;
   website: string | null;
   google_maps_url: string | null;
+  logo_url: string | null;
+  cover_image_url: string | null;
   working_hours: string | null;
   emergency_service: boolean;
   species_served: string[];
@@ -262,6 +264,8 @@ export const sampleLaboratories: PublicLaboratory[] = [
     public_email: null,
     website: null,
     google_maps_url: null,
+    logo_url: null,
+    cover_image_url: null,
     working_hours: "Profile-controlled",
     emergency_service: false,
     species_served: ["Poultry", "Livestock", "Pets"],
@@ -285,6 +289,8 @@ export const sampleLaboratories: PublicLaboratory[] = [
     public_email: null,
     website: null,
     google_maps_url: null,
+    logo_url: null,
+    cover_image_url: null,
     working_hours: "Profile-controlled",
     emergency_service: false,
     species_served: ["Dairy", "Poultry", "Livestock"],

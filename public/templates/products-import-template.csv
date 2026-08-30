@@ -1,0 +1,2 @@
+company_name,company_id,product_name,brand_name,generic_name,category,sector,composition,strength,dosage_form,presentation,packaging_type,pack_size_value,pack_size_unit,vaccine_type,concentration_value,concentration_unit,administration_route,pack_sizes,indications,description,image_url
+Example Animal Health Pvt Ltd,,Example Product,Example Brand,Generic Name,Medicines,Poultry,Composition,10%,Oral Solution,Bottle,Bottle,100,ml,,,%,Oral,"100 ml, 500 ml",Indications,Product description,https://example.com/product.jpg

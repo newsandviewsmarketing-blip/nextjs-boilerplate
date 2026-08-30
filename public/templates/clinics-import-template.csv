@@ -1,0 +1,2 @@
+clinic_name,facility_type,public_email,public_phone,website,working_hours,province,district,tehsil,city,address,google_maps_url,services,species,description
+Example Veterinary Clinic,Veterinary Clinic,clinic@example.com,+92-300-0000000,https://example.com,9am-6pm,Punjab,Lahore,Lahore City,Lahore,Example address,,"Consultation, Vaccination","Cattle, Pets",Clinic profile summary

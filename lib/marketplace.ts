@@ -50,6 +50,7 @@ export type PublicProduct = {
   country_of_origin?: string | null;
   regulatory_review_status?: string;
   company_user_id: string | null;
+  company_id?: string | null;
   company_name: string;
   company_city: string | null;
   is_sample?: boolean;
