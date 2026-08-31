@@ -42,39 +42,56 @@ const roles = [
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string; intent?: string; error?: string; message?: string }>;
+  searchParams: Promise<{
+    role?: string;
+    intent?: string;
+    error?: string;
+    message?: string;
+  }>;
 }) {
   const params = await searchParams;
+
   const clinicIntent = params.intent === "clinic";
-  const selectedRole =
-    clinicIntent
-      ? "company"
-      : params.role && isAllowedSelfRegistrationRole(params.role)
-        ? params.role
-        : "veterinarian";
+
+  const selectedRole = clinicIntent
+    ? "company"
+    : params.role && isAllowedSelfRegistrationRole(params.role)
+      ? params.role
+      : "veterinarian";
 
   return (
     <main>
       <SiteHeader />
+
       <section className="auth-section">
         <div className="shell">
           <div className="section-heading centered">
             <span className="section-kicker">JOIN VETCONNECT</span>
+
             <h1>Create your account.</h1>
+
             <p>
               Select an account type, complete the form and verify the code sent
               to your email address.
             </p>
           </div>
+
           <div className="register-grid">
             {roles.map((role, index) => (
               <article
-                className={selectedRole === role[0] ? "selected-role-card" : ""}
+                className={
+                  selectedRole === role[0] && !clinicIntent
+                    ? "selected-role-card"
+                    : ""
+                }
                 key={role[0]}
               >
                 <span>{String(index + 1).padStart(2, "0")}</span>
+
                 <h2>{role[1]}</h2>
+
                 <p>{role[2]}</p>
+
                 <Link
                   className="button button-primary button-full"
                   href={`/register?role=${role[0]}#registration`}
@@ -83,13 +100,17 @@ export default async function RegisterPage({
                 </Link>
               </article>
             ))}
+
             <article className={clinicIntent ? "selected-role-card" : ""}>
               <span>07</span>
+
               <h2>Clinic / Veterinary Hospital</h2>
+
               <p>
                 Veterinary clinic, pet clinic, veterinary hospital, farm or
                 mobile veterinary service registration.
               </p>
+
               <Link
                 className="button button-primary button-full"
                 href="/register?role=company&intent=clinic#registration"
@@ -106,17 +127,32 @@ export default async function RegisterPage({
           >
             <div className="section-heading">
               <span className="section-kicker">ACCOUNT DETAILS</span>
-              <h2>Registration form</h2>
+
+              <h2>
+                {clinicIntent
+                  ? "Clinic / Veterinary Hospital Registration"
+                  : "Registration form"}
+              </h2>
             </div>
+
             <FormMessage error={params.error} message={params.message} />
+
             <div className="form-grid">
               {clinicIntent ? (
                 <>
                   <input type="hidden" name="role" value="company" />
+
+                  <input
+                    type="hidden"
+                    name="registration_intent"
+                    value="clinic"
+                  />
+
                   <div>
                     <label htmlFor="registration_pathway">
                       Registration pathway
                     </label>
+
                     <input
                       id="registration_pathway"
                       value="Clinic / Veterinary Hospital"
@@ -127,6 +163,7 @@ export default async function RegisterPage({
               ) : (
                 <div>
                   <label htmlFor="role">Account type</label>
+
                   <select
                     id="role"
                     name="role"
@@ -141,12 +178,14 @@ export default async function RegisterPage({
                   </select>
                 </div>
               )}
+
               <div>
                 <label htmlFor="full_name">
                   {clinicIntent
                     ? "Clinic owner / authorized person"
                     : "Full name / authorized person"}
                 </label>
+
                 <input
                   id="full_name"
                   name="full_name"
@@ -154,8 +193,10 @@ export default async function RegisterPage({
                   required
                 />
               </div>
+
               <div>
                 <label htmlFor="email">Email address</label>
+
                 <input
                   id="email"
                   name="email"
@@ -164,49 +205,73 @@ export default async function RegisterPage({
                   required
                 />
               </div>
+
               <div>
                 <label htmlFor="phone">Phone number</label>
-                <input id="phone" name="phone" type="tel" autoComplete="tel" />
+
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                />
               </div>
+
               <div>
                 <label htmlFor="city">City</label>
-                <input id="city" name="city" autoComplete="address-level2" />
+
+                <input
+                  id="city"
+                  name="city"
+                  autoComplete="address-level2"
+                />
               </div>
+
               <div>
                 <label htmlFor="organization_name">
                   {clinicIntent
                     ? "Clinic / hospital name"
                     : "Company / organization name"}
                 </label>
+
                 <input
                   id="organization_name"
                   name="organization_name"
                   required={clinicIntent}
                 />
               </div>
+
               <div>
                 <label htmlFor="pvmc_number">
                   {clinicIntent
                     ? "Responsible veterinarian PVMC registration number"
                     : "PVMC registration number"}
                 </label>
-                <input id="pvmc_number" name="pvmc_number" />
+
+                <input
+                  id="pvmc_number"
+                  name="pvmc_number"
+                />
               </div>
             </div>
+
             <p className="form-help">
               {clinicIntent
                 ? "This step creates the secure account for the clinic or veterinary hospital. After email verification, complete the facility profile in the Clinic Workspace. Public listing remains subject to VetConnect review and responsible-veterinarian/PVMC verification where applicable."
                 : "Veterinarian, professional, laboratory and company accounts remain pending until VetConnect reviews the submitted profile. A six-digit code will be sent to your email to complete registration."}
             </p>
+
             <FormSubmitButton pendingLabel="Sending code...">
               Send registration code
             </FormSubmitButton>
           </form>
+
           <p className="center-note">
             Already registered? <Link href="/login">Sign in</Link>
           </p>
         </div>
       </section>
+
       <SiteFooter />
     </main>
   );
