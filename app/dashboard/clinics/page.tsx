@@ -11,7 +11,11 @@ import { createClinicAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-const eligibleRoles = new Set(["veterinarian", "professional"]);
+const eligibleRoles = new Set([
+  "veterinarian",
+  "professional",
+  "company",
+]);
 
 type ClinicRow = {
   id: string;
