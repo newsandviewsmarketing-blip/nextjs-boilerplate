@@ -6,8 +6,11 @@ import { redirect } from "next/navigation";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-const eligibleRoles = new Set(["veterinarian", "professional"]);
-
+const eligibleRoles = new Set([
+  "veterinarian",
+  "professional",
+  "company",
+]);
 function text(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
