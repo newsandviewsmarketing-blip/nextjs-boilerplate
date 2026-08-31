@@ -15,15 +15,18 @@ export default function SiteFooter() {
               unoptimized
             />
           </div>
+
           <p>
             Connecting verified veterinary expertise, animal owners, farmers,
             companies, careers and learning across Pakistan.
           </p>
+
           <div className="footer-badges">
             <span>English</span>
             <span>اردو</span>
           </div>
         </div>
+
         <div>
           <h3>Platform</h3>
           <Link href="/vets">Find a Veterinarian</Link>
@@ -33,30 +36,61 @@ export default function SiteFooter() {
           <Link href="/jobs">Jobs & Careers</Link>
           <Link href="/learn">Learning Hub</Link>
         </div>
+
         <div>
           <h3>For Partners</h3>
           <Link href="/companies">Company Profiles</Link>
           <Link href="/professionals">Industry Professionals</Link>
           <Link href="/register">Veterinarian Registration</Link>
           <Link href="/register">Employer Registration</Link>
+
           <a
             href="https://vetnewsandviews.com"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
           >
             Veterinary News & Views
           </a>
         </div>
+
         <div>
           <h3>Connect</h3>
-          <a href="mailto:info@vetnewsandviews.com">info@vetnewsandviews.com</a>
-          <a href="https://www.vetconnect.com.pk">www.vetconnect.com.pk</a>
+
+          <a href="mailto:vetconnect.official@gmail.com">
+            vetconnect.official@gmail.com
+          </a>
+
+          <a
+            href="https://www.vetconnect.com.pk"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            www.vetconnect.com.pk
+          </a>
+
+          <a
+            href="https://www.facebook.com/VetConnect.Digital"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Facebook
+          </a>
+
+          <a
+            href="https://www.linkedin.com/company/vet-connectofficial/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            LinkedIn
+          </a>
+
           <p className="footer-note">
             Verified public information and secure account services are
             activated module by module. Product listings are informational.
           </p>
         </div>
       </div>
+
       <div className="shell footer-bottom">
         <span>© 2026 VetConnect Pakistan</span>
         <span>
