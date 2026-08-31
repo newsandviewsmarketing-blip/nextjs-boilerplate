@@ -236,10 +236,29 @@ export async function requestRegistrationOtpAction(
     "organization_name",
   );
 
+  const registrationIntent = value(
+    formData,
+    "registration_intent",
+  );
+
+  const isClinicRegistration =
+    registrationIntent === "clinic" &&
+    role === "company";
+
+  const registrationPath =
+    isClinicRegistration
+      ? "/register?role=company&intent=clinic"
+      : "/register";
+
+  const registrationNext =
+    isClinicRegistration
+      ? "/dashboard/clinics"
+      : "/dashboard";
+
   if (!fullName || !email || !role) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         "Complete all required fields.",
       ),
@@ -249,9 +268,22 @@ export async function requestRegistrationOtpAction(
   if (!isAllowedSelfRegistrationRole(role)) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         "Choose a valid account type.",
+      ),
+    );
+  }
+
+  if (
+    isClinicRegistration &&
+    !organizationName
+  ) {
+    redirect(
+      withMessage(
+        registrationPath,
+        "error",
+        "Enter the clinic or veterinary hospital name.",
       ),
     );
   }
@@ -271,6 +303,10 @@ export async function requestRegistrationOtpAction(
           pvmc_number: pvmcNumber,
           organization_name:
             organizationName,
+          registration_intent:
+            isClinicRegistration
+              ? "clinic"
+              : "",
         },
       },
     });
@@ -278,7 +314,7 @@ export async function requestRegistrationOtpAction(
   if (error) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         error.message,
       ),
@@ -289,12 +325,15 @@ export async function requestRegistrationOtpAction(
     `/verify-email?mode=register&email=${encodeURIComponent(
       email,
     )}&next=${encodeURIComponent(
-      "/dashboard",
+      registrationNext,
     )}&message=${encodeURIComponent(
-      "Your VetConnect verification code has been sent by email.",
+      isClinicRegistration
+        ? "Your clinic registration verification code has been sent by email."
+        : "Your VetConnect verification code has been sent by email.",
     )}`,
   );
 }
+
 
 export async function resendEmailOtpAction(
   formData: FormData,
@@ -493,6 +532,25 @@ export async function registerAction(
     "organization_name",
   );
 
+  const registrationIntent = value(
+    formData,
+    "registration_intent",
+  );
+
+  const isClinicRegistration =
+    registrationIntent === "clinic" &&
+    role === "company";
+
+  const registrationPath =
+    isClinicRegistration
+      ? "/register?role=company&intent=clinic"
+      : "/register";
+
+  const registrationNext =
+    isClinicRegistration
+      ? "/dashboard/clinics"
+      : "/dashboard";
+
   if (
     !fullName ||
     !email ||
@@ -501,7 +559,7 @@ export async function registerAction(
   ) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         "Complete all required fields.",
       ),
@@ -511,9 +569,22 @@ export async function registerAction(
   if (!isAllowedSelfRegistrationRole(role)) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         "Choose a valid account type.",
+      ),
+    );
+  }
+
+  if (
+    isClinicRegistration &&
+    !organizationName
+  ) {
+    redirect(
+      withMessage(
+        registrationPath,
+        "error",
+        "Enter the clinic or veterinary hospital name.",
       ),
     );
   }
@@ -521,7 +592,7 @@ export async function registerAction(
   if (password.length < 8) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         "Password must contain at least 8 characters.",
       ),
@@ -531,7 +602,7 @@ export async function registerAction(
   if (password !== confirmPassword) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         "Passwords do not match.",
       ),
@@ -555,7 +626,7 @@ export async function registerAction(
       password,
       options: {
         emailRedirectTo:
-          `${origin}/auth/confirm?next=/dashboard`,
+          `${origin}/auth/confirm?next=${registrationNext}`,
         data: {
           full_name: fullName,
           role,
@@ -564,6 +635,10 @@ export async function registerAction(
           pvmc_number: pvmcNumber,
           organization_name:
             organizationName,
+          registration_intent:
+            isClinicRegistration
+              ? "clinic"
+              : "",
         },
       },
     });
@@ -571,7 +646,7 @@ export async function registerAction(
   if (error) {
     redirect(
       withMessage(
-        "/register",
+        registrationPath,
         "error",
         error.message,
       ),
@@ -581,7 +656,9 @@ export async function registerAction(
   if (!data.session) {
     redirect(
       withMessage(
-        "/login",
+        `/login?next=${encodeURIComponent(
+          registrationNext,
+        )}`,
         "message",
         "Account created. Check your email to confirm your address, then sign in.",
       ),
@@ -595,8 +672,9 @@ export async function registerAction(
 
   revalidatePath("/", "layout");
 
-  redirect("/dashboard");
+  redirect(registrationNext);
 }
+
 
 export async function requestPasswordResetAction(
   formData: FormData,
