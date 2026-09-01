@@ -28,7 +28,14 @@ export default async function VeterinarianDirectoryPage({ searchParams }: { sear
   const visible=veterinarians.filter(v=>{ const text=`${v.full_name} ${v.qualifications??""} ${v.specialization??""} ${v.veterinary_sector??""} ${v.city??""} ${v.services.join(" ")}`.toLowerCase(); return (!query||text.includes(query))&&(!city||city==="all cities"||v.city?.toLowerCase()===city)&&(!service||service==="all services"||v.services.some(x=>x.toLowerCase().includes(service)))&&(!sector||sector==="all sectors"||v.veterinary_sector?.toLowerCase()===sector); });
   const cities=[...new Set(veterinarians.map(v=>v.city).filter(Boolean))] as string[];
   const services=[...new Set(veterinarians.flatMap(v=>v.services))];
-  const sectors=[...new Set(veterinarians.map(v=>v.veterinary_sector).filter(Boolean))] as string[];
+ const sectors = [
+  "Pets",
+  "Livestock",
+  "Poultry",
+  "Dairy",
+  "Fisheries",
+  "Equine",
+];
   const showingSamples=veterinarians.some(v=>v.is_sample);
   return <main><SiteHeader/><section className="page-hero"><div className="shell"><span className="section-kicker">VERIFIED VETERINARIAN DIRECTORY</span><h1>Find the right veterinary professional.</h1><p>Public veterinarian listings require both VetConnect profile approval and PVMC credential review.</p></div></section>
     <section className="section compact-section"><div className="shell"><div className="directory-top"><div><b>{visible.length} veterinarian profiles</b><span>{showingSamples?"Demo mode because the backend is not configured":"Live verified directory"}</span></div><form className="market-search" method="get"><input name="q" defaultValue={params.q??""} placeholder="Name, qualification or expertise"/><select name="sector" defaultValue={params.sector??"All sectors"}><option>All sectors</option>{sectors.map(x=><option key={x}>{x}</option>)}</select><select name="city" defaultValue={params.city??"All cities"}><option>All cities</option>{cities.map(x=><option key={x}>{x}</option>)}</select><select name="service" defaultValue={params.service??"All services"}><option>All services</option>{services.map(x=><option key={x}>{x}</option>)}</select><button className="button button-primary" type="submit">Search</button></form></div>
