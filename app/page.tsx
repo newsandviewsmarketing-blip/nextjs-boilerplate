@@ -189,44 +189,56 @@ export default function Home() {
               <Link href="/jobs">Job</Link>
               <Link href="/learn">Course</Link>
             </div>
-            <label>Location</label>
-            <select defaultValue="Faisalabad">
-              <option>Faisalabad</option>
-              <option>Lahore</option>
-              <option>Islamabad</option>
-              <option>Rawalpindi</option>
-              <option>Multan</option>
-              <option>Other city</option>
-            </select>
-            <div className="form-two">
-              <div>
-                <label>Animal / Sector</label>
-                <select defaultValue="Livestock">
-                  <option>Livestock</option>
-                  <option>Pets</option>
-                  <option>Poultry</option>
-                  <option>Dairy</option>
-                  <option>Fisheries</option>
-                  <option>Equine</option>
-                </select>
+
+            <form action="/vets" method="get">
+              <label htmlFor="vet-city">Location</label>
+              <select id="vet-city" name="city" defaultValue="">
+                <option value="">All cities</option>
+                <option value="Faisalabad">Faisalabad</option>
+                <option value="Lahore">Lahore</option>
+                <option value="Islamabad">Islamabad</option>
+                <option value="Rawalpindi">Rawalpindi</option>
+                <option value="Multan">Multan</option>
+              </select>
+
+              <div className="form-two">
+                <div>
+                  <label htmlFor="vet-sector">Animal / Sector</label>
+                  <select id="vet-sector" name="sector" defaultValue="">
+                    <option value="">All sectors</option>
+                    <option value="Livestock">Livestock</option>
+                    <option value="Pets">Pets</option>
+                    <option value="Poultry">Poultry</option>
+                    <option value="Dairy">Dairy</option>
+                    <option value="Fisheries">Fisheries</option>
+                    <option value="Equine">Equine</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="vet-service">Service</label>
+                  <select id="vet-service" name="service" defaultValue="">
+                    <option value="">All services</option>
+                    <option value="Consultation">Consultation</option>
+                    <option value="Clinic Visit">Clinic Visit</option>
+                    <option value="Farm Visit">Farm Visit</option>
+                    <option value="Video Consultation">Video Consultation</option>
+                    <option value="Vaccination">Vaccination</option>
+                    <option value="Diagnostics">Diagnostics</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label>Service</label>
-                <select defaultValue="Consultation">
-                  <option>Consultation</option>
-                  <option>Clinic Visit</option>
-                  <option>Farm Visit</option>
-                  <option>Video Consultation</option>
-                  <option>Vaccination</option>
-                  <option>Diagnostics</option>
-                </select>
-              </div>
-            </div>
-            <Link className="button button-primary button-full" href="/vets">
-              Search matching profiles
-            </Link>
+
+              <button
+                className="button button-primary button-full"
+                type="submit"
+              >
+                Search matching profiles
+              </button>
+            </form>
+
             <p className="microcopy">
-              Match by city, specialty, species, service type and availability.
+              Select only the filters you need. Leave the rest as All.
             </p>
           </div>
         </div>
