@@ -48,10 +48,10 @@ export default async function JobsPage({
         `${job.title} ${job.company_name} ${job.sector ?? ""}`.toLowerCase().includes(query)) &&
       (!params.city || params.city === "All cities" || job.city === params.city ||
        job.coverage?.scope === "nationwide" ||
-       (job.coverage?.scope === "province" && Boolean(job.coverage.province)) ||
+       (job.coverage?.scope === "province" && job.coverage.province?.toLowerCase() === params.city?.toLowerCase()) ||
        job.coverage_areas?.some(area => [area.city,area.district,area.label].some(value => value?.toLowerCase() === params.city?.toLowerCase()))),
   );
-  const cities = [...new Set(jobs.flatMap(job => [job.city, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]).filter(Boolean))] as string[];
+  const cities = [...new Set(jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]).filter(Boolean))] as string[];
   const showingSamples = jobs.some((job) => job.is_sample);
   return (
     <main>
