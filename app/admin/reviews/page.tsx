@@ -288,7 +288,7 @@ export default async function AdminPage({
               <span>Jobs</span>
             </article>
           </div>
-          <div className="admin-review-list">
+          <div id="pending-profiles" className="admin-review-list">
             {pending.length === 0 && (
               <div className="empty-state">
                 <h2>No profiles are waiting for review.</h2>
@@ -422,7 +422,7 @@ export default async function AdminPage({
             <h2>PVMC verification is separate from profile approval.</h2>
             <p>Registration numbers remain private. Only the verified status is published.</p>
           </div>
-          <div className="admin-review-list">
+          <div id="credential-checks" className="admin-review-list">
             {credentialRows.length === 0 && (
               <div className="empty-state"><h2>No PVMC credentials are waiting for review.</h2></div>
             )}
@@ -450,7 +450,7 @@ export default async function AdminPage({
             <h2>Marketplace submissions.</h2>
             <p>Approve complete company listings before they become public.</p>
           </div>
-          <div className="admin-review-list">
+          <div id="pending-products" className="admin-review-list">
             {productRows.length === 0 && (
               <div className="empty-state">
                 <h2>No products are waiting for review.</h2>
@@ -494,7 +494,7 @@ export default async function AdminPage({
             ))}
           </div>
           <div className="section-heading admin-product-heading"><span className="section-kicker">REGULATORY REVIEW</span><h2>Product registration evidence.</h2><p>Product-profile approval and regulatory verification are recorded separately.</p></div>
-          <div className="admin-review-list">
+          <div id="pending-regulatory" className="admin-review-list">
             {regulatoryRows.length === 0 && <div className="empty-state"><h2>No regulatory records are waiting for review.</h2></div>}
             {regulatoryRows.map((row) => { const product = regulatoryProductMap.get(row.product_id); return <article key={`regulatory-${row.product_id}`}><div className="review-header"><div><span className="module-tag">REGULATORY</span><h2>{product?.product_name || "Product"}</h2><p>{product?.category || "Animal health product"}</p></div><span className="status-pill">Pending</span></div><dl className="review-details"><div><dt>Private registration reference</dt><dd>{row.registration_number || "Not provided"}</dd></div><div><dt>Submitted status</dt><dd>{row.registration_status || "Not provided"}</dd></div><div><dt>Applicability</dt><dd>{row.applicability || "Requires reviewer determination"}</dd></div></dl><form action={reviewProductRegulatoryAction}><input type="hidden" name="product_id" value={row.product_id} /><label htmlFor={`regulatory-note-${row.product_id}`}>Verification source and reviewer note</label><input id={`regulatory-note-${row.product_id}`} name="notes" placeholder="Record the source and basis for this decision" /><div className="review-actions"><FormSubmitButton className="button button-primary" pendingLabel="Saving..." name="decision" value="verified">Verify registration</FormSubmitButton><button className="button button-secondary" type="submit" name="decision" value="not_applicable">Mark reviewed: not applicable</button><button className="button button-secondary" type="submit" name="decision" value="returned">Return for correction</button></div></form></article>; })}
         
@@ -506,7 +506,7 @@ export default async function AdminPage({
             <p>Approve complete, credible job information before it becomes public.</p>
           </div>
 
-          <div className="admin-review-list">
+          <div id="pending-jobs" className="admin-review-list">
             {jobRows.length === 0 && (
               <div className="empty-state">
                 <h2>No jobs are waiting for review.</h2>
