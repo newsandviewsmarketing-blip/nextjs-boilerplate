@@ -29,9 +29,6 @@ jobs:
       - name: Run repository audit
         run: npm run audit
 
-      - name: Audit dependencies
-        run: npm run security:audit
-
       - name: Run lint
         run: npm run lint
 
@@ -43,3 +40,6 @@ jobs:
 
       - name: Build production application
         run: npm run build
+
+      - name: Audit dependencies
+        run: npm run security:audit
