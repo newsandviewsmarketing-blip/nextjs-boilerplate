@@ -5,6 +5,7 @@ import SiteFooter from "../components/SiteFooter";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { sampleJobs, type PublicJob } from "@/lib/jobs";
+import { matchesJobLocation, locationSearchOptions } from "@/lib/job-location";
 
 export const metadata: Metadata = {
   title: "Veterinary Jobs in Pakistan",
@@ -43,15 +44,14 @@ export default async function JobsPage({
   const jobs = await loadJobs();
   const query = (params.q ?? "").toLowerCase();
   const visibleJobs = jobs.filter(
-    (job) =>
-      (!query ||
-        `${job.title} ${job.company_name} ${job.sector ?? ""}`.toLowerCase().includes(query)) &&
-      (!params.city || params.city === "All cities" || job.city === params.city ||
-       job.coverage?.scope === "nationwide" ||
-       (job.coverage?.scope === "province" && job.coverage.province?.toLowerCase() === params.city?.toLowerCase()) ||
-       job.coverage_areas?.some(area => [area.city,area.district,area.label].some(value => value?.toLowerCase() === params.city?.toLowerCase()))),
+    job => (!query || 
+      [job.title,job.company_name,job.sector ?? "",job.coverage?.display_text ?? ""].join(" ").toLowerCase().includes(query)) &&
+      matchesJobLocation(job, params.city ?? ""),
   );
-  const cities = [...new Set(jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]).filter(Boolean))] as string[];
+  const cities = [...new Set([
+    ...locationSearchOptions(),
+    ...jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]),
+  ].filter((name):name is string=>Boolean(name)))].sort((a,b)=>a.localeCompare(b));
   const showingSamples = jobs.some((job) => job.is_sample);
   return (
     <main>
@@ -84,7 +84,7 @@ export default async function JobsPage({
             <h2>Recruitment workspace</h2>
             <ul>
               <li>Create a verified company/employer profile</li>
-              <li>Post jobs and internships by sector and city</li>
+              <li>Post jobs and internships by sector, region and selected locations</li>
               <li>Define qualification, experience and skill requirements</li>
               <li>Search candidate profiles and CVs</li>
               <li>Shortlist and track applications</li>
