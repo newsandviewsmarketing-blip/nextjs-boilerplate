@@ -48,7 +48,8 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <PakistanLocationFields />
         <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
         <div className="form-span-2"><label>Public summary</label><textarea name="public_summary" rows={4} /></div>
-        <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now" /> Publish immediately (requires review permission; veterinarian also requires PVMC number)</label>
+        <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now" /> Publish approved allied professional immediately (requires review permission)</label>
+        <p className="form-help form-span-2">Veterinarian profiles always enter the review queue. A PVMC number or uploaded document alone does not verify registration or publish the profile.</p>
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create assisted profile</FormSubmitButton>
       </PersistentForm>}
 
