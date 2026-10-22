@@ -155,7 +155,7 @@ export async function bulkImportAction(formData: FormData) {
         }
         const locationText=value(row,"coverage_display") || value(row,"location_text") ||
           (selectedScope === "nationwide" ? "Across Pakistan" : selectedScope === "flexible" ? "Location not specified" :
-            [regionName, ...(districtNames.length||cityNames.length ? [...districtNames,...cityNames] : [province])].filter(Boolean).join(", "));
+            [regionName, province, ...districtNames, ...cityNames].filter(Boolean).join(", "));
         let regionId: string | null = null;
         if(regionScope){
           const {data: existing, error:lookupError} = await supabase.from("company_regions").select("id,region_type,province")
