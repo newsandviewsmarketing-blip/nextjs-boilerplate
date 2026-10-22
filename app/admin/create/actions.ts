@@ -231,9 +231,10 @@ export async function createAdminJobAction(formData: FormData) {
     verification_status:"pending",is_published:false,
   }).select("id").single();
   if (error || !job) createError("job",error?.message || "Could not create job.");
+  const createdJobId: string = job.id;
 
   async function removeIncompleteJob(message: string): Promise<never> {
-    const {error:cleanupError} = await supabase.from("jobs").delete().eq("id",job.id);
+    const {error:cleanupError} = await supabase.from("jobs").delete().eq("id",createdJobId);
     createError("job",cleanupError ? message + " Incomplete draft cleanup also failed." : message + " The incomplete draft was removed.");
   }
   const {error:coverageError} = await supabase.from("job_coverage").insert({
