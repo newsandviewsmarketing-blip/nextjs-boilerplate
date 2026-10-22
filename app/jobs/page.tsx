@@ -22,7 +22,16 @@ async function loadJobs(): Promise<PublicJob[]> {
     .select("id, slug, title, description, sector, city, province, district, tehsil, address, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_id, company_name")
     .order("deadline", { ascending: true, nullsFirst: false });
   if (error || !data?.length) return sampleJobs;
-  return data as PublicJob[];
+  const ids = data.map(job => job.id).filter(Boolean) as string[];
+  const [{data: coverage}, {data: areas}] = await Promise.all([
+    supabase.from("job_coverage").select("job_id,scope,province,display_text").in("job_id",ids),
+    supabase.from("job_coverage_areas").select("job_id,label,city,district,province").in("job_id",ids)
+  ]);
+  return data.map(job => ({
+    ...job,
+    coverage: coverage?.find(c => c.job_id===job.id) ?? null,
+    coverage_areas: areas?.filter(a => a.job_id===job.id) ?? []
+  })) as PublicJob[];
 }
 
 export default async function JobsPage({
@@ -37,9 +46,12 @@ export default async function JobsPage({
     (job) =>
       (!query ||
         `${job.title} ${job.company_name} ${job.sector ?? ""}`.toLowerCase().includes(query)) &&
-      (!params.city || params.city === "All cities" || job.city === params.city),
+      (!params.city || params.city === "All cities" || job.city === params.city ||
+       job.coverage?.scope === "nationwide" ||
+       (job.coverage?.scope === "province" && Boolean(job.coverage.province)) ||
+       job.coverage_areas?.some(area => [area.city,area.district,area.label].some(value => value?.toLowerCase() === params.city?.toLowerCase()))),
   );
-  const cities = [...new Set(jobs.map((job) => job.city).filter(Boolean))] as string[];
+  const cities = [...new Set(jobs.flatMap(job => [job.city, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]).filter(Boolean))] as string[];
   const showingSamples = jobs.some((job) => job.is_sample);
   return (
     <main>
@@ -141,7 +153,7 @@ export default async function JobsPage({
                     <span>{job.sector || "Animal health"}</span>
                     <h3>{job.title}</h3>
                     <p>
-                      {job.company_name} • {job.city || "Pakistan"}
+                      {job.company_name} • {job.coverage?.display_text || job.city || job.province || "Pakistan"}
                     </p>
                     <div className="profile-chips">
                       <span>{job.employment_type}</span>
