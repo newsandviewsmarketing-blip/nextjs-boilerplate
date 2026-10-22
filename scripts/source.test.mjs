@@ -328,3 +328,17 @@ test("master closure migration can build canonical public jobs before release cl
   assert.match(sql, /coalesce\(c\.canonical_name, cp\.trade_name, cp\.company_name/);
   assert.doesNotMatch(sql, /coalesce\(c\.company_name, cp\.trade_name/);
 });
+
+// Phase 1: actionable admin metric navigation stays aligned with review queue anchors.
+test("admin overview links lead to the matching review queue sections", () => {
+  const overview = read("app/admin/page.tsx");
+  const reviews = read("app/admin/reviews/page.tsx");
+  for (const anchor of ["pending-profiles", "credential-checks", "pending-products", "pending-jobs"]) {
+    assert.ok(overview.includes(`/admin/reviews#${anchor}`), `missing dashboard link: ${anchor}`);
+  }
+  for (const anchor of ["pending-profiles", "credential-checks", "pending-products", "pending-regulatory", "pending-jobs"]) {
+    assert.ok(reviews.includes(`id="${anchor}"`), `missing review section: ${anchor}`);
+  }
+  assert.match(overview, /from\("managed_people"\).*select\("id", \{ count: "exact", head: true \}\).*verification_status", "pending"/);
+  assert.match(overview, /profileMetricsUnavailable \? "—" : pendingProfiles/);
+});
