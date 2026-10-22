@@ -71,11 +71,13 @@ export function hasAdminPermission(identity: CurrentIdentity, permission: AdminP
 export async function getEffectiveAdminPermission(identity: CurrentIdentity, permission: AdminPermission) {
   const roleAllowed = hasAdminPermission(identity, permission);
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("admin_user_permissions")
     .select("granted_permissions, revoked_permissions")
     .eq("user_id", identity.userId)
     .maybeSingle();
+  // A failed override lookup must not accidentally restore permissions revoked for a user.
+  if (error) return false;
   const granted = (data?.granted_permissions ?? []) as string[];
   const revoked = (data?.revoked_permissions ?? []) as string[];
   if (revoked.includes(permission)) return false;
