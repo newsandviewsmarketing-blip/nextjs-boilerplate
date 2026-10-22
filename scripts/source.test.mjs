@@ -346,10 +346,10 @@ test("review actions check effective permissions before writes", () => {
     assert.ok(start >= 0 && next > start, `missing action: ${name}`);
     const body = actions.slice(start, next);
     assert.ok(body.includes(`await getEffectiveAdminPermission(identity, "${permission}")`), `missing effective permission guard in ${name}`);
-    assert.doesNotMatch(body, /identity\\.roles\\.some\\(/, `outdated role-only guard in ${name}`);
+    assert.ok(!body.includes("identity.roles.some("), `outdated role-only guard in ${name}`);
     assert.ok(body.indexOf("getEffectiveAdminPermission") < body.indexOf("const supabase = await createClient()"), `permission check must precede database writes in ${name}`);
   }
   const admin = read("lib/admin.ts");
-  assert.match(admin, /if \\(error\\) return false;/);
+  assert.ok(admin.includes("if (error) return false;"));
   assert.ok(admin.indexOf("if (error) return false;") < admin.indexOf("if (revoked.includes(permission)) return false;"));
 });
