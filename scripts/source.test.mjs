@@ -328,3 +328,62 @@ test("master closure migration can build canonical public jobs before release cl
   assert.match(sql, /coalesce\(c\.canonical_name, cp\.trade_name, cp\.company_name/);
   assert.doesNotMatch(sql, /coalesce\(c\.company_name, cp\.trade_name/);
 });
+
+
+test("job coverage matching honors province-wide, selected districts, cities and optional tehsil", async () => {
+  // Exercise the actual production matching module rather than a duplicate implementation.
+  const ts = await import("typescript");
+  const vm = await import("node:vm");
+  const compiled = ts.default.transpileModule(read("lib/job-location.ts"), {
+    compilerOptions: {
+      module: ts.default.ModuleKind.CommonJS,
+      esModuleInterop: true,
+      resolveJsonModule: true,
+      target: ts.default.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const exported = { exports: {} };
+  const geo = JSON.parse(read("public/data/pakistan-administrative-hierarchy.json"));
+  vm.runInNewContext(compiled, {
+    module: exported,
+    exports: exported.exports,
+    require: (name) => {
+      if (name === "../public/data/pakistan-administrative-hierarchy.json") return geo;
+      throw new Error("Unexpected module import: " + name);
+    },
+  });
+  const {matchesJobLocation} = exported.exports;
+  const base = {
+    city: null, district: null, province: "Punjab",
+    coverage: {scope:"province",province:"Punjab",display_text:"All Punjab"},
+    coverage_areas:[],
+  };
+  assert.equal(matchesJobLocation(base, "Faisalabad"), true);
+  assert.equal(matchesJobLocation(base, "Lahore"), true);
+  assert.equal(matchesJobLocation(base, "Sindh"), false);
+  assert.equal(matchesJobLocation(base, "Karachi"), false);
+
+  const districts = {
+    ...base,
+    coverage: {scope:"multiple",province:"Punjab",display_text:"Faisalabad and Toba Tek Singh"},
+    coverage_areas:[
+      {district:"Faisalabad",city:null,label:"Faisalabad",province:"Punjab"},
+      {district:"Toba Tek Singh",city:null,label:"Toba Tek Singh",province:"Punjab"},
+    ],
+  };
+  assert.equal(matchesJobLocation(districts, "Faisalabad"), true);
+  assert.equal(matchesJobLocation(districts, "Toba Tek Singh"), true);
+  assert.equal(matchesJobLocation(districts, "Faisalabad City"), true);
+  assert.equal(matchesJobLocation(districts, "Lahore"), false);
+  assert.equal(matchesJobLocation(districts, "Punjab"), true);
+
+  const cityOnly = {
+    ...base,
+    coverage: {scope:"city",province:"Punjab",display_text:"Lahore"},
+    coverage_areas:[{district:null,city:"Lahore",label:"Lahore",province:"Punjab"}],
+  };
+  assert.equal(matchesJobLocation(cityOnly, "Lahore"), true);
+  assert.equal(matchesJobLocation(cityOnly, "Faisalabad"), false);
+  assert.equal(matchesJobLocation({...cityOnly,coverage:{scope:"flexible",province:null,display_text:"TBA"}}, "Lahore"), false);
+  assert.equal(matchesJobLocation({...base,coverage:{scope:"nationwide",province:null,display_text:"Pakistan"}}, "Karachi"), true);
+});
