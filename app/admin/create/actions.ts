@@ -161,15 +161,63 @@ export async function createAdminProductAction(formData: FormData) {
 export async function createAdminJobAction(formData: FormData) {
   const identity = await requireAdminPermission("jobs.create", "/admin/create?type=job");
   const title = text(formData,"title"); const companyId = text(formData,"company_id");
-  if (!title || !companyId) createError("job", "Company and job title are required.");
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("jobs").insert({ company_user_id: null, company_id: companyId, slug: uniqueSlug(title), title, description: text(formData,"description") || title, sector: optional(formData,"sector"), province: optional(formData,"province"), district: optional(formData,"district"), tehsil: optional(formData,"tehsil"), city: optional(formData,"city"), address: optional(formData,"address"), employment_type: text(formData,"employment_type") || "Full-time", minimum_qualification: optional(formData,"minimum_qualification"), minimum_experience: Number(text(formData,"minimum_experience") || 0), deadline: optional(formData,"deadline"), verification_status: "pending", is_published: false }).select("id").single();
-  if (error || !data) createError("job", error?.message ?? "Could not create job.");
-  try {
-    await saveDocument(formData, "supporting_document", "job_supporting_document", "job", String(data.id), identity.userId, supabase);
-  } catch (uploadError) {
-    createError("job", `Job saved, but upload failed: ${uploadError instanceof Error ? uploadError.message : "Unknown upload error"}`);
+  const scope = text(formData,"coverage_scope");
+  const allowedScopes = ["nationwide","province","region","district","city","multiple","flexible"];
+  if (!title || !companyId) createError("job","Company and job title are required.");
+  if (!allowedScopes.includes(scope)) createError("job","Choose a valid recruitment coverage.");
+  const province = optional(formData,"province");
+  const display = text(formData,"coverage_display");
+  const rawAreas = list(formData,"covered_areas");
+  if (!display || (["province","city","district","region"].includes(scope) && !province)) {
+    createError("job","Recruitment coverage and applicable province are required.");
   }
-  revalidatePath("/jobs"); revalidatePath("/admin/reviews");
+  if (["city","district"].includes(scope) && !rawAreas.length) createError("job","Enter the covered locations.");
+  const experience = text(formData,"minimum_experience");
+  if (experience && (!Number.isInteger(Number(experience)) || Number(experience)<0)) createError("job","Experience must be a nonnegative number.");
+  const supabase = await createClient();
+  let regionId: string | null = null;
+  if (scope === "region") {
+    const regionName = text(formData,"region_name");
+    if (!regionName) createError("job","Company region name is required.");
+    const { data: existing, error: findError } = await supabase.from("company_regions")
+      .select("id").eq("company_id",companyId).eq("name",regionName).maybeSingle();
+    if (findError) createError("job",findError.message);
+    if (existing) regionId=existing.id;
+    else {
+      const { data, error } = await supabase.from("company_regions")
+        .insert({company_id:companyId,name:regionName,created_by:identity.userId}).select("id").single();
+      if (error||!data) createError("job",error?.message ?? "Cannot create company region.");
+      regionId=data.id;
+    }
+  }
+  const {data: job,error} = await supabase.from("jobs").insert({
+    company_user_id:null,company_id:companyId,slug:uniqueSlug(title),title,
+    description:text(formData,"description")||title,sector:optional(formData,"sector"),
+    province,city:null,district:null,tehsil:null,address:optional(formData,"address"),
+    employment_type:text(formData,"employment_type")||"Not specified",
+    minimum_qualification:optional(formData,"minimum_qualification"),
+    minimum_experience:experience ? Number(experience) : null,
+    deadline:optional(formData,"deadline"),verification_status:"pending",is_published:false
+  }).select("id").single();
+  if(error||!job) createError("job",error?.message??"Could not create job.");
+  const {error:coverageError}=await supabase.from("job_coverage").insert({
+    job_id:job.id,scope,province,region_id:regionId,display_text:display
+  });
+  if(coverageError) createError("job",`Job draft created, but coverage failed: ${coverageError.message}`);
+  if(rawAreas.length) {
+    const {error:areasError}=await supabase.from("job_coverage_areas").insert(
+      rawAreas.map(label=>({
+        job_id:job.id,area_level:scope==="district"?"district":"city",
+        province, district:scope==="district"?label:null,city:scope==="district"?null:label,label
+      }))
+    );
+    if(areasError) createError("job",`Job draft created, but locations failed: ${areasError.message}`);
+  }
+  try {
+    await saveDocument(formData,"supporting_document","job_supporting_document","job",String(job.id),identity.userId,supabase);
+  } catch(uploadError) {
+    createError("job",`Job saved, but upload failed: ${uploadError instanceof Error?uploadError.message:"Unknown upload error"}`);
+  }
+  revalidatePath("/jobs");revalidatePath("/admin/reviews");
   redirect("/admin/create?type=job&message=Job%20draft%20created%20for%20review.");
 }
