@@ -1,0 +1,65 @@
+name: VetConnect isolated dependency remediation
+
+on:
+  push:
+    branches:
+      - security/npm-remediation-20261022
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-and-validate:
+    if: github.repository == 'newsandviewsmarketing-blip/nextjs-boilerplate' && github.ref == 'refs/heads/security/npm-remediation-20261022'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out this isolated branch
+        uses: actions/checkout@v4
+        with:
+          ref: security/npm-remediation-20261022
+          persist-credentials: true
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve patched stable versions without install scripts
+        run: npm install --package-lock-only --ignore-scripts --save-exact --no-fund next@16.4.2 eslint-config-next@16.4.2 react@19.2.9 react-dom@19.2.9
+
+      - name: Apply only npm non-breaking vulnerability fixes to isolated lockfile
+        run: npm audit fix --package-lock-only --ignore-scripts --no-fund
+
+      - name: Install exactly the proposed dependency graph
+        run: npm ci
+
+      - name: Security audit must pass
+        run: npm run security:audit
+
+      - name: Repository structure audit
+        run: npm run audit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Source tests
+        run: npm test
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Production build check on temporary GitHub runner
+        run: npm run build
+
+      - name: Commit verified package changes only to security branch
+        run: |
+          git config user.name "VetConnect Security CI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "security(deps): lock validated patched packages"
+            git push origin HEAD:security/npm-remediation-20261022
+          else
+            echo "No lockfile changes to commit."
+          fi
