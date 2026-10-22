@@ -98,22 +98,8 @@ export async function bulkImportAction(formData: FormData) {
           province: nullable(row,"province"), district: nullable(row,"district"), tehsil: nullable(row,"tehsil"), city: nullable(row,"city"), address: nullable(row,"address"), public_phone: nullable(row,"public_phone"),
           public_email: nullable(row,"public_email"), website: nullable(row,"website"), google_maps_url: nullable(row,"google_maps_url"), working_hours: nullable(row,"working_hours"), services: list(row,"services"), species: list(row,"species"),
           verification_status: "pending", is_published: false,
-        }).select("id").single();
-        if (error || !createdJob) throw new Error(error?.message || "Job insert failed");
-        const coverageText = value(row,"coverage_display") || value(row,"location_text") || value(row,"city") || value(row,"province") || "Location not specified";
-        const {error:coverageError} = await supabase.from("job_coverage").insert({
-          job_id:createdJob.id, scope:coverageScope, province:nullable(row,"province"),display_text:coverageText
         });
-        if (coverageError) throw coverageError;
-        const names=value(row,"covered_areas").split(",").map(x=>x.trim()).filter(Boolean);
-        if(names.length){
-          const {error:areaError} = await supabase.from("job_coverage_areas").insert(names.map(label=>({
-            job_id:createdJob.id, area_level:coverageScope==="district"?"district":"city",
-            province:nullable(row,"province"),label,
-            district:coverageScope==="district"?label:null,city:coverageScope==="district"?null:label
-          })));
-          if(areaError) throw areaError;
-        }
+        if (error) throw error;
       } else if (kind === "laboratory") {
         const name = value(row,"laboratory_name"); if (!name) throw new Error("laboratory_name is required");
         const { error } = await supabase.from("laboratories").insert({
@@ -135,17 +121,52 @@ export async function bulkImportAction(formData: FormData) {
         });
         if (error) throw error;
       } else if (kind === "job") {
-        const title = value(row,"title"); if (!title) throw new Error("title is required");
-        const companyKey = (value(row,"company_id") || value(row,"company_name")).toLowerCase();
-        const companyId = companyMap.get(companyKey); if (!companyId) throw new Error("company_id or company_name does not match a canonical company");
-        const coverageScope = value(row,"coverage_scope") || (value(row,"city") ? "city" : value(row,"province") ? "province" : "flexible");
-        if (!["nationwide","province","region","district","city","multiple","flexible"].includes(coverageScope)) throw new Error("Invalid coverage_scope");
-        if (coverageScope === "region") throw new Error("Set up the company region first in the individual job form");
-        const { data: createdJob, error } = await supabase.from("jobs").insert({
-          company_user_id: null, company_id: companyId, slug: uniqueSlug(title), title, description: value(row,"description") || title, sector: nullable(row,"sector"), province: nullable(row,"province"), district: nullable(row,"district"), tehsil: nullable(row,"tehsil"), city: nullable(row,"city"),
-          address: nullable(row,"address"), employment_type: value(row,"employment_type") || "Not specified", minimum_qualification: nullable(row,"minimum_qualification"), minimum_experience: value(row,"minimum_experience") ? numberValue(row,"minimum_experience") : null, deadline: nullable(row,"deadline"), verification_status: "pending", is_published: false,
+        const title=value(row,"title");
+        if (!title) throw new Error("title is required");
+        const companyKey=(value(row,"company_id")||value(row,"company_name")).toLowerCase();
+        const companyId=companyMap.get(companyKey);
+        if(!companyId) throw new Error("company_id or company_name does not match a canonical company");
+        const scope=value(row,"coverage_scope")||(value(row,"city")?"city":value(row,"province")?"province":"flexible");
+        if(!["nationwide","province","district","city","multiple","flexible"].includes(scope)) throw new Error("Invalid coverage_scope");
+        const province=nullable(row,"province");
+        if(["province","city","district"].includes(scope) && !province) throw new Error("Province is required for this coverage");
+        const locationText=value(row,"coverage_display")||value(row,"location_text")||value(row,"city")||value(row,"province")||"Location not specified";
+        const places=value(row,"covered_areas").split(",").map(x=>x.trim()).filter(Boolean);
+        const legacyCity=nullable(row,"city");
+        if(legacyCity&&!places.some(x=>x.toLowerCase()===legacyCity.toLowerCase()))places.push(legacyCity);
+        if(scope==="district"&&!places.length&&!value(row,"district"))throw new Error("Covered district is required");
+        if(scope==="city"&&!places.length)throw new Error("Covered city is required");
+        const expValue=value(row,"minimum_experience");
+        if(expValue && (!/^\d+$/.test(expValue)))throw new Error("minimum_experience must be a nonnegative integer");
+        const {data:job,error}=await supabase.from("jobs").insert({
+          company_user_id:null,company_id:companyId,slug:uniqueSlug(title),title,
+          description:value(row,"description")||title,sector:nullable(row,"sector"),
+          province,district:nullable(row,"district"),tehsil:nullable(row,"tehsil"),
+          city:legacyCity,address:nullable(row,"address"),
+          employment_type:value(row,"employment_type")||"Not specified",
+          minimum_qualification:nullable(row,"minimum_qualification"),
+          minimum_experience:expValue ? Number(expValue) : null,
+          deadline:nullable(row,"deadline"),verification_status:"pending",is_published:false
+        }).select("id").single();
+        if(error||!job)throw new Error(error?.message||"Job insert failed");
+        const {error:coverageError}=await supabase.from("job_coverage").insert({
+          job_id:job.id,scope,province,display_text:locationText
         });
-        if (error) throw error;
+        if(coverageError){
+          await supabase.from("jobs").delete().eq("id",job.id);
+          throw new Error("Could not save coverage: "+coverageError.message);
+        }
+        const mappedPlaces=places.length ? places : (scope==="district"&&value(row,"district")?[value(row,"district")]:[]);
+        if(mappedPlaces.length){
+          const {error:areaError}=await supabase.from("job_coverage_areas").insert(mappedPlaces.map(label=>({
+            job_id:job.id,area_level:scope==="district"?"district":"city",province,label,
+            district:scope==="district"?label:null,city:scope==="district"?null:label
+          })));
+          if(areaError){
+            await supabase.from("jobs").delete().eq("id",job.id);
+            throw new Error("Could not save areas: "+areaError.message);
+          }
+        }
       }
       created += 1;
     } catch (error) {
