@@ -186,7 +186,7 @@ export async function createAdminJobAction(formData: FormData) {
   const label = text(formData,"coverage_display") ||
     (selectedScope === "nationwide" ? "Across Pakistan" :
       selectedScope === "flexible" ? "Location not specified" :
-        [regionName, ...(districts.length || cities.length ? [...districts,...cities] : [province])].filter(Boolean).join(", "));
+        [regionName, province, ...districts, ...cities].filter(Boolean).join(", "));
   if (!label) createError("job","Specify an applicable hiring location.");
 
   const experience = text(formData,"minimum_experience");
