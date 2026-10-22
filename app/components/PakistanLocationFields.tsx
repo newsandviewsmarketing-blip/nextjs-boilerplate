@@ -13,12 +13,14 @@ const DATA_URL =
 
 export default function PakistanLocationFields({
   fieldPrefix = "",
+  requireLocality = true,
   defaultProvince = "",
   defaultDistrict = "",
   defaultTehsil = "",
   defaultCity = "",
 }: {
   fieldPrefix?: string;
+  requireLocality?: boolean;
   defaultProvince?: string;
   defaultDistrict?: string;
   defaultTehsil?: string;
@@ -74,15 +76,15 @@ export default function PakistanLocationFields({
         </div>
         <div>
           <label htmlFor={districtField}>District</label>
-          <input id={districtField} name={districtField} defaultValue={defaultDistrict} required />
+          <input id={districtField} name={districtField} defaultValue={defaultDistrict} required={requireLocality} />
         </div>
         <div>
           <label htmlFor={tehsilField}>Tehsil / Taluka</label>
-          <input id={tehsilField} name={tehsilField} defaultValue={defaultTehsil} required />
+          <input id={tehsilField} name={tehsilField} defaultValue={defaultTehsil} required={requireLocality} />
         </div>
         <div>
           <label htmlFor={cityField}>City / Town</label>
-          <input id={cityField} name={cityField} defaultValue={defaultCity} required />
+          <input id={cityField} name={cityField} defaultValue={defaultCity} required={requireLocality} />
           <p className="form-help">
             The Pakistan administrative list could not load, so manual entry is temporarily enabled.
           </p>
@@ -127,7 +129,7 @@ export default function PakistanLocationFields({
             setCity("");
           }}
           disabled={!province}
-          required
+          required={requireLocality}
         >
           <option value="">Select district</option>
           {districts.map((item) => (
@@ -146,10 +148,10 @@ export default function PakistanLocationFields({
           onChange={(event) => {
             const nextTehsil = event.target.value;
             setTehsil(nextTehsil);
-            if (!city || city === tehsil) setCity(nextTehsil);
+            if (requireLocality && (!city || city === tehsil)) setCity(nextTehsil);
           }}
           disabled={!district}
-          required
+          required={requireLocality}
         >
           <option value="">Select tehsil / taluka</option>
           {tehsils.map((item) => (
@@ -168,7 +170,7 @@ export default function PakistanLocationFields({
           value={city}
           onChange={(event) => setCity(event.target.value)}
           placeholder="Select or type city / town"
-          required
+          required={requireLocality}
         />
         <datalist id={cityListId}>
           {tehsils.map((item) => (
@@ -176,7 +178,9 @@ export default function PakistanLocationFields({
           ))}
         </datalist>
         <p className="form-help">
-          Province, district and tehsil are standardized. City/town accepts the selected administrative centre or a local town name.
+          {requireLocality
+            ? "Province, district and tehsil are standardized. City/town accepts the selected administrative centre or a local town name."
+            : "District, tehsil and city are optional. Enter a city directly if known. Leaving a city blank does not mean coverage of the entire province."}
         </p>
       </div>
     </>
