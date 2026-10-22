@@ -11,7 +11,9 @@ export type PublicJob = {
   address?: string | null;
   employment_type: string;
   minimum_qualification: string | null;
-  minimum_experience: number;
+  minimum_experience: number | null;
+  coverage?: {job_id:string;scope:string;province:string|null;display_text:string} | null;
+  coverage_areas?: Array<{job_id:string;label:string;city:string|null;district:string|null;province:string|null}>;
   deadline: string | null;
   company_user_id: string | null;
   company_id?: string | null;
