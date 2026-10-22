@@ -160,64 +160,118 @@ export async function createAdminProductAction(formData: FormData) {
 
 export async function createAdminJobAction(formData: FormData) {
   const identity = await requireAdminPermission("jobs.create", "/admin/create?type=job");
-  const title = text(formData,"title"); const companyId = text(formData,"company_id");
-  const scope = text(formData,"coverage_scope");
-  const allowedScopes = ["nationwide","province","region","district","city","multiple","flexible"];
-  if (!title || !companyId) createError("job","Company and job title are required.");
-  if (!allowedScopes.includes(scope)) createError("job","Choose a valid recruitment coverage.");
-  const province = optional(formData,"province");
-  const display = text(formData,"coverage_display");
-  const rawAreas = list(formData,"covered_areas");
-  if (!display || (["province","city","district","region"].includes(scope) && !province)) {
-    createError("job","Recruitment coverage and applicable province are required.");
-  }
-  if (["city","district"].includes(scope) && !rawAreas.length) createError("job","Enter the covered locations.");
+  const title = text(formData, "title");
+  const companyId = text(formData, "company_id");
+  const selectedScope = text(formData, "coverage_scope");
+  const validScopes = ["nationwide", "province", "region", "territory", "area", "district", "city", "multiple", "flexible"];
+  if (!title || !companyId) createError("job", "Company and job title are required.");
+  if (!validScopes.includes(selectedScope)) createError("job", "Choose a valid recruitment coverage.");
+
+  const hasProvince = !["nationwide","flexible"].includes(selectedScope);
+  const province = hasProvince ? optional(formData,"province") : null;
+  const regionScope = ["region","territory","area"].includes(selectedScope);
+  const regionName = regionScope ? text(formData,"region_name") : "";
+  const districts = hasProvince ? [...new Set(list(formData,"coverage_districts"))] : [];
+  const cities = hasProvince ? [...new Set(list(formData,"coverage_cities"))] : [];
+  const tehsil = hasProvince ? optional(formData,"tehsil") : null;
+  if (hasProvince && !province) createError("job","Select a province / territory.");
+  if (regionScope && !regionName) createError("job","Enter the company region, territory or area name.");
+  if (selectedScope === "district" && districts.length === 0) createError("job","Select at least one district.");
+  if (selectedScope === "city" && cities.length === 0) createError("job","Select at least one city.");
+  if ((districts.length || cities.length) && !province) createError("job","Selected locations require a province.");
+
+  // Province with selected districts/cities is *not* province-wide.
+  const scope = selectedScope === "province" && (districts.length > 0 || cities.length > 0)
+    ? "multiple" : selectedScope;
+  const label = text(formData,"coverage_display") ||
+    (selectedScope === "nationwide" ? "Across Pakistan" :
+      selectedScope === "flexible" ? "Location not specified" :
+        [regionName, ...(districts.length || cities.length ? [...districts,...cities] : [province])].filter(Boolean).join(", "));
+  if (!label) createError("job","Specify an applicable hiring location.");
+
   const experience = text(formData,"minimum_experience");
-  if (experience && (!Number.isInteger(Number(experience)) || Number(experience)<0)) createError("job","Experience must be a nonnegative number.");
+  if (experience && (!/^\d+$/.test(experience) || !Number.isSafeInteger(Number(experience)))) {
+    createError("job","Experience must be a nonnegative whole number.");
+  }
+
   const supabase = await createClient();
+  const {data: employer, error: companyError} = await supabase.from("companies")
+    .select("id").eq("id",companyId).eq("record_status","active").maybeSingle();
+  if (companyError || !employer) createError("job","Select a valid active employer company.");
   let regionId: string | null = null;
-  if (scope === "region") {
-    const regionName = text(formData,"region_name");
-    if (!regionName) createError("job","Company region name is required.");
-    const { data: existing, error: findError } = await supabase.from("company_regions")
-      .select("id").eq("company_id",companyId).eq("name",regionName).maybeSingle();
+  if (regionScope) {
+    const {data: existing, error: findError} = await supabase.from("company_regions")
+      .select("id,region_type,province").eq("company_id",companyId).eq("name",regionName).maybeSingle();
     if (findError) createError("job",findError.message);
-    if (existing) regionId=existing.id;
-    else {
-      const { data, error } = await supabase.from("company_regions")
-        .insert({company_id:companyId,name:regionName,created_by:identity.userId}).select("id").single();
-      if (error||!data) createError("job",error?.message ?? "Cannot create company region.");
-      regionId=data.id;
+    if (existing) {
+      if (existing.region_type !== selectedScope || existing.province !== province) {
+        createError("job","A different territory with this name exists for this company. Choose a distinct name.");
+      }
+      regionId = existing.id;
+    } else {
+      const {data: created, error} = await supabase.from("company_regions").insert({
+        company_id:companyId,name:regionName,region_type:selectedScope,province,created_by:identity.userId,
+      }).select("id").single();
+      if (error || !created) createError("job",error?.message || "Could not register employer territory.");
+      regionId = created.id;
     }
   }
+
   const {data: job,error} = await supabase.from("jobs").insert({
     company_user_id:null,company_id:companyId,slug:uniqueSlug(title),title,
-    description:text(formData,"description")||title,sector:optional(formData,"sector"),
-    province,city:null,district:null,tehsil:null,address:optional(formData,"address"),
-    employment_type:text(formData,"employment_type")||"Not specified",
+    description:text(formData,"description") || title,
+    sector:optional(formData,"sector"),province,
+    district: districts.length === 1 ? districts[0] : null,
+    city: cities.length === 1 ? cities[0] : null,
+    tehsil,address:optional(formData,"address"),
+    employment_type:text(formData,"employment_type") || "Not specified",
     minimum_qualification:optional(formData,"minimum_qualification"),
     minimum_experience:experience ? Number(experience) : null,
-    deadline:optional(formData,"deadline"),verification_status:"pending",is_published:false
+    deadline:optional(formData,"deadline"),
+    verification_status:"pending",is_published:false,
   }).select("id").single();
-  if(error||!job) createError("job",error?.message??"Could not create job.");
-  const {error:coverageError}=await supabase.from("job_coverage").insert({
-    job_id:job.id,scope,province,region_id:regionId,display_text:display
-  });
-  if(coverageError) createError("job",`Job draft created, but coverage failed: ${coverageError.message}`);
-  if(rawAreas.length) {
-    const {error:areasError}=await supabase.from("job_coverage_areas").insert(
-      rawAreas.map(label=>({
-        job_id:job.id,area_level:scope==="district"?"district":"city",
-        province, district:scope==="district"?label:null,city:scope==="district"?null:label,label
-      }))
-    );
-    if(areasError) createError("job",`Job draft created, but locations failed: ${areasError.message}`);
+  if (error || !job) createError("job",error?.message || "Could not create job.");
+
+  async function removeIncompleteJob(message: string): Promise<never> {
+    const {error:cleanupError} = await supabase.from("jobs").delete().eq("id",job.id);
+    createError("job",cleanupError ? message + " Incomplete draft cleanup also failed." : message + " The incomplete draft was removed.");
   }
+  const {error:coverageError} = await supabase.from("job_coverage").insert({
+    job_id:job.id,scope,province,region_id:regionId,display_text:label,
+  });
+  if (coverageError) await removeIncompleteJob("Could not save hiring coverage: " + coverageError.message);
+
+  const places = [
+    ...districts.map(name=>({job_id:job.id,area_level:"district",province,district:name,city:null,label:name})),
+    ...cities.map(name=>({job_id:job.id,area_level:"city",province,district:null,city:name,label:name})),
+  ];
+  if (places.length) {
+    const {error:areasError} = await supabase.from("job_coverage_areas").insert(places);
+    if (areasError) await removeIncompleteJob("Could not save selected locations: " + areasError.message);
+  }
+
+  // Record company geography without altering official province/district definitions.
+  if (regionId && places.length) {
+    const {data: existingAreas, error:readError} = await supabase.from("company_region_areas")
+      .select("area_level,label").eq("region_id",regionId);
+    if (readError) await removeIncompleteJob("Could not read employer region areas.");
+    const known=new Set((existingAreas || []).map(x=>x.area_level + ":" + x.label.toLowerCase()));
+    const missing=places.filter(x=>!known.has(x.area_level + ":" + x.label.toLowerCase()));
+    if (missing.length) {
+      const {error:regionError} = await supabase.from("company_region_areas").insert(
+        missing.map(x=>({region_id:regionId,area_level:x.area_level,province,district:x.district,city:x.city,label:x.label}))
+      );
+      if (regionError) await removeIncompleteJob("Could not save employer region areas: " + regionError.message);
+    }
+  }
+
   try {
     await saveDocument(formData,"supporting_document","job_supporting_document","job",String(job.id),identity.userId,supabase);
   } catch(uploadError) {
-    createError("job",`Job saved, but upload failed: ${uploadError instanceof Error?uploadError.message:"Unknown upload error"}`);
+    createError("job", "Job saved, but document upload failed: " +
+      (uploadError instanceof Error ? uploadError.message : "Unknown upload error"));
   }
-  revalidatePath("/jobs");revalidatePath("/admin/reviews");
+  revalidatePath("/jobs");
+  revalidatePath("/admin/reviews");
   redirect("/admin/create?type=job&message=Job%20draft%20created%20for%20review.");
 }
