@@ -13,6 +13,8 @@ export default async function AdminOverviewPage() {
 
   let pendingProfiles = 0;
   let pendingCredentials = 0;
+  let profileMetricsUnavailable = false;
+  let credentialMetricsUnavailable = false;
   let pendingProducts = 0;
   let publishedProducts = 0;
   let pendingJobs = 0;
@@ -37,20 +39,26 @@ export default async function AdminOverviewPage() {
   }> = [];
 
   if (hasAdminPermission(identity, "profiles.review")) {
-    const [vets, companies, professionals, laboratories, credentials] =
-      await Promise.all([
-        supabase.from("veterinarian_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "pending"),
-        supabase.from("company_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "pending"),
-        supabase.from("professional_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "pending"),
-        supabase.from("laboratories").select("id", { count: "exact", head: true }).eq("verification_status", "pending"),
-        supabase.from("veterinarian_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "approved").eq("pvmc_verification_status", "pending"),
-      ]);
-    pendingProfiles =
-      (vets.count ?? 0) +
-      (companies.count ?? 0) +
-      (professionals.count ?? 0) +
-      (laboratories.count ?? 0);
-    pendingCredentials = credentials.count ?? 0;
+    // Keep these sources aligned with the profile and credential queues on /admin/reviews.
+    const [
+      vets, companies, professionals, laboratories, managedPeople,
+      canonicalCompanies, clinics, credentials, managedCredentials,
+    ] = await Promise.all([
+      supabase.from("veterinarian_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "pending"),
+      supabase.from("company_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "pending"),
+      supabase.from("professional_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "pending"),
+      supabase.from("laboratories").select("id", { count: "exact", head: true }).eq("verification_status", "pending"),
+      supabase.from("managed_people").select("id", { count: "exact", head: true }).eq("verification_status", "pending"),
+      supabase.from("companies").select("id", { count: "exact", head: true }).is("legacy_company_user_id", null).eq("verification_status", "pending").eq("record_status", "active"),
+      supabase.from("clinics").select("id", { count: "exact", head: true }).eq("verification_status", "pending"),
+      supabase.from("veterinarian_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "approved").eq("pvmc_verification_status", "pending"),
+      supabase.from("managed_people").select("id", { count: "exact", head: true }).eq("profile_kind", "veterinarian").eq("verification_status", "approved").eq("pvmc_verification_status", "pending"),
+    ]);
+    const profileResults = [vets, companies, professionals, laboratories, managedPeople, canonicalCompanies, clinics];
+    profileMetricsUnavailable = profileResults.some((result) => Boolean(result.error));
+    credentialMetricsUnavailable = Boolean(credentials.error || managedCredentials.error);
+    pendingProfiles = profileResults.reduce((total, result) => total + (result.count ?? 0), 0);
+    pendingCredentials = (credentials.count ?? 0) + (managedCredentials.count ?? 0);
   }
 
   if (hasAdminPermission(identity, "products.manage")) {
@@ -184,25 +192,26 @@ export default async function AdminOverviewPage() {
               <h2>Queues and platform status.</h2>
               <p>Only modules permitted for your assigned role are shown.</p>
             </div>
+            {(profileMetricsUnavailable || credentialMetricsUnavailable) && <p role="alert" className="form-message form-message-error">Some review totals are temporarily unavailable. Open the review queue to check individual submissions.</p>}
             <div className="admin-summary phase4-summary">
               {hasAdminPermission(identity, "profiles.review") && (
                 <>
-                  <article><b>{pendingProfiles}</b><span>Profiles to review</span></article>
-                  <article><b>{pendingCredentials}</b><span>Credential checks</span></article>
+                  <article><Link className="admin-summary-link" href="/admin/reviews#pending-profiles"><b>{profileMetricsUnavailable ? "—" : pendingProfiles}</b><span>Profiles to review</span></Link></article>
+                  <article><Link className="admin-summary-link" href="/admin/reviews#credential-checks"><b>{credentialMetricsUnavailable ? "—" : pendingCredentials}</b><span>Credential checks</span></Link></article>
                 </>
               )}
               {hasAdminPermission(identity, "products.manage") && (
                 <>
-                  <article><b>{pendingProducts}</b><span>Products to review</span></article>
-                  <article><b>{publishedProducts}</b><span>Published products</span></article>
+                  <article><Link className="admin-summary-link" href="/admin/reviews#pending-products"><b>{pendingProducts}</b><span>Products to review</span></Link></article>
+                  <article><Link className="admin-summary-link" href="/admin/products"><b>{publishedProducts}</b><span>Published products</span></Link></article>
                 </>
               )}
               {hasAdminPermission(identity, "jobs.manage") && (
-                <article><b>{pendingJobs}</b><span>Jobs to review</span></article>
+                <article><Link className="admin-summary-link" href="/admin/reviews#pending-jobs"><b>{pendingJobs}</b><span>Jobs to review</span></Link></article>
               )}
               {hasAdminPermission(identity, "users.manage") && (
                 <>
-                  <article><b>{activeUsers}</b><span>Active user accounts</span></article>
+                  <article><Link className="admin-summary-link" href="/admin/users"><b>{activeUsers}</b><span>Active user accounts</span></Link></article>
                   <article><b>{totalVeterinarians}</b><span>Total veterinarians</span></article>
                   <article><b>{approvedVeterinarians}</b><span>Approved veterinarians</span></article>
                   <article><b>{totalCompanies}</b><span>Registered companies</span></article>
