@@ -1,3 +1,4 @@
+begin;
 
 -- Flexible job territories. Existing job records remain valid.
 create table if not exists public.geo_areas (
@@ -125,6 +126,19 @@ alter table public.company_region_areas enable row level security;
 alter table public.job_coverage enable row level security;
 alter table public.job_coverage_areas enable row level security;
 
+drop policy if exists geo_areas_read on public.geo_areas;
+drop policy if exists geo_aliases_read on public.geo_aliases;
+drop policy if exists geo_areas_admin on public.geo_areas;
+drop policy if exists geo_aliases_admin on public.geo_aliases;
+drop policy if exists company_regions_read on public.company_regions;
+drop policy if exists company_regions_write on public.company_regions;
+drop policy if exists company_region_areas_read on public.company_region_areas;
+drop policy if exists company_region_areas_write on public.company_region_areas;
+drop policy if exists job_coverage_read on public.job_coverage;
+drop policy if exists job_coverage_write on public.job_coverage;
+drop policy if exists job_coverage_areas_read on public.job_coverage_areas;
+drop policy if exists job_coverage_areas_write on public.job_coverage_areas;
+
 create policy geo_areas_read on public.geo_areas for select to anon, authenticated using (is_active);
 create policy geo_aliases_read on public.geo_aliases for select to anon, authenticated using (true);
 create policy geo_areas_admin on public.geo_areas for all to authenticated using (public.is_admin()) with check (public.is_admin());
@@ -167,3 +181,5 @@ with check (exists (select 1 from public.jobs j where j.id = job_id and
 grant select on public.geo_areas, public.geo_aliases, public.job_coverage, public.job_coverage_areas to anon, authenticated;
 grant select, insert, update, delete on public.geo_areas, public.geo_aliases,
 public.company_regions, public.company_region_areas, public.job_coverage, public.job_coverage_areas to authenticated;
+
+commit;
