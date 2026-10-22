@@ -328,3 +328,28 @@ test("master closure migration can build canonical public jobs before release cl
   assert.match(sql, /coalesce\(c\.canonical_name, cp\.trade_name, cp\.company_name/);
   assert.doesNotMatch(sql, /coalesce\(c\.company_name, cp\.trade_name/);
 });
+
+// Admin review mutations enforce effective per-user grants and revocations on the server.
+test("review actions check effective permissions before writes", () => {
+  const actions = read("app/admin/actions.ts");
+  const expected = [
+    ["reviewProfileAction", "profiles.review"],
+    ["reviewVeterinarianCredentialAction", "regulatory.review"],
+    ["reviewProductAction", "products.manage"],
+    ["reviewJobAction", "jobs.manage"],
+    ["reviewProductRegulatoryAction", "regulatory.review"],
+  ];
+  for (let i = 0; i < expected.length; i++) {
+    const [name, permission] = expected[i];
+    const start = actions.indexOf(`export async function ${name}(`);
+    const next = i + 1 < expected.length ? actions.indexOf(`export async function ${expected[i + 1][0]}(`) : actions.length;
+    assert.ok(start >= 0 && next > start, `missing action: ${name}`);
+    const body = actions.slice(start, next);
+    assert.ok(body.includes(`await getEffectiveAdminPermission(identity, "${permission}")`), `missing effective permission guard in ${name}`);
+    assert.doesNotMatch(body, /identity\\.roles\\.some\\(/, `outdated role-only guard in ${name}`);
+    assert.ok(body.indexOf("getEffectiveAdminPermission") < body.indexOf("const supabase = await createClient()"), `permission check must precede database writes in ${name}`);
+  }
+  const admin = read("lib/admin.ts");
+  assert.match(admin, /if \\(error\\) return false;/);
+  assert.ok(admin.indexOf("if (error) return false;") < admin.indexOf("if (revoked.includes(permission)) return false;"));
+});
