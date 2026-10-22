@@ -8,7 +8,7 @@
     "start": "next start",
     "audit": "node scripts/audit-structure.mjs",
     "lint": "eslint .",
-    "test": "node --test scripts/source.test.mjs",
+    "test": "node --test scripts/source.test.mjs scripts/assisted-entry-pvmc.test.mjs",
     "typecheck": "tsc --noEmit",
     "security:audit": "npm audit --audit-level=high",
     "check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build",
