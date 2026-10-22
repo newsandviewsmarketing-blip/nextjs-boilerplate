@@ -526,7 +526,7 @@ export default async function CompanyDashboardPage({
                     <div><label htmlFor="title">Job title</label><input id="title" name="title" required /></div>
                     <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="Full-time" allowCustom={false} />
                     <MasterDataInput category="job_sector" name="job_sector" label="Sector" />
-                    <PakistanLocationFields fieldPrefix="job_" />
+                    <PakistanLocationFields fieldPrefix="job_" requireLocality={false} />
                     <div><label htmlFor="minimum_qualification">Minimum qualification</label><input id="minimum_qualification" name="minimum_qualification" placeholder="DVM, MSc, diploma..." /></div>
                     <div><label htmlFor="minimum_experience">Minimum experience</label><input id="minimum_experience" name="minimum_experience" type="number" min="0" defaultValue="0" /></div>
                     <div><label htmlFor="deadline">Application deadline</label><input id="deadline" name="deadline" type="date" /></div>
