@@ -8,7 +8,8 @@ type District = { id: string; name: AreaName; tehsil?: Tehsil[] };
 type Province = { id: string; name: AreaName; district?: District[] };
 type Hierarchy = { data?: Province[] };
 
-const DATA_URL = "https://raw.githubusercontent.com/open-admin-data/pakistan-administrative-divisions/main/data/hierarchy.json";
+const DATA_URL = "/data/pakistan-administrative-hierarchy.json";
+const SOURCE_PROVINCE_NAMES: Record<string,string> = {"Islamabad Capital Territory":"Islamabad","Gilgit-Baltistan":"Gilgit Baltistan","Azad Jammu and Kashmir":"Azad Kashmir"};
 const PROVINCES = [
   "Punjab", "Sindh", "Khyber Pakhtunkhwa", "Balochistan",
   "Islamabad Capital Territory", "Gilgit-Baltistan", "Azad Jammu and Kashmir",
@@ -51,7 +52,7 @@ export default function JobTerritoryFields() {
   }, []);
 
   const choices = useMemo(
-    () => hierarchy.find(p => p.name.en === province)?.district ?? [],
+    () => hierarchy.find(p => p.name.en === (SOURCE_PROVINCE_NAMES[province] ?? province))?.district ?? [],
     [hierarchy, province],
   );
   const townSuggestions = useMemo(
@@ -118,7 +119,7 @@ export default function JobTerritoryFields() {
           if(manualDistrict.trim()) setDistricts(prev=>unique([...prev, manualDistrict]));
           setManualDistrict("");
         }}>Add district</button>
-        {loadFailed && <p className="form-help">The geographic list could not load. Manual district entry is available.</p>}
+        {loadFailed && <p className="form-help">The local geographic list could not load. Manual district entry is available.</p>}
       </div>}
       {districts.length > 0 && <div style={{display:"flex",flexWrap:"wrap",gap:"8px",marginTop:"8px"}}>
         {districts.map(d => <button type="button" className="button button-secondary" key={d}
@@ -144,7 +145,7 @@ export default function JobTerritoryFields() {
           onClick={()=>setCities(prev=>prev.filter(x=>x!==c))}>{c} ×</button>)}
       </div>}
       <input type="hidden" name="coverage_cities" value={cities.join(",")} />
-      <p className="form-help">Town suggestions follow the available administrative dataset; other cities may be typed. Leaving this blank does not create a city record.</p>
+      <p className="form-help">Town suggestions are administrative centres, not a complete city list; other cities may be typed. Leaving this blank does not create a city record.</p>
     </div>}
     {hasSubareas && province && <div className="form-span-2">
       <label style={{display:"flex",gap:"8px",alignItems:"center"}}>
