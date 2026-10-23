@@ -503,7 +503,7 @@ export default async function AdminPage({
         
                    </div>
 
-          <div className="section-heading admin-product-heading">
+          <div className="section-heading admin-product-heading" id="jobs-review">
             <span className="section-kicker">JOB MODERATION</span>
             <h2>Employer opportunities.</h2>
             <p>Approve complete, credible job information before it becomes public.</p>
