@@ -19,6 +19,7 @@ export type PublicJob = {
   company_id?: string | null;
   company_name: string;
   is_sample?: boolean;
+  image_available?: boolean;
 };
 
 export const sampleJobs: PublicJob[] = [
