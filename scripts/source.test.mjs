@@ -536,7 +536,7 @@ test("all CV uploads and job applications require an authenticated verified acco
  assert.match(verify,/email_confirmed_at/);
  assert.match(verify,/user\.id!==expectedUserId/);
  assert.match(verify,/submitted===user\.email\.trim\(\)\.toLowerCase\(\)/);
- const guarded=read("supabase/migrations/20261023105500_guest_cv_login_only_lockdown.sql");
+ const guarded=read("supabase/migrations/20261023105536_guest_cv_login_only_lockdown.sql");
  assert.match(guarded,/revoke all on public\.guest_job_applications/);
  assert.match(guarded,/drop policy if exists guest_submitted_employer_read/);
 });
