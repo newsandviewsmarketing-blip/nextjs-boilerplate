@@ -3457,3 +3457,8 @@ textarea:focus {
  .jobs-featured-below-hero{padding-top:20px;}
  .product-specs div{min-width:0;overflow-wrap:anywhere;}
 }
+
+.job-media-admin-row{margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:14px;overflow-wrap:anywhere;}
+.job-media-admin-row h3{margin:0 0 9px;}
+.job-media-admin-row form{margin:9px 0 13px;}
+@media(max-width:640px){.job-media-admin-row{padding:13px;}.job-media-admin-row button{width:100%;}}
