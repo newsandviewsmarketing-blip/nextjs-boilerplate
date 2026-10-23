@@ -1,0 +1,91 @@
+name: VetConnect isolated dependency remediation
+
+on:
+  push:
+    branches:
+      - security/npm-remediation-20261022
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-and-validate:
+    if: github.repository == 'newsandviewsmarketing-blip/nextjs-boilerplate' && github.ref == 'refs/heads/security/npm-remediation-20261022'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out this isolated branch
+        uses: actions/checkout@v4
+        with:
+          ref: security/npm-remediation-20261022
+          persist-credentials: true
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve patched stable versions without install scripts
+        run: npm install --package-lock-only --ignore-scripts --save-exact --no-fund next@16.4.2 eslint-config-next@16.4.2 react@19.2.9 react-dom@19.2.9
+
+      - name: Apply compatible npm fixes and retain full audit evidence
+        shell: bash
+        run: |
+          set +e
+          npm audit fix --package-lock-only --ignore-scripts --no-fund
+          remediation_result=$?
+          set -e
+          echo "Nonbreaking npm fix exit status: $remediation_result"
+          echo "The complete severity gates below determine release safety."
+          npm audit --json > npm-audit-experimental.json || true
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const data=JSON.parse(fs.readFileSync('npm-audit-experimental.json','utf8'));
+          const summary=data.metadata?.vulnerabilities ?? {};
+          console.log('Full locked-graph vulnerabilities:',JSON.stringify(summary));
+          for(const [name,a] of Object.entries(data.vulnerabilities ?? {})){
+            console.log('ADVISORY',name,a.severity,JSON.stringify(a.via.map(v=>typeof v==='string'?v:v.url)));
+          }
+          NODE
+          rm -f npm-audit-experimental.json
+
+      - name: Install exactly the proposed dependency graph
+        run: npm ci
+
+      - name: Block all high and critical production-dependency risks
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Block critical risks also in development packages
+        run: npm audit --audit-level=critical
+
+      - name: Report outstanding high development advisories without hiding them
+        shell: bash
+        run: |
+          npm audit --audit-level=high || echo "Full audit still flags high development dependencies. CI must not be marked fully secure on this basis."
+
+      - name: Repository structure audit
+        run: npm run audit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Source tests
+        run: npm test
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Production build check on temporary GitHub runner
+        run: npm run build
+
+      - name: Commit runtime-audited package changes to security branch only
+        run: |
+          git config user.name "VetConnect Security CI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "security(deps): lock validated patched packages"
+            git push origin HEAD:security/npm-remediation-20261022
+          else
+            echo "No lockfile changes to commit."
+          fi
