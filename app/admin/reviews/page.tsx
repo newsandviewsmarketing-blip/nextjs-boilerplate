@@ -563,7 +563,7 @@ export default async function AdminPage({
                         <option value="">Not specified</option>
                         {(availableJobSectors??[]).map(x=><option key={x.label} value={x.label}>{x.label}</option>)}
                       </select>
-                      {job.sector && !(availableJobSectors??[]).some(x=>x.label===job.sector) && <small>Original sector "{job.sector}" is not an approved job sector. Select a valid one or leave unspecified.</small>}
+                      {job.sector && !(availableJobSectors??[]).some(x=>x.label===job.sector) && <small>Original sector &ldquo;{job.sector}&rdquo; is not an approved job sector. Select a valid one or leave unspecified.</small>}
                     </div>
                     <div><label htmlFor={"review_qualification_"+job.id}>Qualification (verify against advertisement)</label>
                       <input id={"review_qualification_"+job.id} name="review_qualification" defaultValue={job.minimum_qualification??""} placeholder="Not specified"/>
