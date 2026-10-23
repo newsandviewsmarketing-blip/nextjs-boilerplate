@@ -5,27 +5,24 @@ import {redirect} from "next/navigation";
 import {revalidatePath} from "next/cache";
 import {getCurrentIdentity} from "@/lib/auth";
 import {createClient} from "@/lib/supabase/server";
+import {inspectGuestCv} from "@/lib/guest-job-applications";
 
 function fail(message:string):never{
  redirect("/dashboard/career?error="+encodeURIComponent(message));
 }
-const ACCEPTED=new Set([
- "application/pdf","application/msword",
- "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-]);
 export async function uploadCareerCvAction(formData:FormData){
  const identity=await getCurrentIdentity();
  if(!identity)redirect("/login?next=/dashboard/career");
  if(!identity.roles.some(r=>["candidate","professional","veterinarian"].includes(r)))fail("Career profile required.");
  const file=formData.get("cv_file");
- if(!(file instanceof File)||file.size===0)fail("Select a PDF, DOC or DOCX CV.");
- if(file.size>10*1024*1024||!ACCEPTED.has(file.type))
-  fail("CV must be a PDF, DOC or DOCX up to 10 MB.");
+ if(!(file instanceof File)||file.size===0)fail("Select a PDF, Word, JPG or PNG CV.");
+ let validated:Awaited<ReturnType<typeof inspectGuestCv>>;
+ try{validated=await inspectGuestCv(file);}
+ catch(e){fail(e instanceof Error?e.message:"Invalid CV file.");}
  const supabase=await createClient();
- const ext=file.type==="application/pdf"?"pdf":file.type==="application/msword"?"doc":"docx";
- const path=identity.userId+"/cv/"+randomUUID()+"."+ext;
+ const path=identity.userId+"/cv/"+randomUUID()+"."+validated.ext;
  const {error:uploadError}=await supabase.storage.from("career-documents").upload(path,file,{
-  contentType:file.type,upsert:false
+  contentType:validated.mime,upsert:false
  });
  if(uploadError)fail("CV upload failed: "+uploadError.message);
  const {data:record,error}=await supabase.from("career_documents").insert({
