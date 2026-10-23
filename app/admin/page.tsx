@@ -16,6 +16,8 @@ export default async function AdminOverviewPage() {
   let pendingProducts = 0;
   let publishedProducts = 0;
   let pendingJobs = 0;
+  let pendingMasterSuggestions = 0;
+  let recentReviewNotices: Array<{id:string;event_kind:string;entity_id:string;detail:string|null;created_at:string}> = [];
   let activeUsers = 0;
   let totalVeterinarians = 0;
   let approvedVeterinarians = 0;
@@ -68,6 +70,16 @@ export default async function AdminOverviewPage() {
       .select("id", { count: "exact", head: true })
       .eq("verification_status", "pending");
     pendingJobs = count ?? 0;
+  }
+  if (hasAdminPermission(identity,"jobs.manage") || hasAdminPermission(identity,"master_data.manage")) {
+    const {data:notices}=await supabase.from("admin_review_notifications")
+      .select("id,event_kind,entity_id,detail,created_at").order("created_at",{ascending:false}).limit(8);
+    recentReviewNotices=(notices??[]) as typeof recentReviewNotices;
+  }
+  if(hasAdminPermission(identity,"master_data.manage")){
+    const {count}=await supabase.from("master_data_suggestions")
+      .select("id",{head:true,count:"exact"}).eq("status","pending");
+    pendingMasterSuggestions=count??0;
   }
 
   if (hasAdminPermission(identity, "users.manage")) {
@@ -210,6 +222,20 @@ export default async function AdminOverviewPage() {
                 </>
               )}
             </div>
+            {hasAdminPermission(identity,"master_data.manage") && <div className="admin-summary phase4-summary">
+              <article><Link href="/admin/data#suggestions-to-review"><b>{pendingMasterSuggestions}</b><span>Master data suggestions to review →</span></Link></article>
+            </div>}
+            {recentReviewNotices.length>0 && <section className="backend-form-card">
+              <div className="section-heading compact-heading">
+                <span className="section-kicker">RECENT SUBMISSIONS</span><h2>Review notifications</h2>
+                <p>These are internal alerts; email delivery requires a configured provider.</p>
+              </div>
+              {recentReviewNotices.map(note=><p key={note.id}>
+                <Link href={note.event_kind==="job_submitted"?"/admin/reviews#job-"+note.entity_id:"/admin/data#suggestions-to-review"}>
+                  {note.event_kind==="job_submitted"?"New job draft":"New controlled-list suggestion"}: {note.detail || note.event_kind} →
+                </Link>
+              </p>)}
+            </section>}
             {hasAdminPermission(identity, "users.manage") && (
               <section className="admin-pulse-panel" aria-labelledby="operational-pulse-heading">
                 <div className="section-heading compact-heading">
