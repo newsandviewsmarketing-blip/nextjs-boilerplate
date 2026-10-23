@@ -13,12 +13,13 @@ export function guestApplicationReady(){
    process.env.VETCONNECT_NOTIFICATION_FROM &&
    process.env.TURNSTILE_SECRET_KEY &&
    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY &&
-   process.env.NEXT_PUBLIC_SITE_URL?.startsWith("https://")
+   process.env.VETCONNECT_APP_URL?.startsWith("https://") &&
+   process.env.VETCONNECT_GUEST_APPLICATIONS_ENABLED==="true"
  );
 }
 
 export function guestAdminClient(){
- if(!guestApplicationReady())throw new Error("Guest application integration is not configured");
+ if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY)throw new Error("Guest storage is not configured");
  return createSupabaseClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
