@@ -2,30 +2,6 @@ import "server-only";
 import {createClient as createSupabaseClient} from "@supabase/supabase-js";
 
 const MAX_CV_BYTES=5*1024*1024;
-export const GUEST_MAX_CV_BYTES=MAX_CV_BYTES;
-export const GUEST_CV_ACCEPT=".pdf,.doc,.docx,.jpg,.jpeg,.png";
-
-export function guestApplicationReady(){
- return Boolean(
-   process.env.SUPABASE_SERVICE_ROLE_KEY &&
-   process.env.NEXT_PUBLIC_SUPABASE_URL &&
-   process.env.RESEND_API_KEY &&
-   process.env.VETCONNECT_NOTIFICATION_FROM &&
-   process.env.TURNSTILE_SECRET_KEY &&
-   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY &&
-   process.env.VETCONNECT_APP_URL?.startsWith("https://") &&
-   process.env.VETCONNECT_GUEST_APPLICATIONS_ENABLED==="true"
- );
-}
-
-export function guestAdminClient(){
- if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY)throw new Error("Guest storage is not configured");
- return createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {auth:{persistSession:false,autoRefreshToken:false}}
- );
-}
 
 const knownTypes:Record<string,{mime:string;magic:(data:Uint8Array)=>boolean}>={
  pdf:{mime:"application/pdf",magic:b=>b[0]===37&&b[1]===80&&b[2]===68&&b[3]===70&&b[4]===45},
@@ -35,7 +11,7 @@ const knownTypes:Record<string,{mime:string;magic:(data:Uint8Array)=>boolean}>={
  doc:{mime:"application/msword",magic:b=>[208,207,17,224,161,177,26,225].every((x,i)=>b[i]===x)},
  docx:{mime:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",magic:b=>b[0]===80&&b[1]===75&&b[2]===3&&b[3]===4},
 };
-export async function inspectGuestCv(file:File){
+export async function inspectCvFile(file:File){
  if(file.size<100||file.size>MAX_CV_BYTES)throw Error("Upload a CV between 100 bytes and 5 MB.");
  const ext=file.name.toLowerCase().split(".").pop()??"";
  const type=knownTypes[ext];
@@ -64,7 +40,7 @@ export async function sendApplicationEmail(to:string,subject:string,message:stri
 /** A CV is never an email attachment or an unauthenticated public URL. */
 export async function notifyEmployerApplication(jobId:string,referenceId:string){
  if(!process.env.RESEND_API_KEY||!process.env.VETCONNECT_NOTIFICATION_FROM||!process.env.SUPABASE_SERVICE_ROLE_KEY||!process.env.NEXT_PUBLIC_SUPABASE_URL)return false;
- const s=guestAdminClient();
+ const s=createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:job}=await s.from("jobs").select("id,title,company_id").eq("id",jobId).maybeSingle();
  if(!job)return false;
  const {data:company}=await s.from("companies")
