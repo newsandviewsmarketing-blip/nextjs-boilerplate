@@ -1,50 +1,15 @@
-# VetConnect Guest Job Applications: release checklist
+# VetConnect CV application: login-required policy
 
-The guest application system is **fail closed**. It will not accept anonymous CV uploads until every listed setting is configured on the correct Vercel environment. Never paste secrets into GitHub, source code, ChatGPT, screenshots or a public URL.
+The former guest/no-login application proposal is withdrawn at the user's explicit direction.
 
-## Approved CV formats and limits
+**Every CV upload and job application requires a signed-in Candidate, Professional or Veterinarian account with a verified email address.**
 
-* PDF: 5 MB maximum
-* Word DOC/DOCX: 5 MB maximum
-* JPG/JPEG and PNG: 5 MB maximum
-* A 6 MB server-action body cap accounts for form overhead.
-* MIME/extension and magic-byte checks reject obvious malformed files. **These checks are not antivirus scanning.** Perform malware scanning and file safety review before production activation, particularly for Office/PDF files.
+The final required CV upload field and the final required application field ask the applicant to **re-enter their own VetConnect account email**. A server-side Supabase Auth `getUser()` check verifies user ID, `email_confirmed_at`, and a case-insensitive exact account-email match before saving. An arbitrary or different email cannot be used to represent the applicant.
 
-## Required Vercel environment variables
+Saved uploaded CVs and CV Builder documents remain available through the signed-in Career Workspace. New file uploads accept PDF, DOC, DOCX, JPG and PNG, up to 5 MB. An approved career profile and owned CV selection are mandatory to apply to a job.
 
-Configure separately for Preview and Production under the single `vetconnect` project:
+Employers access CVs through authenticated permission-controlled private download links. Optional email notifications have a sign-in-only employer dashboard link, not an unsecured CV attachment.
 
-* `SUPABASE_SERVICE_ROLE_KEY`: server-only Supabase credential, not `NEXT_PUBLIC_*`.
-* `RESEND_API_KEY`: transactional email API key.
-* `VETCONNECT_NOTIFICATION_FROM`: verified sending domain/address.
-* `TURNSTILE_SECRET_KEY`: private Cloudflare anti-bot verification key.
-* `NEXT_PUBLIC_TURNSTILE_SITE_KEY`: public site key for the matching application domain.
-* `VETCONNECT_APP_URL`: exact HTTPS host of the current environment, used for email confirmation links.
-* `VETCONNECT_GUEST_APPLICATIONS_ENABLED=true`: set only after the security and user-acceptance tests pass.
+Former guest UI, guest server actions, verification page and guest CV download endpoint are deleted. An additive database lockdown migration revokes anon and authenticated direct access to the historical guest applications table and retains a private bucket solely for migration integrity. No existing CVs or job applications are deleted.
 
-Do not set `VETCONNECT_GUEST_APPLICATIONS_ENABLED` to `true` until all other settings and checks are verified.
-
-## Applicant experience
-
-1. Logged-in applicants continue to choose an existing saved CV or VetConnect CV Builder profile.
-2. Applicants without an account can upload a new CV if the guest feature is enabled.
-3. Guest submits their full name, email, optional telephone, cover note, file and explicit consent.
-4. CAPTCHA is verified server-side; rate limits apply by an irreversibly hashed IP and normalized email.
-5. The pending CV is written to the private `guest-job-cvs` bucket. A 30-minute one-time email verification link is sent. If sending fails, the pending row and file are removed.
-6. The **GET** confirmation page cannot complete verification automatically; the applicant must confirm with a **POST**.
-7. Only email-verified guests appear in the company's Applicants dashboard. Authorized staff receive a short-lived signed download, not a public CV link.
-8. If outbound email is configured and the company has an approved/public profile with contact email, the employer receives a **notification with an authenticated dashboard link**, not a CV attachment.
-
-## Release tests
-
-* Valid PDF/DOC/DOCX/JPG/PNG under 5 MB and size/format rejection.
-* Duplicate application, invalid CAPTCHA, too many submissions, expired token, repeated token.
-* Verified guest visible to authorized employer; pending guest and cross-company CV downloads forbidden.
-* Existing signed-in application with previously saved CV and built CV, employer notification.
-* Small screens (360 px, 390 px, tablet and desktop) and keyboard navigation.
-* Antivirus/malware scanning, retention/purge of expired unverified submissions and transactional email delivery.
-* Existing CI: full npm audit has unresolved high-severity development-only findings; obtain security review before merging.
-
-## Privacy
-
-Guest CVs contain personal information. No public listing, static attachment URL or email attachment is created. The storage bucket is private, RLS is enabled and direct unauthenticated database access is denied. Define and implement an automated retention window for abandoned guest CV uploads before launching the feature.
+Release requires successful GitHub CI, authenticated workflow E2E tests, Security Audit resolution and a fresh verified Vercel Preview. No production deployment has been authorized as part of this change.
