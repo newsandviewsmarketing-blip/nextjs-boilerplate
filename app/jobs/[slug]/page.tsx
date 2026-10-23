@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import GuestJobApply from "@/app/components/GuestJobApply";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -131,13 +130,12 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
           <>
             {!identity && <div className="job-eligibility-box" role="status">
               <h3>Sign in to apply</h3>
-              <p>Applicants need a VetConnect Candidate, Professional or Veterinarian account and an approved profile.</p>
+              <p>Login is mandatory to upload a CV and apply. Use your own verified email and approved career profile.</p>
               <div className="job-cv-actions">
                 <Link className="button button-primary" href={"/login?next="+encodeURIComponent("/jobs/"+job.slug+"#apply-job")}>Sign in as a candidate</Link>
                 <Link className="button button-secondary" href="/register?role=candidate#registration">Create job seeker account</Link>
               </div>
             </div>}
-            {!identity && <GuestJobApply jobId={job.id} slug={job.slug}/>}
             {identity && !canApply && <div className="job-eligibility-box" role="status">
               <h3>Job seeker account required</h3>
               <p>This signed-in account has no Candidate, Professional or Veterinarian role. Staff or employer accounts cannot submit job applications.</p>
@@ -193,6 +191,9 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
                 <label htmlFor="cover_note">Short application note (optional)</label>
                 <textarea id="cover_note" name="cover_note" maxLength={3000}
                   placeholder="Briefly explain your fit for this role."/>
+                <label htmlFor="apply_confirm_email">Confirm your verified VetConnect login email *</label>
+                <input id="apply_confirm_email" type="email" name="confirm_email" autoComplete="email" required maxLength={254} placeholder={identity.email||"Verified account email"}/>
+                <p className="form-help">Enter your own registered account email. Other addresses are not accepted.</p>
                 <FormSubmitButton pendingLabel="Submitting application...">Submit application with CV</FormSubmitButton>
               </form>
             </>}
