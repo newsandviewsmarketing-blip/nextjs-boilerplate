@@ -56,7 +56,7 @@ export async function submitGuestJobApplicationAction(data:FormData){
  if(existing.data?.length)fail(slug,"This email has already submitted an application for this job.");
  const id=randomUUID(),token=randomBytes(32).toString("hex");
  const cvPath=id+"/"+randomUUID()+"."+inspected.ext;
- const {error:uploaded}=await admin.storage.from("guest-job-cvs").upload(cvPath,inspected.bytes,{
+ const {error:uploaded}=await admin.storage.from("guest-job-cvs").upload(cvPath,Buffer.from(inspected.bytes),{
   contentType:inspected.mime,upsert:false,cacheControl:"0"
  });
  if(uploaded)fail(slug,"The CV could not be uploaded. Please try again.");
@@ -68,7 +68,7 @@ export async function submitGuestJobApplicationAction(data:FormData){
   ip_hash:ipHash,consent_at:new Date().toISOString()
  });
  if(saved){await admin.storage.from("guest-job-cvs").remove([cvPath]);fail(slug,"Could not save the application.");}
- const verifyUrl=new URL("/jobs/verify-guest",process.env.NEXT_PUBLIC_SITE_URL!);
+ const verifyUrl=new URL("/jobs/verify-guest",process.env.VETCONNECT_APP_URL!);
  verifyUrl.searchParams.set("id",id);
  verifyUrl.searchParams.set("token",token);
  const mailed=await sendApplicationEmail(email,
