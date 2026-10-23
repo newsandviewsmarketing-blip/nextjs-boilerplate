@@ -1,6 +1,7 @@
 "use server";
 
 import {proposeJobMasterTerms,emailJobReviewNotice} from "@/lib/job-review-helpers";
+import {jobAdvertFile,saveJobAdvertImage} from "@/lib/job-advert-image";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -162,6 +163,8 @@ export async function createAdminProductAction(formData: FormData) {
 
 export async function createAdminJobAction(formData: FormData) {
   const identity = await requireAdminPermission("jobs.create", "/admin/create?type=job");
+  let advert:File|null=null;
+  try{advert=jobAdvertFile(formData);}catch(e){createError("job",e instanceof Error?e.message:"Invalid job advertisement image.");}
   const title = text(formData, "title");
   const companyId = text(formData, "company_id");
   const selectedScope = text(formData, "coverage_scope");
@@ -273,6 +276,8 @@ export async function createAdminJobAction(formData: FormData) {
     createError("job", "Job saved, but document upload failed: " +
       (uploadError instanceof Error ? uploadError.message : "Unknown upload error"));
   }
+  try{await saveJobAdvertImage(supabase,createdJobId,identity.userId,advert);}
+  catch(err){createError("job","Job draft was saved, but the advertisement image could not be uploaded: "+(err instanceof Error?err.message:"Unknown error"));}
   await proposeJobMasterTerms({
     jobId:createdJobId,userId:identity.userId,
     sector:optional(formData,"sector"),qualification:optional(formData,"minimum_qualification"),
