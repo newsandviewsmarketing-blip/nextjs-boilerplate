@@ -518,3 +518,29 @@ test("applicant eligibility guidance reflects role, profile review and existing 
  assert.match(page,/name="cv_choice"/);
  assert.match(actions,/This account cannot apply/);
 });
+
+
+test("guest CV workflow protects applicants with email verification and RLS",()=>{
+ const migration=read("supabase/migrations/20261023102527_guest_job_cv_email_verification_20261023.sql");
+ const helper=read("lib/guest-job-applications.ts");
+ const action=read("app/jobs/guest-actions.ts");
+ const verify=read("app/jobs/verify-guest/page.tsx");
+ const guestForm=read("app/components/GuestJobApply.tsx");
+ const detail=read("app/jobs/[slug]/page.tsx");
+ const employer=read("app/dashboard/company/page.tsx");
+ const cvRoute=read("app/api/guest-applications/[id]/cv/route.ts");
+ assert.match(migration,/enable row level security/);
+ assert.match(migration,/can_manage_job_applicants\(job_id\)/);
+ assert.match(migration,/guest-job-cvs','guest-job-cvs',false,5242880/);
+ assert.match(helper,/VETCONNECT_GUEST_APPLICATIONS_ENABLED/);
+ assert.match(action,/siteverify/);
+ assert.match(action,/email_token_hash/);
+ assert.match(action,/email_verified_at/);
+ assert.match(action,/guest_cv_consent/);
+ assert.match(guestForm,/guest_cv_file/);
+ assert.match(verify,/confirmGuestApplicationAction/);
+ assert.match(detail,/<GuestJobApply/);
+ assert.match(employer,/guestApplicationRows/);
+ assert.match(cvRoute,/createSignedUrl/);
+ assert.match(cvRoute,/status","submitted"/);
+});
