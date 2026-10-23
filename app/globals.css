@@ -3479,3 +3479,10 @@ textarea:focus {
   .job-eligibility-box .button{width:100%;}
   .job-apply-card{scroll-margin-top:76px;}
 }
+
+.guest-job-apply{padding:18px;margin:18px 0;border:1px solid var(--line);border-radius:14px;}
+.guest-job-apply h3{font-size:1.15rem;margin-bottom:10px;}
+.guest-consent{display:flex;gap:9px;align-items:flex-start;line-height:1.4;}
+.guest-consent input{width:auto;flex:none;margin-top:4px;}
+.cf-turnstile{max-width:100%;overflow:hidden;}
+@media(max-width:640px){.guest-job-apply{padding:14px;}.guest-job-apply .button{width:100%;}}
