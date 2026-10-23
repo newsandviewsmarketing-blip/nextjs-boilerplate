@@ -6,6 +6,7 @@ import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import MasterDataInput from "../../components/MasterDataInput";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
+import JobTerritoryFields from "../../admin/create/JobTerritoryFields";
 import {
   createJobAction,
   createProductAction,
@@ -73,7 +74,9 @@ type JobRow = {
   title: string;
   sector: string | null;
   city: string | null;
+  province: string | null;
   employment_type: string;
+  coverage_display?: string | null;
   verification_status: string;
   is_published: boolean;
   created_at: string;
@@ -181,7 +184,7 @@ export default async function CompanyDashboardPage({
     const { data, error } = await supabase
       .from("jobs")
       .select(
-        "id, slug, title, sector, city, employment_type, verification_status, is_published, created_at",
+        "id, slug, title, sector, city, province, employment_type, verification_status, is_published, created_at",
       )
       .eq("company_id", workspace.company_id)
       .order("created_at", { ascending: false });
@@ -191,6 +194,12 @@ export default async function CompanyDashboardPage({
     }
 
     jobRows = (data ?? []) as JobRow[];
+    if (jobRows.length) {
+      const {data: locationRows} = await supabase.from("job_coverage")
+        .select("job_id,display_text").in("job_id",jobRows.map(job=>job.id));
+      const descriptions = new Map((locationRows ?? []).map(x=>[x.job_id,x.display_text]));
+      jobRows = jobRows.map(job=>({...job,coverage_display:descriptions.get(job.id)??null}));
+    }
   }
 
   if (canManageApplicants) {
@@ -524,11 +533,11 @@ export default async function CompanyDashboardPage({
                 <fieldset disabled={!approved}>
                   <div className="form-grid">
                     <div><label htmlFor="title">Job title</label><input id="title" name="title" required /></div>
-                    <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="Full-time" allowCustom={false} />
+                    <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" allowCustom />
                     <MasterDataInput category="job_sector" name="job_sector" label="Sector" />
-                    <PakistanLocationFields fieldPrefix="job_" />
+                    <JobTerritoryFields />
                     <div><label htmlFor="minimum_qualification">Minimum qualification</label><input id="minimum_qualification" name="minimum_qualification" placeholder="DVM, MSc, diploma..." /></div>
-                    <div><label htmlFor="minimum_experience">Minimum experience</label><input id="minimum_experience" name="minimum_experience" type="number" min="0" defaultValue="0" /></div>
+                    <div><label htmlFor="minimum_experience">Minimum experience</label><input id="minimum_experience" name="minimum_experience" type="number" min="0" /></div>
                     <div><label htmlFor="deadline">Application deadline</label><input id="deadline" name="deadline" type="date" /></div>
                     <div className="form-span-2"><label htmlFor="job_description">Job description and requirements</label><textarea id="job_description" name="job_description" required /></div>
                   </div>
@@ -547,7 +556,7 @@ export default async function CompanyDashboardPage({
                         <div>
                           <span className={`status-pill status-${job.verification_status}`}>{job.verification_status}</span>
                           <h3>{job.title}</h3>
-                          <p>{job.sector || "Animal health"} · {job.city || "Pakistan"} · {job.employment_type}</p>
+                          <p>{job.sector || "Animal health"} · {job.coverage_display || job.city || job.province || "Location not specified"} · {job.employment_type}</p>
                         </div>
                         {job.verification_status === "approved" ? (
                           <Link href={`/jobs/${job.slug}`}>View listing</Link>
