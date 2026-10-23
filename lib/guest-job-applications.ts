@@ -63,7 +63,7 @@ export async function sendApplicationEmail(to:string,subject:string,message:stri
 }
 /** A CV is never an email attachment or an unauthenticated public URL. */
 export async function notifyEmployerApplication(jobId:string,referenceId:string){
- if(!process.env.RESEND_API_KEY||!process.env.VETCONNECT_NOTIFICATION_FROM)return false;
+ if(!process.env.RESEND_API_KEY||!process.env.VETCONNECT_NOTIFICATION_FROM||!process.env.SUPABASE_SERVICE_ROLE_KEY||!process.env.NEXT_PUBLIC_SUPABASE_URL)return false;
  const s=guestAdminClient();
  const {data:job}=await s.from("jobs").select("id,title,company_id").eq("id",jobId).maybeSingle();
  if(!job)return false;
