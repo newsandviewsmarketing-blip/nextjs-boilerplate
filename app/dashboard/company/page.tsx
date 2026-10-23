@@ -90,6 +90,9 @@ type ApplicationRow = {
   candidate_user_id: string;
   status: string;
   applied_at: string;
+  cv_document_id?:string|null;
+  cv_source?:string|null;
+  cv_snapshot?:{full_name?:string;contact_email?:string;phone?:string;headline?:string;education?:string;experience?:string;skills?:string}|null;
 };
 
 function roleLabel(role: string) {
@@ -207,7 +210,7 @@ export default async function CompanyDashboardPage({
   if (canManageApplicants) {
     const { data, error } = await supabase
       .from("job_applications")
-      .select("id, job_id, candidate_user_id, status, applied_at")
+      .select("id, job_id, candidate_user_id, status, applied_at, cv_document_id, cv_source, cv_snapshot")
       .order("applied_at", { ascending: false })
       .limit(25);
 
@@ -652,6 +655,16 @@ export default async function CompanyDashboardPage({
                         <h3>{jobMap.get(application.job_id)?.title || "Job application"}</h3>
                         <p>Candidate reference: {application.candidate_user_id}</p>
                         <small>Applied {new Date(application.applied_at).toLocaleDateString("en-PK")}</small>
+                        {application.cv_document_id&&<p><a href={"/api/career/documents/"+application.cv_document_id}
+                          target="_blank" rel="noopener noreferrer">View candidate-submitted CV ↗</a></p>}
+                        {application.cv_source==="profile_cv" && application.cv_snapshot&&
+                          <details><summary>View submitted profile CV</summary>
+                            <p><strong>{application.cv_snapshot.full_name}</strong> · {application.cv_snapshot.headline}</p>
+                            <p>{[application.cv_snapshot.contact_email,application.cv_snapshot.phone].filter(Boolean).join(" · ")}</p>
+                            <p className="cv-preserve-lines">{application.cv_snapshot.education}</p>
+                            <p className="cv-preserve-lines">{application.cv_snapshot.experience}</p>
+                            <p className="cv-preserve-lines">{application.cv_snapshot.skills}</p>
+                          </details>}
                       </div>
                     </article>
                   ))}
