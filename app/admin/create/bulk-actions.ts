@@ -153,9 +153,10 @@ export async function bulkImportAction(formData: FormData) {
         if(expValue && (!/^\d+$/.test(expValue) || !Number.isSafeInteger(Number(expValue)))) {
           throw new Error("minimum_experience must be a nonnegative whole number");
         }
-        const locationText=value(row,"coverage_display") || value(row,"location_text") ||
-          (selectedScope === "nationwide" ? "Across Pakistan" : selectedScope === "flexible" ? "Location not specified" :
-            [regionName, province, ...districtNames, ...cityNames].filter(Boolean).join(", "));
+        const locationText=selectedScope === "nationwide" ? "Across Pakistan" :
+          selectedScope === "flexible" ? "Location not specified" :
+          value(row,"coverage_display") || value(row,"location_text") ||
+            [regionName, province, ...districtNames, ...cityNames].filter(Boolean).join(", ");
         let regionId: string | null = null;
         if(regionScope){
           const {data: existing, error:lookupError} = await supabase.from("company_regions").select("id,region_type,province")
