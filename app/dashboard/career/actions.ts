@@ -5,7 +5,8 @@ import {redirect} from "next/navigation";
 import {revalidatePath} from "next/cache";
 import {getCurrentIdentity} from "@/lib/auth";
 import {createClient} from "@/lib/supabase/server";
-import {inspectGuestCv} from "@/lib/guest-job-applications";
+import {matchingVerifiedAccountEmail} from "@/lib/career-email-verification";
+import {inspectCvFile} from "@/lib/guest-job-applications";
 
 function fail(message:string):never{
  redirect("/dashboard/career?error="+encodeURIComponent(message));
@@ -20,6 +21,7 @@ export async function uploadCareerCvAction(formData:FormData){
  try{validated=await inspectGuestCv(file);}
  catch(e){fail(e instanceof Error?e.message:"Invalid CV file.");}
  const supabase=await createClient();
+ if(!await matchingVerifiedAccountEmail(supabase,identity.userId,String(formData.get("confirm_email")??"")))fail("Enter your own verified login email to upload your CV.");
  const path=identity.userId+"/cv/"+randomUUID()+"."+validated.ext;
  const {error:uploadError}=await supabase.storage.from("career-documents").upload(path,file,{
   contentType:validated.mime,upsert:false
