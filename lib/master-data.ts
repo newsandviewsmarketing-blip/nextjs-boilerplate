@@ -35,6 +35,7 @@ export const masterDataCategories = [
   ["concentration_unit", "Concentration Unit"],
   ["administration_route", "Administration Route"],
   ["job_sector", "Job Sector"],
+  ["job_qualification", "Minimum Job Qualification"],
   ["employment_type", "Employment Type"],
 ] as const;
 
