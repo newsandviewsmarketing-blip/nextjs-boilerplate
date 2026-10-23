@@ -8,6 +8,7 @@ import MasterDataInput from "../../components/MasterDataInput";
 import JobMasterChoice from "../../components/JobMasterChoice";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
 import JobTerritoryFields from "../../admin/create/JobTerritoryFields";
+import JobSubmissionReceipt from "../../components/JobSubmissionReceipt";
 import {
   createJobAction,
   createProductAction,
@@ -111,7 +112,7 @@ function permissionLabel(permission: string) {
 export default async function CompanyDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; submitted?: string }>;
 }) {
   const params = await searchParams;
   const { supabase, workspace } = await getCurrentCompanyWorkspace();
@@ -220,6 +221,13 @@ export default async function CompanyDashboardPage({
   const productMap = new Map(
     productRows.map((product) => [product.id, product]),
   );
+  const {data:submittedJob} = canManageJobs && params.submitted
+    ? await supabase.from("jobs").select("id,title,sector,description,company_id,city,province,employment_type,minimum_qualification,minimum_experience,deadline,verification_status")
+       .eq("id",params.submitted).eq("company_id",workspace.company_id).eq("verification_status","pending").maybeSingle()
+    : {data:null};
+  const {data:submittedCoverage}=submittedJob
+    ? await supabase.from("job_coverage").select("display_text").eq("job_id",submittedJob.id).maybeSingle()
+    : {data:null};
   const jobMap = new Map(jobRows.map((job) => [job.id, job]));
   const approved = workspace.company_verification_status === "approved";
   const displayName = company?.company_name || workspace.canonical_name;
@@ -254,6 +262,13 @@ export default async function CompanyDashboardPage({
       <section className="section compact-section">
         <div className="shell">
           <FormMessage {...params} />
+          {submittedJob && <JobSubmissionReceipt closeHref="/dashboard/company"
+            job={{id:submittedJob.id,title:submittedJob.title,sector:submittedJob.sector,
+              company:workspace.canonical_name,description:submittedJob.description,
+              employment_type:submittedJob.employment_type,minimum_qualification:submittedJob.minimum_qualification,
+              minimum_experience:submittedJob.minimum_experience,deadline:submittedJob.deadline,
+              location:submittedCoverage?.display_text ?? submittedJob.city ?? submittedJob.province ?? "Not specified",
+              verification_status:submittedJob.verification_status}}/>}
 
           <div className="backend-form-card">
             <div className="section-heading">
