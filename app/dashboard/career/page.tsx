@@ -14,6 +14,8 @@ type ApplicationRow = {
   status: string;
   cover_note: string | null;
   applied_at: string;
+  cv_source?: string|null;
+  cv_document_id?:string|null;
 };
 
 type SavedRow = { job_id: string; created_at: string };
@@ -46,7 +48,7 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
   const [applicationResult, savedResult, matchResult, cvDocumentsResult, cvProfileResult] = await Promise.all([
     supabase
       .from("job_applications")
-      .select("id, job_id, status, cover_note, applied_at")
+      .select("id, job_id, status, cover_note, applied_at, cv_source, cv_document_id")
       .eq("candidate_user_id", identity.userId)
       .order("applied_at", { ascending: false }),
     supabase
@@ -153,7 +155,8 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
                 <div className="admin-data-list">
                   {applicationRows.map((application) => {
                     const job = jobMap.get(application.job_id);
-                    return <article key={application.id}><div className="admin-data-main"><div className="admin-data-title"><span className="module-tag">{job?.sector || "Veterinary career"}</span><h2>{job?.title || "Job application"}</h2></div><p>{[job?.city, job?.province, job?.employment_type].filter(Boolean).join(" · ") || "VetConnect job"}</p><div className="status-cluster"><span className={`status-pill status-${application.status}`}>{application.status.replaceAll("_", " ")}</span><span className="status-pill">Applied {new Date(application.applied_at).toLocaleDateString("en-PK")}</span></div></div>{job?.slug && <Link className="button button-secondary" href={`/jobs/${job.slug}`}>View job</Link>}</article>;
+                    return <article key={application.id}><div className="admin-data-main"><div className="admin-data-title"><span className="module-tag">{job?.sector || "Veterinary career"}</span><h2>{job?.title || "Job application"}</h2></div><p>{[job?.city, job?.province, job?.employment_type].filter(Boolean).join(" · ") || "VetConnect job"}</p><div className="status-cluster"><span className={`status-pill status-${application.status}`}>{application.status.replaceAll("_", " ")}</span><span className="status-pill">Applied {new Date(application.applied_at).toLocaleDateString("en-PK")}</span>
+                        <span className="status-pill">{application.cv_source==="saved_cv"?"Saved CV attached":application.cv_source==="profile_cv"?"VetConnect CV attached":"Legacy application"}</span></div></div>{job?.slug && <Link className="button button-secondary" href={`/jobs/${job.slug}`}>View job</Link>}</article>;
                   })}
                 </div>
               )}
