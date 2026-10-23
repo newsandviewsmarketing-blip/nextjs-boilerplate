@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import {matchingVerifiedAccountEmail} from "@/lib/career-email-verification";
 import {notifyEmployerApplication} from "@/lib/guest-job-applications";
 
 export async function applyToJobAction(formData: FormData) {
@@ -23,6 +24,8 @@ export async function applyToJobAction(formData: FormData) {
   if (!jobId) redirect(`${path}?error=${encodeURIComponent("This job is not available.")}`);
 
   const supabase = await createClient();
+  if(!await matchingVerifiedAccountEmail(supabase,identity.userId,String(formData.get("confirm_email")??"")))
+   redirect(path+"?error="+encodeURIComponent("Confirm the verified email of your logged-in VetConnect account before applying."));
   const verificationQuery = careerRole === "veterinarian"
     ? supabase.from("veterinarian_profiles").select("verification_status").eq("user_id", identity.userId).maybeSingle()
     : supabase.from("professional_profiles").select("verification_status").eq("user_id", identity.userId).maybeSingle();
