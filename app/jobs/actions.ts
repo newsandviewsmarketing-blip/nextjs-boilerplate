@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import {notifyEmployerApplication} from "@/lib/guest-job-applications";
 
 export async function applyToJobAction(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
@@ -59,15 +60,16 @@ export async function applyToJobAction(formData: FormData) {
   if(jobError || !jobStatus || (jobStatus.deadline && jobStatus.deadline<new Date().toISOString().slice(0,10)))
     redirect(path+"?error="+encodeURIComponent("This job is no longer accepting applications."));
 
-  const { error } = await supabase.from("job_applications").insert({
+  const {data:application,error} = await supabase.from("job_applications").insert({
     job_id: jobId,
     candidate_user_id: identity.userId,
     cover_note: coverNote.slice(0,3000) || null,
     cv_source: source,
     cv_document_id: documentId,
     cv_snapshot: snapshot,
-  });
+  }).select("id").single();
   if (error) redirect(`${path}?error=${encodeURIComponent(error.message)}`);
+  if(application)await notifyEmployerApplication(jobId,application.id);
   revalidatePath(path);
   revalidatePath("/dashboard/career");
   redirect(`${path}?message=${encodeURIComponent("Application submitted through VetConnect.")}`);
