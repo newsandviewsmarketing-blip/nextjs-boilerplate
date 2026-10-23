@@ -519,28 +519,24 @@ test("applicant eligibility guidance reflects role, profile review and existing 
  assert.match(actions,/This account cannot apply/);
 });
 
-
-test("guest CV workflow protects applicants with email verification and RLS",()=>{
- const migration=read("supabase/migrations/20261023102527_guest_job_cv_email_verification_20261023.sql");
- const helper=read("lib/guest-job-applications.ts");
- const action=read("app/jobs/guest-actions.ts");
- const verify=read("app/jobs/verify-guest/page.tsx");
- const guestForm=read("app/components/GuestJobApply.tsx");
+test("all CV uploads and job applications require an authenticated verified account email",()=>{
+ const upload=read("app/dashboard/career/actions.ts");
+ const uploadForm=read("app/dashboard/career/page.tsx");
+ const apply=read("app/jobs/actions.ts");
  const detail=read("app/jobs/[slug]/page.tsx");
- const employer=read("app/dashboard/company/page.tsx");
- const cvRoute=read("app/api/guest-applications/[id]/cv/route.ts");
- assert.match(migration,/enable row level security/);
- assert.match(migration,/can_manage_job_applicants\(job_id\)/);
- assert.match(migration,/guest-job-cvs','guest-job-cvs',false,5242880/);
- assert.match(helper,/VETCONNECT_GUEST_APPLICATIONS_ENABLED/);
- assert.match(action,/siteverify/);
- assert.match(action,/email_token_hash/);
- assert.match(action,/email_verified_at/);
- assert.match(action,/guest_cv_consent/);
- assert.match(guestForm,/guest_cv_file/);
- assert.match(verify,/confirmGuestApplicationAction/);
- assert.match(detail,/<GuestJobApply/);
- assert.match(employer,/guestApplicationRows/);
- assert.match(cvRoute,/createSignedUrl/);
- assert.match(cvRoute,/status","submitted"/);
+ const verify=read("lib/career-email-verification.ts");
+ const company=read("app/dashboard/company/page.tsx");
+ assert.match(upload,/matchingVerifiedAccountEmail/);
+ assert.match(apply,/matchingVerifiedAccountEmail/);
+ assert.match(uploadForm,/name="confirm_email"/);
+ assert.match(detail,/name="confirm_email"/);
+ assert.doesNotMatch(detail,/GuestJobApply/);
+ assert.doesNotMatch(company,/guestApplicationRows/);
+ assert.match(verify,/auth\.getUser\(\)/);
+ assert.match(verify,/email_confirmed_at/);
+ assert.match(verify,/user\.id!==expectedUserId/);
+ assert.match(verify,/submitted===user\.email\.trim\(\)\.toLowerCase\(\)/);
+ const guarded=read("supabase/migrations/20261023105500_guest_cv_login_only_lockdown.sql");
+ assert.match(guarded,/revoke all on public\.guest_job_applications/);
+ assert.match(guarded,/drop policy if exists guest_submitted_employer_read/);
 });
