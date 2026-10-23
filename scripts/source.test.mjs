@@ -387,3 +387,34 @@ test("job coverage matching honors province-wide, selected districts, cities and
   assert.equal(matchesJobLocation({...cityOnly,coverage:{scope:"flexible",province:null,display_text:"TBA"}}, "Lahore"), false);
   assert.equal(matchesJobLocation({...base,coverage:{scope:"nationwide",province:null,display_text:"Pakistan"}}, "Karachi"), true);
 });
+
+
+test("staff and employer job forms share optional multi-location territory data", () => {
+  const admin = read("app/admin/create/page.tsx");
+  const company = read("app/dashboard/company/page.tsx");
+  const fields = read("app/admin/create/JobTerritoryFields.tsx");
+  const adminAction = read("app/admin/create/actions.ts");
+  const companyAction = read("app/dashboard/company/actions.ts");
+  const publicJobs = read("app/jobs/page.tsx");
+  const locationLogic = read("lib/job-location.ts");
+
+  assert.match(admin, /<JobTerritoryFields/);
+  assert.match(company, /<JobTerritoryFields/);
+  assert.doesNotMatch(company, /<PakistanLocationFields fieldPrefix="job_"/);
+  assert.match(fields, /coverage_districts/);
+  assert.match(fields, /coverage_cities/);
+  assert.match(fields, /region_name/);
+  assert.match(fields, /Add tehsil \/ taluka/);
+  assert.match(fields, /Advertised location text \(optional\)/);
+
+  for (const action of [adminAction,companyAction]) {
+    assert.match(action, /from\("job_coverage"\)\.insert/);
+    assert.match(action, /from\("job_coverage_areas"\)\.insert/);
+    assert.match(action, /minimum_experience:[^\n]*null/);
+    assert.match(action, /verification_status:"pending",is_published:false/);
+  }
+  assert.match(companyAction, /requireWorkspace\("jobs\.manage"\)/);
+  assert.match(company, /coverage_display/);
+  assert.match(publicJobs, /matchesJobLocation/);
+  assert.match(locationLogic, /scope==="nationwide"/);
+});
