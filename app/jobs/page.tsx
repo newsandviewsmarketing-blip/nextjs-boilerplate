@@ -4,7 +4,7 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { sampleJobs, type PublicJob } from "@/lib/jobs";
+import { type PublicJob } from "@/lib/jobs";
 import { matchesJobLocation, locationSearchOptions } from "@/lib/job-location";
 
 export const metadata: Metadata = {
@@ -16,19 +16,25 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 async function loadJobs(): Promise<PublicJob[]> {
-  if (!isSupabaseConfigured()) return sampleJobs;
+  if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("public_jobs")
     .select("id, slug, title, description, sector, city, province, district, tehsil, address, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_id, company_name")
     .order("deadline", { ascending: true, nullsFirst: false });
-  if (error || !data?.length) return sampleJobs;
-  const ids = data.map(job => job.id).filter(Boolean) as string[];
+  if (error || !data?.length) return [];
+  const {data:categories}=await supabase.from("master_data_items").select("label")
+    .eq("category","job_sector").eq("is_active",true);
+  const valid=new Set((categories??[]).map(x=>x.label.toLowerCase()));
+  const today=new Date().toISOString().slice(0,10);
+  const open=data.filter(x=>x.sector&&valid.has(x.sector.toLowerCase())&&(!x.deadline||x.deadline>=today));
+  if(!open.length)return [];
+  const ids = open.map(job => job.id).filter(Boolean) as string[];
   const [{data: coverage}, {data: areas}] = await Promise.all([
     supabase.from("job_coverage").select("job_id,scope,province,display_text").in("job_id",ids),
     supabase.from("job_coverage_areas").select("job_id,label,city,district,province").in("job_id",ids)
   ]);
-  return data.map(job => ({
+  return open.map(job => ({
     ...job,
     coverage: coverage?.find(c => c.job_id===job.id) ?? null,
     coverage_areas: areas?.filter(a => a.job_id===job.id) ?? []
@@ -38,7 +44,7 @@ async function loadJobs(): Promise<PublicJob[]> {
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; city?: string }>;
+  searchParams: Promise<{ q?: string; city?: string; sector?: string }>;
 }) {
   const params = await searchParams;
   const jobs = await loadJobs();
@@ -46,13 +52,14 @@ export default async function JobsPage({
   const visibleJobs = jobs.filter(
     job => (!query || 
       [job.title,job.company_name,job.sector ?? "",job.coverage?.display_text ?? ""].join(" ").toLowerCase().includes(query)) &&
-      matchesJobLocation(job, params.city ?? ""),
+      matchesJobLocation(job, params.city ?? "") &&
+      (!params.sector || params.sector==="All sectors" || job.sector===params.sector),
   );
   const cities = [...new Set([
     ...locationSearchOptions(),
     ...jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]),
   ].filter((name):name is string=>Boolean(name)))].sort((a,b)=>a.localeCompare(b));
-  const showingSamples = jobs.some((job) => job.is_sample);
+  const sectors=[...new Set(jobs.map(j=>j.sector).filter((x):x is string=>Boolean(x)))].sort();
   return (
     <main>
       <SiteHeader />
@@ -120,7 +127,7 @@ export default async function JobsPage({
           <div className="directory-top">
             <div>
               <b>{visibleJobs.length} opportunities</b>
-              <span>{showingSamples ? "Sample opportunities until approved jobs are published" : "Verified employer job board"}</span>
+              <span>Verified, current and sector-classified employer job board</span>
             </div>
             <form className="market-search" method="get">
               <input
@@ -131,6 +138,10 @@ export default async function JobsPage({
               <select name="city" defaultValue={params.city ?? "All cities"}>
                 <option>All cities</option>
                 {cities.map((city) => <option key={city}>{city}</option>)}
+              </select>
+              <select name="sector" defaultValue={params.sector??"All sectors"}>
+                <option>All sectors</option>
+                {sectors.map(sector=><option key={sector}>{sector}</option>)}
               </select>
               <button className="button button-primary" type="submit">
                 Search
@@ -161,10 +172,10 @@ export default async function JobsPage({
                     </div>
                   </div>
                   <div className="job-apply">
-                    <small>Posted recently</small>
+                    <small>{job.deadline?"Apply by "+job.deadline:"Open vacancy"}</small>
                     <Link
                       className="button button-primary"
-                      href={job.is_sample ? "/coming-soon?feature=Job%20applications" : `/jobs/${job.slug}`}
+                      href={`/jobs/${job.slug}`}
                     >
                       View & apply
                     </Link>
