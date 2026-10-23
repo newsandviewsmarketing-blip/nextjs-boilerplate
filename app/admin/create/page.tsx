@@ -3,6 +3,7 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import MasterDataInput from "../../components/MasterDataInput";
+import JobMasterChoice from "../../components/JobMasterChoice";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
 import AdminNav from "../components/AdminNav";
 import PersistentForm from "./PersistentForm";
@@ -106,9 +107,9 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
 
       {kind === "job" && <PersistentForm className="profile-form" action={createAdminJobAction} storageKey="vetconnect-admin-create-job" clearSaved={Boolean(params.message)}>
         <div><label>Employer company</label><select name="company_id" required><option value="">Select company</option>{(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.canonical_name}</option>)}</select></div><div><label>Job title</label><input name="title" required /></div>
-        <MasterDataInput category="job_sector" name="sector" label="Job sector" /><MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" />
+        <JobMasterChoice category="job_sector" name="sector" label="Job sector" /><MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" />
         <JobTerritoryFields />
-        <div className="form-span-2"><label>Address / workplace</label><input name="address" /></div><div><label>Minimum qualification</label><input name="minimum_qualification" /></div><div><label>Minimum experience (years)</label><input type="number" min="0" name="minimum_experience" /></div><div><label>Deadline</label><input type="date" name="deadline" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={5} required /></div>
+        <div className="form-span-2"><label>Address / workplace</label><input name="address" /></div><JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" /><div><label>Minimum experience (years)</label><input type="number" min="0" name="minimum_experience" /></div><div><label>Deadline</label><input type="date" name="deadline" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={5} required /></div>
         <div className="form-span-2"><label>Supporting job document (optional)</label><input name="supporting_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /></div>
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create job draft</FormSubmitButton>
       </PersistentForm>}
