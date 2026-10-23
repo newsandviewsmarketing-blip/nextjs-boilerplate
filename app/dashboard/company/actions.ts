@@ -1,3 +1,4 @@
+import {proposeJobMasterTerms,emailJobReviewNotice} from "@/lib/job-review-helpers";
 "use server";
 
 import { randomUUID } from "node:crypto";
@@ -505,9 +506,17 @@ export async function createJobAction(formData: FormData) {
       }
     }
   }
+  await proposeJobMasterTerms({
+    jobId,userId:identity.userId,sector:value(formData,"job_sector"),
+    qualification:value(formData,"minimum_qualification"),cities,districts,tehsil,province
+  });
+  await emailJobReviewNotice(jobId,title,workspace.canonical_name);
   revalidatePath(COMPANY_PATH);
+  revalidatePath("/admin");
+  revalidatePath("/admin/reviews");
+  revalidatePath("/admin/data");
   revalidatePath("/jobs");
-  redirect(message("message","Job submitted for review with selected location coverage."));
+  redirect(COMPANY_PATH+"?submitted="+encodeURIComponent(jobId));
 }
 
 export async function deletePendingJobAction(formData: FormData) {
