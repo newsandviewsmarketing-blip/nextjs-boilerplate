@@ -185,10 +185,9 @@ export async function createAdminJobAction(formData: FormData) {
   // Province with selected districts/cities is *not* province-wide.
   const scope = selectedScope === "province" && (districts.length > 0 || cities.length > 0)
     ? "multiple" : selectedScope;
-  const label = text(formData,"coverage_display") ||
-    (selectedScope === "nationwide" ? "Across Pakistan" :
-      selectedScope === "flexible" ? "Location not specified" :
-        [regionName, province, ...districts, ...cities].filter(Boolean).join(", "));
+  const label = selectedScope === "nationwide" ? "Across Pakistan" :
+    selectedScope === "flexible" ? "Location not specified" :
+    text(formData,"coverage_display") || [regionName, province, ...districts, ...cities].filter(Boolean).join(", ");
   if (!label) createError("job","Specify an applicable hiring location.");
 
   const experience = text(formData,"minimum_experience");
