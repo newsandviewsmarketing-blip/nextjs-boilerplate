@@ -3393,3 +3393,67 @@ textarea:focus {
 .review-documents b {
   width: 100%;
 }
+
+
+/* VetConnect career applications, responsive job details and verified latest jobs. */
+.job-detail-grid {
+ display:grid;
+ grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr);
+ align-items:start;
+ gap:clamp(18px,4vw,38px);
+}
+.job-detail-grid > *,
+.cv-builder-layout > * {min-width:0;}
+.job-detail-hero h1 {max-width:900px;overflow-wrap:anywhere;}
+.job-description,.job-apply-card p {overflow-wrap:anywhere;white-space:pre-line;}
+.job-mobile-apply-link {display:none;}
+.job-cv-actions {display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 20px;}
+.job-cv-actions .button {min-width:0;white-space:normal;text-align:center;}
+.job-application-form{display:grid;gap:12px;margin-top:12px;}
+.job-application-form textarea{min-height:116px;}
+.job-advertisement{margin:26px 0 16px;padding:14px;background:var(--soft);border-radius:14px;border:1px solid var(--line);}
+.job-advertisement img{width:100%;height:auto;max-height:720px;object-fit:contain;display:block;border-radius:8px;}
+.job-advertisement figcaption{font-size:0.8rem;color:var(--muted);margin-top:9px;}
+.job-advertisement a{display:inline-block;margin-top:10px;}
+.career-cv-library{margin:0 0 26px;}
+.career-cv-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;}
+.career-cv-grid>*{min-width:0;}
+.career-cv-list{padding-left:20px;overflow-wrap:anywhere;}
+.cv-builder-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);align-items:start;gap:24px;}
+.cv-print-sheet{line-height:1.65;}
+.cv-print-sheet section{border-top:1px solid var(--line);padding-top:14px;margin-top:18px;}
+.cv-preserve-lines{white-space:pre-wrap;overflow-wrap:anywhere;}
+.cv-print-actions{margin-top:24px;}
+.jobs-featured-below-hero{padding-top:32px;padding-bottom:34px;}
+.current-jobs-panel{min-width:0;}
+.job-sector-filters{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 14px;scrollbar-width:thin;}
+.job-sector-pill{font:inherit;font-size:.88rem;white-space:nowrap;padding:10px 15px;cursor:pointer;border:1px solid var(--line);border-radius:100px;background:#fff;color:var(--navy);}
+.job-sector-pill.active{background:var(--navy);border-color:var(--navy);color:white;}
+.job-sector-pill:focus-visible,.current-job-slide a:focus-visible{outline:3px solid var(--orange);outline-offset:3px;}
+.current-jobs-track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,32%);gap:15px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;padding:10px 3px 18px;}
+.current-job-slide{display:flex;flex-direction:column;align-items:flex-start;scroll-snap-align:start;min-width:0;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;}
+.current-job-slide h3{font-size:1.15rem;line-height:1.3;margin:12px 0 8px;overflow-wrap:anywhere;}
+.current-job-slide p{margin:5px 0;color:var(--muted);overflow-wrap:anywhere;}
+.current-job-slide .button{margin-top:auto;white-space:normal;text-align:center;}
+.current-jobs-footer{padding-top:10px;font-weight:700;}
+@media (max-width:900px){
+ .job-detail-grid,.cv-builder-layout{grid-template-columns:1fr;}
+ .job-detail-hero h1{font-size:clamp(1.85rem,6vw,2.7rem);line-height:1.13;}
+ .current-jobs-track{grid-auto-columns:minmax(235px,52%);}
+}
+@media (max-width:640px){
+ .job-detail-hero{padding-top:32px;padding-bottom:34px;}
+ .job-detail-hero h1{font-size:clamp(1.75rem,7vw,2.4rem);}
+ .job-mobile-apply-link{display:inline-flex;margin-top:18px;min-height:44px;}
+ .job-detail-grid{gap:16px;}
+ .job-opportunity-card,.job-apply-card{padding:clamp(16px,5vw,24px);}
+ .job-cv-actions{flex-direction:column;}
+ .job-cv-actions .button,.job-application-form .button{width:100%;}
+ .career-cv-grid{grid-template-columns:1fr;}
+ .career-cv-library{padding:16px;}
+ .current-jobs-track{grid-auto-columns:minmax(245px,85%);gap:12px;}
+ .current-job-slide{padding:16px;}
+ .job-sector-filters{margin-right:-12px;}
+ .jobs-featured-below-hero{padding-top:20px;}
+ .product-specs div{min-width:0;overflow-wrap:anywhere;}
+}
