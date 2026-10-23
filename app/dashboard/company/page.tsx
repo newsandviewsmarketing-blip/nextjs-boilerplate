@@ -138,6 +138,7 @@ export default async function CompanyDashboardPage({
   let inquiryRows: InquiryRow[] = [];
   let jobRows: JobRow[] = [];
   let applicationRows: ApplicationRow[] = [];
+  let guestApplicationRows: Array<{id:string;job_id:string;applicant_name:string;applicant_email:string;applicant_phone:string|null;cover_note:string|null;created_at:string}> = [];
 
   if (canManageCompany || canViewPrivateCompany) {
     const { data, error } = await supabase
@@ -219,6 +220,11 @@ export default async function CompanyDashboardPage({
     }
 
     applicationRows = (data ?? []) as ApplicationRow[];
+    const {data:guests,error:guestError}=await supabase.from("guest_job_applications")
+      .select("id,job_id,applicant_name,applicant_email,applicant_phone,cover_note,created_at")
+      .eq("status","submitted").order("created_at",{ascending:false}).limit(30);
+    if(!guestError)guestApplicationRows=guests??[];
+
   }
 
   const productMap = new Map(
@@ -648,7 +654,7 @@ export default async function CompanyDashboardPage({
                   employer-side read access.
                 </p>
               </div>
-              {applicationRows.length === 0 ? (
+              {applicationRows.length === 0 && guestApplicationRows.length === 0 ? (
                 <div className="empty-state"><p>No applications are available yet.</p></div>
               ) : (
                 <div className="management-list">
@@ -677,6 +683,29 @@ export default async function CompanyDashboardPage({
             </div>
           )}
 
+
+          {canManageApplicants && guestApplicationRows.length>0 && (
+            <div className="backend-form-card">
+              <div className="section-heading">
+                <span className="section-kicker">EMAIL VERIFIED GUESTS</span>
+                <h2>Applications without a VetConnect login.</h2>
+                <p>Only confirmed email submissions are visible. CV files remain private until a recruiter with applicant permission opens a short-lived link.</p>
+              </div>
+              <div className="management-list">
+                {guestApplicationRows.map(row=><article key={row.id}>
+                  <div>
+                    <span className="status-pill status-approved">Email verified</span>
+                    <h3>{jobMap.get(row.job_id)?.title||"Guest job application"}</h3>
+                    <p><strong>{row.applicant_name}</strong> · {row.applicant_email}</p>
+                    {row.applicant_phone&&<p>{row.applicant_phone}</p>}
+                    {row.cover_note&&<p>{row.cover_note}</p>}
+                    <small>{new Date(row.created_at).toLocaleDateString("en-PK")}</small>
+                    <p><a target="_blank" rel="noopener noreferrer" href={"/api/guest-applications/"+row.id+"/cv"}>Download submitted CV</a></p>
+                  </div>
+                </article>)}
+              </div>
+            </div>
+          )}
           {canManageMembers && (
             <div className="backend-form-card">
               <div className="section-heading">
