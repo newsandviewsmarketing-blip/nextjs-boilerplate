@@ -159,6 +159,8 @@ export default async function AdminPage({
   );
   const productRows = (products ?? []) as PendingProduct[];
   const jobRows = (jobs ?? []) as PendingJob[];
+  const {data:availableJobSectors}=await supabase.from("master_data_items")
+    .select("label").eq("category","job_sector").eq("is_active",true).order("label");
   const {data:jobCoverageRows}=jobRows.length ? await supabase.from("job_coverage")
     .select("job_id,display_text").in("job_id",jobRows.map(j=>j.id)) : {data:[]};
   const jobLocations=new Map((jobCoverageRows ?? []).map(v=>[v.job_id,v.display_text]));
@@ -555,6 +557,21 @@ export default async function AdminPage({
 
                 <form action={reviewJobAction}>
                   <input type="hidden" name="job_id" value={job.id} />
+                  <div className="form-grid">
+                    <div><label htmlFor={"review_sector_"+job.id}>Correct Job Sector before publishing</label>
+                      <select id={"review_sector_"+job.id} name="review_sector" defaultValue={job.sector && (availableJobSectors??[]).some(x=>x.label===job.sector)?job.sector:""}>
+                        <option value="">Not specified</option>
+                        {(availableJobSectors??[]).map(x=><option key={x.label} value={x.label}>{x.label}</option>)}
+                      </select>
+                      {job.sector && !(availableJobSectors??[]).some(x=>x.label===job.sector) && <small>Original sector "{job.sector}" is not an approved job sector. Select a valid one or leave unspecified.</small>}
+                    </div>
+                    <div><label htmlFor={"review_qualification_"+job.id}>Qualification (verify against advertisement)</label>
+                      <input id={"review_qualification_"+job.id} name="review_qualification" defaultValue={job.minimum_qualification??""} placeholder="Not specified"/>
+                    </div>
+                    <div><label htmlFor={"review_experience_"+job.id}>Experience years (leave blank if not given)</label>
+                      <input type="number" min="0" id={"review_experience_"+job.id} name="review_experience" defaultValue={job.minimum_experience??""}/>
+                    </div>
+                  </div>
 
                   <div className="review-actions">
                     <FormSubmitButton
