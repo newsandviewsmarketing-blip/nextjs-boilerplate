@@ -239,39 +239,43 @@ export async function reviewProductAction(formData: FormData) {
 
 export async function reviewJobAction(formData: FormData) {
   const identity = await getCurrentIdentity();
-  if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canManageJobs)) {
-    redirect("/dashboard?error=Content%20moderation%20access%20is%20required.");
+  if (!identity) redirect("/login?next=/admin/reviews");
+  if (!identity.roles.some(canManageJobs)) redirect("/dashboard?error=Job%20review%20permission%20is%20required.");
+  const jobId=String(formData.get("job_id") ?? "");
+  const decision=String(formData.get("decision") ?? "");
+  if(!jobId || !["approved","rejected"].includes(decision))
+    redirect("/admin/reviews?error=Invalid%20review%20request.");
+
+  const supabase=await createClient();
+  const {data:current,error:loadError}=await supabase.from("jobs")
+    .select("id,sector").eq("id",jobId).eq("verification_status","pending").eq("is_published",false).maybeSingle();
+  if(loadError || !current)redirect("/admin/reviews?error=Pending%20job%20not%20found.");
+
+  let updates: Record<string,unknown>={verification_status:decision,is_published:decision==="approved"};
+  if(decision==="approved"){
+    const sector=String(formData.get("review_sector")??"").trim();
+    const qualification=String(formData.get("review_qualification")??"").trim();
+    const experience=String(formData.get("review_experience")??"").trim();
+    if(qualification.length>200 || sector.length>150)redirect("/admin/reviews?error=Job%20data%20too%20long.");
+    if(experience && (!/^\d+$/.test(experience)||!Number.isSafeInteger(Number(experience))))
+      redirect("/admin/reviews?error=Invalid%20experience.");
+    if(sector){
+      const {data:approvedSector,error:sectorError}=await supabase.from("master_data_items")
+        .select("id").eq("category","job_sector").eq("is_active",true).ilike("label",sector).limit(1);
+      if(sectorError || !approvedSector?.length)redirect("/admin/reviews?error=Approve%20the%20new%20sector%20in%20Data%20Studio%20before%20publishing.");
+    }
+    updates={...updates,sector:sector||null,minimum_qualification:qualification||null,minimum_experience:experience?Number(experience):null};
   }
-  const jobId = String(formData.get("job_id") ?? "");
-  const decision = String(formData.get("decision") ?? "");
-  if (!jobId || !["approved", "rejected"].includes(decision)) {
-    redirect("/admin/reviews?error=Invalid%20job%20review%20request.");
-  }
-  const supabase = await createClient();
-  const { data: updatedJob, error } = await supabase
-    .from("jobs")
-    .update({
-      verification_status: decision,
-      is_published: decision === "approved",
-    })
-    .eq("id", jobId)
-    .eq("verification_status", "pending")
-    .eq("is_published", false)
-    .select("id")
-    .maybeSingle();
-  if (error) redirect(`/admin/reviews?error=${encodeURIComponent(error.message)}`);
-  if (!updatedJob) redirect("/admin/reviews?error=Job%20is%20already%20reviewed%20or%20not%20available.");
+  const {data:saved,error}=await supabase.from("jobs").update(updates)
+    .eq("id",jobId).eq("verification_status","pending").eq("is_published",false).select("id").maybeSingle();
+  if(error)redirect("/admin/reviews?error="+encodeURIComponent(error.message));
+  if(!saved)redirect("/admin/reviews?error=Job%20already%20reviewed%20or%20unavailable.");
   await supabase.from("audit_logs").insert({
-    actor_id: identity.userId,
-    action: `job.${decision}`,
-    entity_type: "job",
-    entity_id: jobId,
+    actor_id:identity.userId,action:"job."+decision,entity_type:"job",entity_id:jobId,
+    metadata:{sector_corrected:decision==="approved" && current.sector!==updates.sector},
   });
-  revalidatePath("/admin");
-  revalidatePath("/admin/reviews");
-  revalidatePath("/jobs");
-  redirect(`/admin/reviews?message=${encodeURIComponent(`Job ${decision}.`)}`);
+  revalidatePath("/admin");revalidatePath("/admin/reviews");revalidatePath("/jobs");
+  redirect("/admin/reviews?message="+encodeURIComponent("Job "+decision+"."));
 }
 
 export async function reviewProductRegulatoryAction(formData: FormData) {
