@@ -1,6 +1,7 @@
 "use server";
 
 import {proposeJobMasterTerms,emailJobReviewNotice} from "@/lib/job-review-helpers";
+import {jobAdvertFile,saveJobAdvertImage} from "@/lib/job-advert-image";
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -416,6 +417,9 @@ export async function createJobAction(formData: FormData) {
   const {supabase,workspace,identity} = await requireWorkspace("jobs.manage");
   ensureApprovedCompany(workspace.company_verification_status);
 
+  let advert:File|null=null;
+  try{advert=jobAdvertFile(formData);}
+  catch(e){redirect(message("error",e instanceof Error?e.message:"Invalid advertisement image."));}
   const title = requireText(formData,"title","Job title");
   const description = requireText(formData,"job_description","Job description");
   const requestedScope = value(formData,"coverage_scope");
@@ -505,6 +509,8 @@ export async function createJobAction(formData: FormData) {
       }
     }
   }
+  try{await saveJobAdvertImage(supabase,jobId,identity.userId,advert);}
+  catch(e){redirect(message("error","Job draft saved without advertisement: "+(e instanceof Error?e.message:"Upload error")));}
   await proposeJobMasterTerms({
     jobId,userId:identity.userId,sector:value(formData,"job_sector"),
     qualification:value(formData,"minimum_qualification"),cities,districts,tehsil,province
