@@ -17,8 +17,8 @@ export async function uploadCareerCvAction(formData:FormData){
  if(!identity.roles.some(r=>["candidate","professional","veterinarian"].includes(r)))fail("Career profile required.");
  const file=formData.get("cv_file");
  if(!(file instanceof File)||file.size===0)fail("Select a PDF, Word, JPG or PNG CV.");
- let validated:Awaited<ReturnType<typeof inspectGuestCv>>;
- try{validated=await inspectGuestCv(file);}
+ let validated:Awaited<ReturnType<typeof inspectCvFile>>;
+ try{validated=await inspectCvFile(file);}
  catch(e){fail(e instanceof Error?e.message:"Invalid CV file.");}
  const supabase=await createClient();
  if(!await matchingVerifiedAccountEmail(supabase,identity.userId,String(formData.get("confirm_email")??"")))fail("Enter your own verified login email to upload your CV.");
