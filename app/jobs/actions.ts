@@ -31,10 +31,40 @@ export async function applyToJobAction(formData: FormData) {
     redirect(`${path}?error=${encodeURIComponent("Your professional profile must be approved before you can apply for jobs.")}`);
   }
 
+  const source = String(formData.get("cv_source") ?? "");
+  const cvId = String(formData.get("cv_document_id") ?? "").trim();
+  if (!["saved_cv","profile_cv"].includes(source)) {
+    redirect(path+"?error="+encodeURIComponent("Select a saved CV or your VetConnect CV profile before applying."));
+  }
+  let documentId: string | null = null;
+  let snapshot: Record<string,string | null> | null = null;
+  if (source === "saved_cv") {
+    const {data:document,error:cvError} = await supabase.from("career_documents")
+      .select("id").eq("id",cvId)
+      .eq("professional_user_id",identity.userId).eq("document_type","cv").maybeSingle();
+    if (cvError || !document)
+      redirect(path+"?error="+encodeURIComponent("Please choose your own saved CV."));
+    documentId=document.id;
+  } else {
+    const {data:cv,error:cvError}=await supabase.from("career_cv_profiles")
+      .select("full_name,contact_email,phone,headline,education,experience,skills")
+      .eq("user_id",identity.userId).maybeSingle();
+    if(cvError || !cv?.full_name)
+      redirect(path+"?error="+encodeURIComponent("Create and save your VetConnect CV first."));
+    snapshot=cv;
+  }
+  const {data:jobStatus,error:jobError}=await supabase.from("public_jobs")
+    .select("id,deadline").eq("id",jobId).maybeSingle();
+  if(jobError || !jobStatus || (jobStatus.deadline && jobStatus.deadline<new Date().toISOString().slice(0,10)))
+    redirect(path+"?error="+encodeURIComponent("This job is no longer accepting applications."));
+
   const { error } = await supabase.from("job_applications").insert({
     job_id: jobId,
     candidate_user_id: identity.userId,
-    cover_note: coverNote || null,
+    cover_note: coverNote.slice(0,3000) || null,
+    cv_source: source,
+    cv_document_id: documentId,
+    cv_snapshot: snapshot,
   });
   if (error) redirect(`${path}?error=${encodeURIComponent(error.message)}`);
   revalidatePath(path);
