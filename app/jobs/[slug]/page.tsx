@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import GuestJobApply from "@/app/components/GuestJobApply";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -136,6 +137,7 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
                 <Link className="button button-secondary" href="/register?role=candidate#registration">Create job seeker account</Link>
               </div>
             </div>}
+            {!identity && <GuestJobApply jobId={job.id} slug={job.slug}/>}
             {identity && !canApply && <div className="job-eligibility-box" role="status">
               <h3>Job seeker account required</h3>
               <p>This signed-in account has no Candidate, Professional or Veterinarian role. Staff or employer accounts cannot submit job applications.</p>
