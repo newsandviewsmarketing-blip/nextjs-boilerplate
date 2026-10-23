@@ -433,11 +433,9 @@ export async function createJobAction(formData: FormData) {
   const regionName = isSalesScope ? value(formData,"region_name") : "";
   if(isSalesScope && !regionName) redirect(message("error","Enter the company region or territory name."));
   const scope = requestedScope === "province" && (districts.length>0 || cities.length>0) ? "multiple" : requestedScope;
-  const label = value(formData,"coverage_display") || (
-    requestedScope === "nationwide" ? "Across Pakistan" :
+  const label = requestedScope === "nationwide" ? "Across Pakistan" :
     requestedScope === "flexible" ? "Location not specified" :
-    [regionName,province,...districts,...cities].filter(Boolean).join(", ")
-  );
+    value(formData,"coverage_display") || [regionName,province,...districts,...cities].filter(Boolean).join(", ");
   const rawExperience=value(formData,"minimum_experience");
   if(rawExperience && (!/^\d+$/.test(rawExperience) || !Number.isSafeInteger(Number(rawExperience)))) {
     redirect(message("error","Experience must be a nonnegative whole number."));
