@@ -44,10 +44,15 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
   if (!job) notFound();
   const identity = await getCurrentIdentity();
   let isSaved = false;
+  let hasApplied = false;
   if (identity && job.id && !job.is_sample) {
     const supabase = await createClient();
-    const { data } = await supabase.from("saved_jobs").select("job_id").eq("user_id", identity.userId).eq("job_id", job.id).maybeSingle();
-    isSaved = Boolean(data);
+    const [{data:saved},{data:application}] = await Promise.all([
+      supabase.from("saved_jobs").select("job_id").eq("user_id", identity.userId).eq("job_id", job.id).maybeSingle(),
+      supabase.from("job_applications").select("id").eq("candidate_user_id",identity.userId).eq("job_id",job.id).maybeSingle()
+    ]);
+    isSaved = Boolean(saved);
+    hasApplied = Boolean(application);
   }
   const {data:cvDocuments} = identity
     ? await (await createClient()).from("career_documents")
@@ -58,7 +63,24 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     ? await (await createClient()).from("career_cv_profiles")
       .select("full_name").eq("user_id",identity.userId).maybeSingle()
     : {data:null};
-  const canApply=Boolean(identity?.roles.some(role=>["candidate","professional","veterinarian"].includes(role)));
+  const careerRole=identity?.roles.includes("veterinarian") ? "veterinarian"
+    : identity?.roles.includes("professional") ? "professional"
+    : identity?.roles.includes("candidate") ? "candidate" : null;
+  const canApply=Boolean(careerRole);
+  let profileStatus: string|null=null;
+  let profileExists=false;
+  if(identity && careerRole){
+    const supabase=await createClient();
+    const table=careerRole==="veterinarian"?"veterinarian_profiles":"professional_profiles";
+    const {data:profile,error:profileError}=await supabase.from(table)
+      .select("verification_status").eq("user_id",identity.userId).maybeSingle();
+    if(!profileError){
+      profileExists=Boolean(profile);
+      profileStatus=profile?.verification_status??null;
+    }
+  }
+  const profileApproved=canApply && profileStatus==="approved";
+  const hasCv=Boolean(builder?.full_name || (cvDocuments??[]).length>0);
   const closed=Boolean(job.deadline && job.deadline<new Date().toISOString().slice(0,10));
   const imageUrl=job.id && job.image_available ? "/api/jobs/"+job.id+"/advertisement":null;
 
@@ -100,44 +122,85 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
         <h2>Apply using your CV.</h2>
         {job.is_sample||!job.id?
           <p className="setup-notice">This is an example listing, not an open vacancy.</p>:
-          closed?<p className="form-message form-message-error">This job is closed. The advertised deadline has passed.</p>:
+          closed?
+          <div className="job-eligibility-box" role="status">
+            <h3>Applications closed</h3><p>The advertised deadline has passed.</p>
+            <Link href="/jobs">Find current jobs</Link>
+          </div>:
           <>
-            <p>Choose a saved CV or create one with your VetConnect profile before applying.</p>
-            <div className="job-cv-actions">
-              <Link className="button button-secondary" href="/dashboard/career">My saved CVs / Upload CV</Link>
-              <Link className="button button-secondary" href="/dashboard/career/cv">Create or edit CV</Link>
-            </div>
-            {!identity&&<p className="form-message form-message-error">
-              <Link href={"/login?next="+encodeURIComponent("/jobs/"+job.slug)}>Sign in</Link> to apply using a career profile.</p>}
-            {identity&&!canApply&&<p className="form-message form-message-error">
-              A candidate, professional or veterinarian career profile is required to apply.
-              <Link href="/dashboard"> Open your dashboard</Link>.
-            </p>}
-            <form action={applyToJobAction} className="job-application-form">
-              <input type="hidden" name="slug" value={job.slug}/>
-              <input type="hidden" name="job_id" value={job.id}/>
-              <label htmlFor="cv_choice">Select CV for this application *</label>
-              <select id="cv_choice" name="cv_choice" required defaultValue=""
-                disabled={!identity||!canApply}>
-                <option value="">Choose your CV</option>
-                {builder?.full_name&&<option value="profile_cv">My VetConnect CV: {builder.full_name}</option>}
-                {(cvDocuments??[]).map((doc,index)=>
-                  <option key={doc.id} value={"saved:"+doc.id}>Saved CV {index+1} · {new Date(doc.created_at).toLocaleDateString("en-PK")}{doc.is_current?" (Current)":""}</option>)}
-              </select>
-              {(cvDocuments??[]).length===0&&!builder?.full_name&&
-                <p className="form-help">No saved CV yet. Upload a PDF/DOC/DOCX or create your CV first.</p>}
-              <label htmlFor="cover_note">Short application note (optional)</label>
-              <textarea id="cover_note" name="cover_note" maxLength={3000}
-                placeholder="Briefly explain your fit for this role."/>
-              <FormSubmitButton pendingLabel="Submitting application...">Submit application with CV</FormSubmitButton>
-            </form>
-            <form action={toggleSavedJobAction} className="save-job-form">
+            {!identity && <div className="job-eligibility-box" role="status">
+              <h3>Sign in to apply</h3>
+              <p>Applicants need a VetConnect Candidate, Professional or Veterinarian account and an approved profile.</p>
+              <div className="job-cv-actions">
+                <Link className="button button-primary" href={"/login?next="+encodeURIComponent("/jobs/"+job.slug+"#apply-job")}>Sign in as a candidate</Link>
+                <Link className="button button-secondary" href="/register?role=candidate#registration">Create job seeker account</Link>
+              </div>
+            </div>}
+            {identity && !canApply && <div className="job-eligibility-box" role="status">
+              <h3>Job seeker account required</h3>
+              <p>This signed-in account has no Candidate, Professional or Veterinarian role. Staff or employer accounts cannot submit job applications.</p>
+              <p>Use a separate job seeker account to apply. This does not change your existing account or its permissions.</p>
+              <div className="job-cv-actions">
+                <Link className="button button-primary" href="/register?role=candidate#registration">Register a job seeker account</Link>
+                <Link className="button button-secondary" href="/dashboard">Account dashboard</Link>
+              </div>
+            </div>}
+            {identity && canApply && !profileApproved && <div className="job-eligibility-box" role="status">
+              <h3>{!profileExists?"Complete your career profile":
+                profileStatus==="rejected"?"Profile needs corrections":
+                profileStatus==="pending"?"Profile awaiting approval":"Check profile verification"}</h3>
+              <p>{!profileExists?
+                "Save the required professional information so your profile can enter the VetConnect review process.":
+                profileStatus==="rejected"?
+                "Your profile requires changes before you can apply. Review the feedback in your professional workspace.":
+                "Your career profile must be approved by VetConnect before applications can be submitted."}</p>
+              <div className="job-cv-actions">
+                <Link className="button button-primary" href="/dashboard/professional">Complete / Review profile</Link>
+                <Link className="button button-secondary" href="/dashboard/career">View saved CVs</Link>
+              </div>
+            </div>}
+            {identity && profileApproved && hasApplied && <div className="job-eligibility-box" role="status">
+              <h3>Application already submitted</h3>
+              <p>You have applied to this job. See its status and selected CV in your Career Workspace.</p>
+              <Link className="button button-primary" href="/dashboard/career">View my applications</Link>
+            </div>}
+            {identity && profileApproved && !hasApplied && !hasCv && <div className="job-eligibility-box" role="status">
+              <h3>Choose or create your CV</h3>
+              <p>Your profile is approved. Save a CV before submitting this application.</p>
+              <div className="job-cv-actions">
+                <Link className="button button-primary" href="/dashboard/career#my-cvs">Upload a CV</Link>
+                <Link className="button button-secondary" href="/dashboard/career/cv">Create / Edit CV</Link>
+              </div>
+            </div>}
+            {identity && profileApproved && !hasApplied && hasCv && <>
+              <p>Select a saved CV or your VetConnect CV Builder profile. Your CV will accompany this job application.</p>
+              <div className="job-cv-actions">
+                <Link className="button button-secondary" href="/dashboard/career#my-cvs">Manage saved CVs</Link>
+                <Link className="button button-secondary" href="/dashboard/career/cv">Create or edit CV</Link>
+              </div>
+              <form action={applyToJobAction} className="job-application-form">
+                <input type="hidden" name="slug" value={job.slug}/>
+                <input type="hidden" name="job_id" value={job.id}/>
+                <label htmlFor="cv_choice">Select CV for this application *</label>
+                <select id="cv_choice" name="cv_choice" required defaultValue="">
+                  <option value="">Choose your CV</option>
+                  {builder?.full_name&&<option value="profile_cv">My VetConnect CV: {builder.full_name}</option>}
+                  {(cvDocuments??[]).map((doc,index)=>
+                    <option key={doc.id} value={"saved:"+doc.id}>Saved CV {index+1} · {new Date(doc.created_at).toLocaleDateString("en-PK")}{doc.is_current?" (Current)":""}</option>)}
+                </select>
+                <label htmlFor="cover_note">Short application note (optional)</label>
+                <textarea id="cover_note" name="cover_note" maxLength={3000}
+                  placeholder="Briefly explain your fit for this role."/>
+                <FormSubmitButton pendingLabel="Submitting application...">Submit application with CV</FormSubmitButton>
+              </form>
+            </>}
+            {identity && <form action={toggleSavedJobAction} className="save-job-form">
               <input type="hidden" name="slug" value={job.slug}/>
               <input type="hidden" name="job_id" value={job.id}/>
               <button className="button button-secondary button-full" type="submit">
-                {isSaved?"Remove from saved jobs":"Save job"}
+                {isSaved?"Remove from saved jobs":"Save job for later"}
               </button>
-            </form>
+            </form>}
           </>}
       </div>
     </div></section><SiteFooter/></main>;

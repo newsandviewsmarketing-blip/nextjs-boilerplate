@@ -17,7 +17,7 @@ export async function applyToJobAction(formData: FormData) {
     ["candidate", "professional", "veterinarian"].includes(role),
   );
   if (!careerRole) {
-    redirect(`${path}?error=${encodeURIComponent("A professional, candidate or veterinarian profile is required before applying.")}`);
+    redirect(`${path}?error=${encodeURIComponent("This account cannot apply. Sign in with a Candidate, Professional or Veterinarian account.")}`);
   }
   if (!jobId) redirect(`${path}?error=${encodeURIComponent("This job is not available.")}`);
 
@@ -28,7 +28,7 @@ export async function applyToJobAction(formData: FormData) {
   const { data: careerProfile, error: verificationError } = await verificationQuery;
 
   if (verificationError || careerProfile?.verification_status !== "approved") {
-    redirect(`${path}?error=${encodeURIComponent("Your professional profile must be approved before you can apply for jobs.")}`);
+    redirect(`${path}?error=${encodeURIComponent("Your career profile needs approval before applying. Open My VetConnect > Professional workspace.")}`);
   }
 
   const selectedCv = String(formData.get("cv_choice") ?? "").trim();

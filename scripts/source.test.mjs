@@ -503,3 +503,18 @@ test("homepage job slider never displays mock expired or unapproved-sector jobs"
  assert.match(css,/current-jobs-track/);
  assert.match(css,/@media \(max-width:640px\)/);
 });
+
+
+test("applicant eligibility guidance reflects role, profile review and existing applications",()=>{
+ const page=read("app/jobs/[slug]/page.tsx");
+ const actions=read("app/jobs/actions.ts");
+ assert.match(page,/Job seeker account required/);
+ assert.match(page,/Create job seeker account|Register a job seeker account/);
+ assert.match(page,/Profile awaiting approval/);
+ assert.match(page,/Profile needs corrections/);
+ assert.match(page,/href="\/dashboard\/professional"/);
+ assert.match(page,/Application already submitted/);
+ assert.match(page,/profileApproved && !hasApplied && hasCv/);
+ assert.match(page,/name="cv_choice"/);
+ assert.match(actions,/This account cannot apply/);
+});

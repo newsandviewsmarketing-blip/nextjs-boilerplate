@@ -3462,3 +3462,20 @@ textarea:focus {
 .job-media-admin-row h3{margin:0 0 9px;}
 .job-media-admin-row form{margin:9px 0 13px;}
 @media(max-width:640px){.job-media-admin-row{padding:13px;}.job-media-admin-row button{width:100%;}}
+
+/* Profile-status guidance stays visible and readable before an application is unlocked. */
+.job-eligibility-box{
+  border:1px solid var(--line);
+  background:var(--soft);
+  border-radius:14px;
+  padding:clamp(16px,3vw,23px);
+  margin:16px 0 12px;
+}
+.job-eligibility-box h3{font-size:1.17rem;color:var(--navy);margin:0 0 10px;}
+.job-eligibility-box p{margin:8px 0;line-height:1.6;}
+.job-eligibility-box .job-cv-actions{margin:16px 0 0;}
+.job-apply-card{scroll-margin-top:100px;}
+@media(max-width:640px){
+  .job-eligibility-box .button{width:100%;}
+  .job-apply-card{scroll-margin-top:76px;}
+}
