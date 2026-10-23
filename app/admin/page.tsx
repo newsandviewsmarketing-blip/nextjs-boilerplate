@@ -198,7 +198,7 @@ export default async function AdminOverviewPage() {
                 </>
               )}
               {hasAdminPermission(identity, "jobs.manage") && (
-                <article><b>{pendingJobs}</b><span>Jobs to review</span></article>
+                <article><Link href="/admin/reviews#jobs-review"><b>{pendingJobs}</b><span>Jobs to review →</span></Link></article>
               )}
               {hasAdminPermission(identity, "users.manage") && (
                 <>
