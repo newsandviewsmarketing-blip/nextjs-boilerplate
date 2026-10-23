@@ -120,8 +120,8 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
             </div>
             <div className="career-cv-grid">
               <form action={uploadCareerCvAction} className="profile-form" encType="multipart/form-data">
-                <label htmlFor="cv-file-upload">Upload CV (PDF, DOC or DOCX, maximum 10 MB)</label>
-                <input id="cv-file-upload" type="file" name="cv_file" accept=".pdf,.doc,.docx,application/pdf" required/>
+                <label htmlFor="cv-file-upload">Upload CV (PDF, DOC, DOCX, JPG or PNG, maximum 5 MB)</label>
+                <input id="cv-file-upload" type="file" name="cv_file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required/>
                 <button className="button button-primary" type="submit">Save CV privately</button>
               </form>
               <div>
