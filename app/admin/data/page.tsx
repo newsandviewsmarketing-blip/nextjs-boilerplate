@@ -4,8 +4,9 @@ import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import AdminNav from "../components/AdminNav";
 import { requireAdminPermission } from "@/lib/admin";
+import {createClient} from "@/lib/supabase/server";
 import { loadMasterData, masterDataCategories } from "@/lib/master-data";
-import { createMasterDataAction, toggleMasterDataAction } from "./actions";
+import { createMasterDataAction, toggleMasterDataAction, reviewMasterSuggestionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export default async function AdminDataPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const identity = await requireAdminPermission("master_data.manage", "/admin/data");
   const { items, error } = await loadMasterData();
+  const supabase=await createClient();
+  const {data:suggestions}=await supabase.from("master_data_suggestions").select("id,category,label,context_province,created_at").eq("status","pending").order("created_at").limit(200);
   const selected = params.category ?? "all";
   const rows = selected === "all" ? items : items.filter((item) => item.category === selected);
   const parents = items.filter((item) => item.is_active);
@@ -26,6 +29,26 @@ export default async function AdminDataPage({ searchParams }: { searchParams: Pr
       <AdminNav roles={identity.roles} />
       <div className="admin-control-content">
         <FormMessage error={params.error || error?.message} message={params.message} />
+        <section className="backend-form-card" id="suggestions-to-review">
+          <div className="section-heading compact-heading"><span className="section-kicker">PENDING MASTER-DATA SUGGESTIONS</span>
+            <h2>Review new cities, degrees and job sectors.</h2>
+            <p>Suggestions entered in job forms are not published as reusable options until an administrator approves them.</p>
+          </div>
+          {(suggestions ?? []).length===0 ? <p>No new suggestions are awaiting approval.</p> :
+          <div className="admin-directory-table-wrap"><table className="admin-directory-table">
+            <thead><tr><th>Type</th><th>Suggested label</th><th>Province</th><th>Decision</th></tr></thead>
+            <tbody>{(suggestions ?? []).map(item=><tr key={item.id}>
+              <td>{item.category.replaceAll("_"," ")}</td>
+              <td>{item.label}</td>
+              <td>{item.context_province || "—"}</td>
+              <td><form action={reviewMasterSuggestionAction} style={{display:"flex",gap:8}}>
+                <input type="hidden" name="suggestion_id" value={item.id}/>
+                <button className="button button-primary" name="decision" value="approved">Approve</button>
+                <button className="button button-secondary" name="decision" value="rejected">Reject</button>
+              </form></td>
+            </tr>)}</tbody>
+          </table></div>}
+        </section>
         <div className="section-heading"><span className="section-kicker">ADD OPTION</span><h2>Create a reusable database option.</h2><p>Use Parent for dependent lists, for example District → Province, City → Tehsil, or Specialization → Veterinary Sector.</p></div>
         <form className="profile-form admin-master-form" action={createMasterDataAction}>
           <div><label htmlFor="category">Category</label><select id="category" name="category" required><option value="">Select category</option>{masterDataCategories.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></div>
