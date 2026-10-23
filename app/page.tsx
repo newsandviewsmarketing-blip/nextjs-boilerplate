@@ -1,6 +1,9 @@
 import Link from "next/link";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
+import SectorJobSlider,{type CurrentJobSlide} from "./components/SectorJobSlider";
+import {isSupabaseConfigured} from "@/lib/supabase/config";
+import {createClient} from "@/lib/supabase/server";
 
 const modules = [
   {
@@ -95,30 +98,6 @@ const marketCategories = [
   "Aquaculture",
 ];
 
-const jobs = [
-  {
-    role: "Veterinary Officer",
-    company: "Animal Health Company",
-    city: "Lahore",
-    type: "Full-time",
-    sector: "Livestock",
-  },
-  {
-    role: "Technical Sales Executive",
-    company: "Veterinary Nutrition Company",
-    city: "Faisalabad",
-    type: "Full-time",
-    sector: "Feed & Nutrition",
-  },
-  {
-    role: "Veterinary Intern",
-    company: "Veterinary Clinic Network",
-    city: "Islamabad",
-    type: "Internship",
-    sector: "Companion Animals",
-  },
-];
-
 const courses = [
   {
     code: "01",
@@ -137,8 +116,31 @@ const courses = [
   },
 ];
 
-export default function Home() {
-  return (
+export const dynamic="force-dynamic";
+async function loadVerifiedCurrentJobs():Promise<CurrentJobSlide[]>{
+ if(!isSupabaseConfigured())return [];
+ const supabase=await createClient();
+ const [{data:listed,error},{data:sectors}]=await Promise.all([
+  supabase.from("public_jobs").select("id,slug,title,sector,city,province,employment_type,company_name,deadline").limit(100),
+  supabase.from("master_data_items").select("label").eq("category","job_sector").eq("is_active",true)
+ ]);
+ if(error||!listed?.length)return [];
+ const approvedSectors=new Set((sectors??[]).map(s=>s.label.toLowerCase()));
+ const today=new Date().toISOString().slice(0,10);
+ const filtered=listed.filter(job=>job.sector&&approvedSectors.has(job.sector.toLowerCase())&&(!job.deadline||job.deadline>=today));
+ if(!filtered.length)return [];
+ const {data:dates}=await supabase.from("jobs").select("id,created_at").in("id",filtered.map(j=>j.id));
+ const timestamps=new Map((dates??[]).map(x=>[x.id,x.created_at]));
+ return filtered.sort((a,b)=>String(timestamps.get(b.id)||"").localeCompare(String(timestamps.get(a.id)||"")))
+  .slice(0,18).map(job=>({
+   id:job.id,slug:job.slug,title:job.title,sector:job.sector!,
+   company_name:job.company_name,location:job.city||job.province||"Pakistan",
+   employment_type:job.employment_type
+  }));
+}
+export default async function Home() {
+ const currentJobs=await loadVerifiedCurrentJobs();
+ return (
     <main>
       <SiteHeader />
 
@@ -243,6 +245,12 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <section className="section jobs-featured-below-hero">
+        <div className="shell">
+          <SectorJobSlider jobs={currentJobs}/>
+        </div>
+      </section>
+
 
       <section className="quick-bar">
         <div className="shell quick-grid">
@@ -477,19 +485,10 @@ export default function Home() {
           </div>
           <div className="jobs-home-grid">
             <div className="job-list">
-              {jobs.map((j) => (
-                <article className="job-row" key={j.role}>
-                  <div className="job-logo">VC</div>
-                  <div>
-                    <span>{j.sector}</span>
-                    <h3>{j.role}</h3>
-                    <p>
-                      {j.company} • {j.city} • {j.type}
-                    </p>
-                  </div>
-                  <Link href="/jobs">View job</Link>
-                </article>
-              ))}
+              <h3>Discover verified opportunities</h3>
+              <p>Search current veterinary, livestock, poultry, feed and allied-sector jobs. Create a career CV and apply from your account.</p>
+              <Link href="/jobs" className="button button-primary">Browse current jobs</Link>
+              <Link href="/dashboard/career/cv" className="button button-secondary">Create your CV</Link>
             </div>
             <div className="talent-panel">
               <span className="module-tag">CANDIDATE</span>
