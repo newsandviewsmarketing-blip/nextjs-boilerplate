@@ -8,6 +8,7 @@ import PakistanLocationFields from "../../components/PakistanLocationFields";
 import AdminNav from "../components/AdminNav";
 import PersistentForm from "./PersistentForm";
 import JobTerritoryFields from "./JobTerritoryFields";
+import JobSubmissionReceipt from "../../components/JobSubmissionReceipt";
 import { requireAdminPermission } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createManagedPersonAction, createCompanyAction, createClinicAction, createLaboratoryAction, createAdminProductAction, createAdminJobAction } from "./actions";
@@ -15,7 +16,7 @@ import { bulkImportAction } from "./bulk-actions";
 
 export const dynamic = "force-dynamic";
 type Kind = "person"|"company"|"clinic"|"laboratory"|"product"|"job";
-type Params = { type?: Kind; error?: string; message?: string };
+type Params = { type?: Kind; error?: string; message?: string; submitted?: string };
 
 const tabs: Array<[Kind,string]> = [["person","Professional / Vet"],["company","Company"],["clinic","Clinic / Hospital"],["laboratory","Laboratory"],["product","Product"],["job","Job"]];
 
@@ -25,11 +26,30 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
   const kind: Kind = tabs.some(([value]) => value === params.type) ? (params.type as Kind) : "person";
   const supabase = await createClient();
   const { data: companies } = await supabase.from("companies").select("id, canonical_name, verification_status").eq("record_status","active").order("canonical_name");
+  const {data: submitted} = kind==="job" && params.submitted
+    ? await supabase.from("jobs").select("id,title,sector,description,company_id,employment_type,province,city,minimum_qualification,minimum_experience,deadline,verification_status")
+        .eq("id",params.submitted).eq("verification_status","pending").maybeSingle()
+    : {data:null};
+  const {data:submittedCoverage}=submitted
+    ? await supabase.from("job_coverage").select("display_text").eq("job_id",submitted.id).maybeSingle()
+    : {data:null};
 
   return <main><SiteHeader />
     <section className="dashboard-hero"><div className="shell"><span className="section-kicker">ASSISTED ENTRY CENTRE</span><h1>Staff can build records for people and businesses.</h1><p>A client login is not required to create a directory record. Records remain accountable to the staff member who entered them and can later be claimed/linked.</p></div></section>
     <section className="section compact-section"><div className="shell admin-control-layout"><AdminNav roles={identity.roles}/><div className="admin-control-content">
       <FormMessage error={params.error} message={params.message}/>
+      {submitted && <JobSubmissionReceipt isAdmin storageKey="vetconnect-admin-create-job"
+        closeHref="/admin/create?type=job"
+        job={{
+          id:submitted.id,title:submitted.title,sector:submitted.sector,
+          company:(companies ?? []).find(c=>c.id===submitted.company_id)?.canonical_name ?? "Employer",
+          description:submitted.description,employment_type:submitted.employment_type,
+          minimum_qualification:submitted.minimum_qualification,
+          minimum_experience:submitted.minimum_experience,deadline:submitted.deadline,
+          location:submittedCoverage?.display_text ?? submitted.city ?? submitted.province ?? "Not specified",
+          verification_status:submitted.verification_status,
+        }}/>}
+
       <div className="management-links assisted-entry-tabs">{tabs.map(([value,label]) => <a className={`button ${kind===value?"button-primary":"button-secondary"}`} href={`/admin/create?type=${value}`} key={value}>{label}</a>)}</div>
 
       {kind === "person" && <PersistentForm className="profile-form" action={createManagedPersonAction} storageKey="vetconnect-admin-create-person" clearSaved={Boolean(params.message)}>
@@ -105,7 +125,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create product draft</FormSubmitButton>
       </PersistentForm>}
 
-      {kind === "job" && <PersistentForm className="profile-form" action={createAdminJobAction} storageKey="vetconnect-admin-create-job" clearSaved={Boolean(params.message)}>
+      {kind === "job" && <PersistentForm className="profile-form" action={createAdminJobAction} storageKey="vetconnect-admin-create-job" clearSaved={Boolean(params.message || params.submitted)}>
         <div><label>Employer company</label><select name="company_id" required><option value="">Select company</option>{(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.canonical_name}</option>)}</select></div><div><label>Job title</label><input name="title" required /></div>
         <JobMasterChoice category="job_sector" name="sector" label="Job sector" /><MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" />
         <JobTerritoryFields />
