@@ -418,3 +418,42 @@ test("staff and employer job forms share optional multi-location territory data"
   assert.match(publicJobs, /matchesJobLocation/);
   assert.match(locationLogic, /scope==="nationwide"/);
 });
+
+
+test("job submission is pending with a full receipt and admin review links",()=>{
+  const admin=read("app/admin/create/page.tsx");
+  const company=read("app/dashboard/company/page.tsx");
+  const receipt=read("app/components/JobSubmissionReceipt.tsx");
+  const adminActions=read("app/admin/create/actions.ts");
+  const companyActions=read("app/dashboard/company/actions.ts");
+  const review=read("app/admin/reviews/page.tsx");
+  const dashboard=read("app/admin/page.tsx");
+  for(const page of [admin,company])assert.match(page,/<JobSubmissionReceipt/);
+  assert.match(receipt,/role="dialog"/);
+  assert.match(receipt,/Status:<\/strong> Pending approval/);
+  assert.match(receipt,/Minimum qualification/);
+  assert.match(review,/id=\{"job-"\+job\.id\}/);
+  assert.match(dashboard,/href="\/admin\/reviews#jobs-review"/);
+  for(const action of [adminActions,companyActions]){
+    assert.match(action,/proposeJobMasterTerms\(/);
+    assert.match(action,/emailJobReviewNotice\(/);
+    assert.match(action,/is_published:false/);
+  }
+});
+
+test("approved master options include Other suggestions but are not auto-published",()=>{
+  const field=read("app/components/JobMasterChoice.tsx");
+  const approvals=read("app/admin/data/actions.ts");
+  const studio=read("app/admin/data/page.tsx");
+  const suggestions=read("lib/job-review-helpers.ts");
+  const migration=read("supabase/migrations/20261023065621_job_master_suggestions_review_outbox_20261023.sql");
+  assert.match(field,/Other \/ Add new option/);
+  assert.match(field,/job_qualification/);
+  assert.match(approvals,/requireAdminPermission\("master_data\.manage"/);
+  assert.match(studio,/suggestions-to-review/);
+  assert.match(suggestions,/status:"pending"/);
+  assert.match(migration,/create table if not exists public\.master_data_suggestions/);
+  assert.match(migration,/lower\(trim\(label\)\)='punjab'/);
+  assert.match(migration,/trg_queue_pending_job_review/);
+  assert.doesNotMatch(migration,/drop table|truncate table/i);
+});
