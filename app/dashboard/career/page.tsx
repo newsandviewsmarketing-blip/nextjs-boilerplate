@@ -122,6 +122,9 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
               <form action={uploadCareerCvAction} className="profile-form" encType="multipart/form-data">
                 <label htmlFor="cv-file-upload">Upload CV (PDF, DOC, DOCX, JPG or PNG, maximum 5 MB)</label>
                 <input id="cv-file-upload" type="file" name="cv_file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required/>
+                <label htmlFor="cv-account-email">Confirm your verified account email *</label>
+                <input id="cv-account-email" type="email" name="confirm_email" autoComplete="email" required maxLength={254} placeholder={identity.email||"Account email"}/>
+                <p className="form-help">Email must match the verified address of your signed-in VetConnect account.</p>
                 <button className="button button-primary" type="submit">Save CV privately</button>
               </form>
               <div>
