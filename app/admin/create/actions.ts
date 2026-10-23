@@ -1,3 +1,4 @@
+import {proposeJobMasterTerms,emailJobReviewNotice} from "@/lib/job-review-helpers";
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -272,7 +273,16 @@ export async function createAdminJobAction(formData: FormData) {
     createError("job", "Job saved, but document upload failed: " +
       (uploadError instanceof Error ? uploadError.message : "Unknown upload error"));
   }
+  await proposeJobMasterTerms({
+    jobId:createdJobId,userId:identity.userId,
+    sector:optional(formData,"sector"),qualification:optional(formData,"minimum_qualification"),
+    cities,districts,tehsil,province,
+  });
+  const {data:companyForEmail}=await supabase.from("companies").select("canonical_name").eq("id",companyId).maybeSingle();
+  await emailJobReviewNotice(createdJobId,title,companyForEmail?.canonical_name ?? "Employer");
+  revalidatePath("/admin");
   revalidatePath("/jobs");
   revalidatePath("/admin/reviews");
-  redirect("/admin/create?type=job&message=Job%20draft%20created%20for%20review.");
+  revalidatePath("/admin/data");
+  redirect("/admin/create?type=job&submitted="+encodeURIComponent(createdJobId));
 }
