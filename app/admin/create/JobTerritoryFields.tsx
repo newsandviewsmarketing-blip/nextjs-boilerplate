@@ -167,11 +167,11 @@ export default function JobTerritoryFields() {
       {showTehsil && <input name="tehsil" value={tehsil} onChange={e=>setTehsil(e.target.value)}
         placeholder="Optional tehsil or taluka"/>}
     </div>}
-    <div className="form-span-2">
+    {asksProvince && <div className="form-span-2">
       <label htmlFor="coverage_display">Advertised location text (optional)</label>
       <input id="coverage_display" name="coverage_display" placeholder="All major cities of Punjab"/>
       <p className="form-help">If left blank, VetConnect derives a display label only from selected values. Unselected city/district/tehsil fields are hidden from the public job listing.</p>
-    </div>
+    </div>}
     <div className="form-span-2">
       <p className="form-help"><strong>Location preview:</strong> {derivedDisplay || "Choose province or territory"}</p>
     </div>
