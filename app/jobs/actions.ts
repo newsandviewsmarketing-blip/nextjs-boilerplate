@@ -31,8 +31,9 @@ export async function applyToJobAction(formData: FormData) {
     redirect(`${path}?error=${encodeURIComponent("Your professional profile must be approved before you can apply for jobs.")}`);
   }
 
-  const source = String(formData.get("cv_source") ?? "");
-  const cvId = String(formData.get("cv_document_id") ?? "").trim();
+  const selectedCv = String(formData.get("cv_choice") ?? "").trim();
+  const source = selectedCv === "profile_cv" ? "profile_cv" : selectedCv.startsWith("saved:") ? "saved_cv" : "";
+  const cvId = source === "saved_cv" ? selectedCv.slice(6) : "";
   if (!["saved_cv","profile_cv"].includes(source)) {
     redirect(path+"?error="+encodeURIComponent("Select a saved CV or your VetConnect CV profile before applying."));
   }
