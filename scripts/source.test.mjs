@@ -457,3 +457,49 @@ test("approved master options include Other suggestions but are not auto-publish
   assert.match(migration,/trg_queue_pending_job_review/);
   assert.doesNotMatch(migration,/drop table|truncate table/i);
 });
+
+
+test("CV applications require an owned saved CV or a builder snapshot",()=>{
+ const apply=read("app/jobs/actions.ts");
+ const page=read("app/jobs/[slug]/page.tsx");
+ const career=read("app/dashboard/career/page.tsx");
+ const cvAction=read("app/dashboard/career/actions.ts");
+ const employer=read("app/dashboard/company/page.tsx");
+ const privateRoute=read("app/api/career/documents/[id]/route.ts");
+ assert.match(page,/name="cv_choice"/);
+ assert.match(page,/Create or edit CV/);
+ assert.match(apply,/professional_user_id",identity.userId/);
+ assert.match(apply,/career_cv_profiles/);
+ assert.match(apply,/cv_snapshot: snapshot/);
+ assert.match(career,/uploadCareerCvAction/);
+ assert.match(cvAction,/career-documents/);
+ assert.match(employer,/cv_document_id/);
+ assert.match(privateRoute,/createSignedUrl/);
+});
+
+test("job advertisement is an approved-only image, never the private support file",()=>{
+ const admin=read("app/admin/create/page.tsx");
+ const company=read("app/dashboard/company/page.tsx");
+ const helper=read("lib/job-advert-image.ts");
+ const route=read("app/api/jobs/[id]/advertisement/route.ts");
+ const detail=read("app/jobs/[slug]/page.tsx");
+ assert.match(admin,/name="job_ad_image"/);
+ assert.match(company,/name="job_ad_image"/);
+ assert.match(helper,/record-documents/);
+ assert.match(route,/job.verification_status!=="approved"/);
+ assert.match(route,/createSignedUrl/);
+ assert.match(detail,/Original approved job advertisement image/);
+});
+
+test("homepage job slider never displays mock expired or unapproved-sector jobs",()=>{
+ const page=read("app/page.tsx");
+ const slider=read("app/components/SectorJobSlider.tsx");
+ const css=read("app/globals.css");
+ assert.doesNotMatch(page,/jobs.map\(\(j\)/);
+ assert.match(page,/approvedSectors.has/);
+ assert.match(page,/job.deadline>=today/);
+ assert.match(page,/<SectorJobSlider jobs=\{currentJobs\}/);
+ assert.match(slider,/aria-pressed/);
+ assert.match(css,/current-jobs-track/);
+ assert.match(css,/@media \(max-width:640px\)/);
+});
