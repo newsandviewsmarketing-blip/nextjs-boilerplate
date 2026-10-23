@@ -44,7 +44,7 @@ type PendingJob = {
   city: string | null;
   employment_type: string;
   minimum_qualification: string | null;
-  minimum_experience: number;
+  minimum_experience: number | null;
   deadline: string | null;
 };
 type PendingRegulatory = {
@@ -159,6 +159,9 @@ export default async function AdminPage({
   );
   const productRows = (products ?? []) as PendingProduct[];
   const jobRows = (jobs ?? []) as PendingJob[];
+  const {data:jobCoverageRows}=jobRows.length ? await supabase.from("job_coverage")
+    .select("job_id,display_text").in("job_id",jobRows.map(j=>j.id)) : {data:[]};
+  const jobLocations=new Map((jobCoverageRows ?? []).map(v=>[v.job_id,v.display_text]));
   const { data: regulatoryData } = await supabase
     .from("product_regulatory")
     .select("product_id, registration_number, registration_status, applicability")
@@ -515,14 +518,14 @@ export default async function AdminPage({
             )}
 
             {jobRows.map((job) => (
-              <article key={job.id}>
+              <article key={job.id} id={"job-"+job.id}>
                 <div className="review-header">
                   <div>
                     <span className="module-tag">{job.sector || "JOB"}</span>
                     <h2>{job.title}</h2>
                     <p>
                       {companyNameFor(job.company_id, job.company_user_id)} ·{" "}
-                      {job.city || "Pakistan"}
+                      {jobLocations.get(job.id) || job.city || "Location not specified"}
                     </p>
                   </div>
                   <span className="status-pill">Pending</span>
@@ -539,7 +542,7 @@ export default async function AdminPage({
                   </div>
                   <div>
                     <dt>Experience</dt>
-                    <dd>{job.minimum_experience} years</dd>
+                    <dd>{job.minimum_experience===null?"Not specified":job.minimum_experience+" years"}</dd>
                   </div>
                   <div>
                     <dt>Deadline</dt>
