@@ -5,7 +5,10 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import MasterDataInput from "../../components/MasterDataInput";
+import JobMasterChoice from "../../components/JobMasterChoice";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
+import JobTerritoryFields from "../../admin/create/JobTerritoryFields";
+import JobSubmissionReceipt from "../../components/JobSubmissionReceipt";
 import {
   createJobAction,
   createProductAction,
@@ -73,7 +76,9 @@ type JobRow = {
   title: string;
   sector: string | null;
   city: string | null;
+  province: string | null;
   employment_type: string;
+  coverage_display?: string | null;
   verification_status: string;
   is_published: boolean;
   created_at: string;
@@ -85,6 +90,9 @@ type ApplicationRow = {
   candidate_user_id: string;
   status: string;
   applied_at: string;
+  cv_document_id?:string|null;
+  cv_source?:string|null;
+  cv_snapshot?:{full_name?:string;contact_email?:string;phone?:string;headline?:string;education?:string;experience?:string;skills?:string}|null;
 };
 
 function roleLabel(role: string) {
@@ -107,7 +115,7 @@ function permissionLabel(permission: string) {
 export default async function CompanyDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; submitted?: string }>;
 }) {
   const params = await searchParams;
   const { supabase, workspace } = await getCurrentCompanyWorkspace();
@@ -130,6 +138,7 @@ export default async function CompanyDashboardPage({
   let inquiryRows: InquiryRow[] = [];
   let jobRows: JobRow[] = [];
   let applicationRows: ApplicationRow[] = [];
+
 
   if (canManageCompany || canViewPrivateCompany) {
     const { data, error } = await supabase
@@ -181,7 +190,7 @@ export default async function CompanyDashboardPage({
     const { data, error } = await supabase
       .from("jobs")
       .select(
-        "id, slug, title, sector, city, employment_type, verification_status, is_published, created_at",
+        "id, slug, title, sector, city, province, employment_type, verification_status, is_published, created_at",
       )
       .eq("company_id", workspace.company_id)
       .order("created_at", { ascending: false });
@@ -191,12 +200,18 @@ export default async function CompanyDashboardPage({
     }
 
     jobRows = (data ?? []) as JobRow[];
+    if (jobRows.length) {
+      const {data: locationRows} = await supabase.from("job_coverage")
+        .select("job_id,display_text").in("job_id",jobRows.map(job=>job.id));
+      const descriptions = new Map((locationRows ?? []).map(x=>[x.job_id,x.display_text]));
+      jobRows = jobRows.map(job=>({...job,coverage_display:descriptions.get(job.id)??null}));
+    }
   }
 
   if (canManageApplicants) {
     const { data, error } = await supabase
       .from("job_applications")
-      .select("id, job_id, candidate_user_id, status, applied_at")
+      .select("id, job_id, candidate_user_id, status, applied_at, cv_document_id, cv_source, cv_snapshot")
       .order("applied_at", { ascending: false })
       .limit(25);
 
@@ -205,11 +220,20 @@ export default async function CompanyDashboardPage({
     }
 
     applicationRows = (data ?? []) as ApplicationRow[];
+
+
   }
 
   const productMap = new Map(
     productRows.map((product) => [product.id, product]),
   );
+  const {data:submittedJob} = canManageJobs && params.submitted
+    ? await supabase.from("jobs").select("id,title,sector,description,company_id,city,province,employment_type,minimum_qualification,minimum_experience,deadline,verification_status")
+       .eq("id",params.submitted).eq("company_id",workspace.company_id).eq("verification_status","pending").maybeSingle()
+    : {data:null};
+  const {data:submittedCoverage}=submittedJob
+    ? await supabase.from("job_coverage").select("display_text").eq("job_id",submittedJob.id).maybeSingle()
+    : {data:null};
   const jobMap = new Map(jobRows.map((job) => [job.id, job]));
   const approved = workspace.company_verification_status === "approved";
   const displayName = company?.company_name || workspace.canonical_name;
@@ -244,6 +268,13 @@ export default async function CompanyDashboardPage({
       <section className="section compact-section">
         <div className="shell">
           <FormMessage {...params} />
+          {submittedJob && <JobSubmissionReceipt closeHref="/dashboard/company"
+            job={{id:submittedJob.id,title:submittedJob.title,sector:submittedJob.sector,
+              company:workspace.canonical_name,description:submittedJob.description,
+              employment_type:submittedJob.employment_type,minimum_qualification:submittedJob.minimum_qualification,
+              minimum_experience:submittedJob.minimum_experience,deadline:submittedJob.deadline,
+              location:submittedCoverage?.display_text ?? submittedJob.city ?? submittedJob.province ?? "Not specified",
+              verification_status:submittedJob.verification_status}}/>}
 
           <div className="backend-form-card">
             <div className="section-heading">
@@ -524,15 +555,19 @@ export default async function CompanyDashboardPage({
                 <fieldset disabled={!approved}>
                   <div className="form-grid">
                     <div><label htmlFor="title">Job title</label><input id="title" name="title" required /></div>
-                    <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="Full-time" allowCustom={false} />
-                    <MasterDataInput category="job_sector" name="job_sector" label="Sector" />
-                    <PakistanLocationFields fieldPrefix="job_" />
-                    <div><label htmlFor="minimum_qualification">Minimum qualification</label><input id="minimum_qualification" name="minimum_qualification" placeholder="DVM, MSc, diploma..." /></div>
-                    <div><label htmlFor="minimum_experience">Minimum experience</label><input id="minimum_experience" name="minimum_experience" type="number" min="0" defaultValue="0" /></div>
+                    <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" allowCustom />
+                    <JobMasterChoice category="job_sector" name="job_sector" label="Job sector" />
+                    <JobTerritoryFields />
+                    <JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" />
+                    <div><label htmlFor="minimum_experience">Minimum experience</label><input id="minimum_experience" name="minimum_experience" type="number" min="0" /></div>
                     <div><label htmlFor="deadline">Application deadline</label><input id="deadline" name="deadline" type="date" /></div>
                     <div className="form-span-2"><label htmlFor="job_description">Job description and requirements</label><textarea id="job_description" name="job_description" required /></div>
                   </div>
-                  <FormSubmitButton pendingLabel="Submitting job...">Submit for approval</FormSubmitButton>
+                  <div className="form-span-2"><label htmlFor="company_job_ad_image">Original job advertisement image (optional)</label>
+     <input id="company_job_ad_image" name="job_ad_image" type="file" accept="image/jpeg,image/png,image/webp" />
+     <p className="form-help">JPG, PNG or WebP up to 5 MB. Visible to the public only after approval.</p>
+   </div>
+   <FormSubmitButton pendingLabel="Submitting job...">Submit for approval</FormSubmitButton>
                 </fieldset>
               </form>
 
@@ -547,7 +582,7 @@ export default async function CompanyDashboardPage({
                         <div>
                           <span className={`status-pill status-${job.verification_status}`}>{job.verification_status}</span>
                           <h3>{job.title}</h3>
-                          <p>{job.sector || "Animal health"} · {job.city || "Pakistan"} · {job.employment_type}</p>
+                          <p>{job.sector || "Animal health"} · {job.coverage_display || job.city || job.province || "Location not specified"} · {job.employment_type}</p>
                         </div>
                         {job.verification_status === "approved" ? (
                           <Link href={`/jobs/${job.slug}`}>View listing</Link>
@@ -627,6 +662,16 @@ export default async function CompanyDashboardPage({
                         <h3>{jobMap.get(application.job_id)?.title || "Job application"}</h3>
                         <p>Candidate reference: {application.candidate_user_id}</p>
                         <small>Applied {new Date(application.applied_at).toLocaleDateString("en-PK")}</small>
+                        {application.cv_document_id&&<p><a href={"/api/career/documents/"+application.cv_document_id}
+                          target="_blank" rel="noopener noreferrer">View candidate-submitted CV ↗</a></p>}
+                        {application.cv_source==="profile_cv" && application.cv_snapshot&&
+                          <details><summary>View submitted profile CV</summary>
+                            <p><strong>{application.cv_snapshot.full_name}</strong> · {application.cv_snapshot.headline}</p>
+                            <p>{[application.cv_snapshot.contact_email,application.cv_snapshot.phone].filter(Boolean).join(" · ")}</p>
+                            <p className="cv-preserve-lines">{application.cv_snapshot.education}</p>
+                            <p className="cv-preserve-lines">{application.cv_snapshot.experience}</p>
+                            <p className="cv-preserve-lines">{application.cv_snapshot.skills}</p>
+                          </details>}
                       </div>
                     </article>
                   ))}
@@ -634,6 +679,7 @@ export default async function CompanyDashboardPage({
               )}
             </div>
           )}
+
 
           {canManageMembers && (
             <div className="backend-form-card">

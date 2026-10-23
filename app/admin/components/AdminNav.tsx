@@ -17,6 +17,7 @@ export default function AdminNav({ roles }: { roles: AccountRole[] }) {
         {canDirectory && <Link href="/admin/directory">Master directory</Link>}
         {roles.includes("super_admin") && <Link href="/admin/data">Data Studio</Link>}
         {canReview && <Link href="/admin/reviews">Review queues</Link>}
+        {hasAdminPermissionForRoles(roles, "jobs.manage") && <Link href="/admin/jobs-media">Job advertisement images</Link>}
         {hasAdminPermissionForRoles(roles, "review.analytics") && <Link href="/admin/review-history">Review history</Link>}
         {hasAdminPermissionForRoles(roles, "products.manage") && <Link href="/admin/products">Products</Link>}
         {hasAdminPermissionForRoles(roles, "users.manage") && <Link href="/admin/users">Users & roles</Link>}
