@@ -560,7 +560,11 @@ export default async function CompanyDashboardPage({
                     <div><label htmlFor="deadline">Application deadline</label><input id="deadline" name="deadline" type="date" /></div>
                     <div className="form-span-2"><label htmlFor="job_description">Job description and requirements</label><textarea id="job_description" name="job_description" required /></div>
                   </div>
-                  <FormSubmitButton pendingLabel="Submitting job...">Submit for approval</FormSubmitButton>
+                  <div className="form-span-2"><label htmlFor="company_job_ad_image">Original job advertisement image (optional)</label>
+     <input id="company_job_ad_image" name="job_ad_image" type="file" accept="image/jpeg,image/png,image/webp" />
+     <p className="form-help">JPG, PNG or WebP up to 5 MB. Visible to the public only after approval.</p>
+   </div>
+   <FormSubmitButton pendingLabel="Submitting job...">Submit for approval</FormSubmitButton>
                 </fieldset>
               </form>
 
