@@ -38,6 +38,7 @@ export default function JobTerritoryFields() {
   const [hierarchy, setHierarchy] = useState<Province[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
   const [manualDistrict, setManualDistrict] = useState("");
+  const [savedCities,setSavedCities] = useState<Array<{label:string;metadata?:{province?:string}}>>([]);
 
   useEffect(() => {
     let active = true;
@@ -51,14 +52,25 @@ export default function JobTerritoryFields() {
     return () => { active = false; };
   }, []);
 
+  useEffect(()=>{
+    let active=true;
+    fetch("/api/master-data?category=city",{cache:"no-store"})
+      .then(r=>r.ok?r.json():{items:[]})
+      .then(r=>{if(active)setSavedCities(r.items ?? []);})
+      .catch(()=>{if(active)setSavedCities([]);});
+    return ()=>{active=false;};
+  },[]);
   const choices = useMemo(
     () => hierarchy.find(p => p.name.en === (SOURCE_PROVINCE_NAMES[province] ?? province))?.district ?? [],
     [hierarchy, province],
   );
   const townSuggestions = useMemo(
-    () => unique(choices.filter(d => districts.length === 0 || districts.includes(d.name.en))
-      .flatMap(d => (d.tehsil ?? []).map(t => t.name.en))),
-    [choices, districts],
+    () => unique([
+      ...choices.filter(d => districts.length === 0 || districts.includes(d.name.en))
+        .flatMap(d => (d.tehsil ?? []).map(t => t.name.en)),
+      ...savedCities.filter(c=>!c.metadata?.province || c.metadata.province.toLowerCase()===province.toLowerCase()).map(c=>c.label)
+    ]),
+    [choices,districts,province,savedCities],
   );
   const asksProvince = !["nationwide", "flexible"].includes(scope);
   const hasSubareas = asksProvince;
@@ -145,7 +157,7 @@ export default function JobTerritoryFields() {
           onClick={()=>setCities(prev=>prev.filter(x=>x!==c))}>{c} ×</button>)}
       </div>}
       <input type="hidden" name="coverage_cities" value={cities.join(",")} />
-      <p className="form-help">Town suggestions are administrative centres, not a complete city list; other cities may be typed. Leaving this blank does not create a city record.</p>
+      <p className="form-help">Select an approved saved city or type a new one. New entries can be proposed for admin approval and are not automatically added to the shared city list.</p>
     </div>}
     {hasSubareas && province && <div className="form-span-2">
       <label style={{display:"flex",gap:"8px",alignItems:"center"}}>
