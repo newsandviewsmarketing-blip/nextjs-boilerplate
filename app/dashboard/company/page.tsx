@@ -5,6 +5,7 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import MasterDataInput from "../../components/MasterDataInput";
+import JobMasterChoice from "../../components/JobMasterChoice";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
 import JobTerritoryFields from "../../admin/create/JobTerritoryFields";
 import {
@@ -534,9 +535,9 @@ export default async function CompanyDashboardPage({
                   <div className="form-grid">
                     <div><label htmlFor="title">Job title</label><input id="title" name="title" required /></div>
                     <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" allowCustom />
-                    <MasterDataInput category="job_sector" name="job_sector" label="Sector" />
+                    <JobMasterChoice category="job_sector" name="job_sector" label="Job sector" />
                     <JobTerritoryFields />
-                    <div><label htmlFor="minimum_qualification">Minimum qualification</label><input id="minimum_qualification" name="minimum_qualification" placeholder="DVM, MSc, diploma..." /></div>
+                    <JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" />
                     <div><label htmlFor="minimum_experience">Minimum experience</label><input id="minimum_experience" name="minimum_experience" type="number" min="0" /></div>
                     <div><label htmlFor="deadline">Application deadline</label><input id="deadline" name="deadline" type="date" /></div>
                     <div className="form-span-2"><label htmlFor="job_description">Job description and requirements</label><textarea id="job_description" name="job_description" required /></div>
