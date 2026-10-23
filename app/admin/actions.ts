@@ -249,14 +249,19 @@ export async function reviewJobAction(formData: FormData) {
     redirect("/admin/reviews?error=Invalid%20job%20review%20request.");
   }
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updatedJob, error } = await supabase
     .from("jobs")
     .update({
       verification_status: decision,
       is_published: decision === "approved",
     })
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .eq("verification_status", "pending")
+    .eq("is_published", false)
+    .select("id")
+    .maybeSingle();
   if (error) redirect(`/admin/reviews?error=${encodeURIComponent(error.message)}`);
+  if (!updatedJob) redirect("/admin/reviews?error=Job%20is%20already%20reviewed%20or%20not%20available.");
   await supabase.from("audit_logs").insert({
     actor_id: identity.userId,
     action: `job.${decision}`,
