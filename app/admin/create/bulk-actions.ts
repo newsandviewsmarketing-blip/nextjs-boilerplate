@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { parseTabularUpload } from "@/lib/tabular-import";
+import { persistImportedJobDetails } from "@/lib/job-import-cleanup";
 
 type Kind = "person" | "company" | "clinic" | "laboratory" | "product" | "job";
 type Row = Record<string, string>;
@@ -187,38 +188,39 @@ export async function bulkImportAction(formData: FormData) {
           deadline:nullable(row,"deadline"),verification_status:"pending",is_published:false,
         }).select("id").single();
         if(error||!job) throw new Error(error?.message || "Job insert failed");
-        const {error:coverageError}=await supabase.from("job_coverage").insert({
-          job_id:job.id,scope,province,region_id:regionId,display_text:locationText,
-        });
-        if(coverageError){
-          await supabase.from("jobs").delete().eq("id",job.id);
-          throw new Error("Could not save job coverage: "+coverageError.message);
-        }
-        const areaRows=[
-          ...districtNames.map(label=>({job_id:job.id,area_level:"district",province,district:label,city:null,label})),
-          ...cityNames.map(label=>({job_id:job.id,area_level:"city",province,district:null,city:label,label})),
-        ];
-        if(areaRows.length){
-          const {error:areaError}=await supabase.from("job_coverage_areas").insert(areaRows);
-          if(areaError){
-            await supabase.from("jobs").delete().eq("id",job.id);
-            throw new Error("Could not save covered areas: "+areaError.message);
-          }
-          if(regionId){
-            const {data:existingRegionAreas,error:readError}=await supabase.from("company_region_areas")
-              .select("area_level,label").eq("region_id",regionId);
-            if(readError) throw readError;
-            const known=new Set((existingRegionAreas||[]).map(x=>x.area_level+":"+x.label.toLowerCase()));
-            const missing=areaRows.filter(x=>!known.has(x.area_level+":"+x.label.toLowerCase()));
-            if(missing.length){
-              const {error:regionAreaError}=await supabase.from("company_region_areas").insert(
-                missing.map(x=>({region_id:regionId,area_level:x.area_level,province,
-                  district:x.district,city:x.city,label:x.label}))
-              );
-              if(regionAreaError) throw regionAreaError;
+        await persistImportedJobDetails(job.id, async () => {
+          const {error:coverageError}=await supabase.from("job_coverage").insert({
+            job_id:job.id,scope,province,region_id:regionId,display_text:locationText,
+          });
+          if(coverageError) throw new Error("Could not save job coverage: "+coverageError.message);
+          const areaRows=[
+            ...districtNames.map(label=>({job_id:job.id,area_level:"district",province,district:label,city:null,label})),
+            ...cityNames.map(label=>({job_id:job.id,area_level:"city",province,district:null,city:label,label})),
+          ];
+          if(areaRows.length){
+            const {error:areaError}=await supabase.from("job_coverage_areas").insert(areaRows);
+            if(areaError) throw new Error("Could not save covered areas: "+areaError.message);
+            if(regionId){
+              const {data:existingRegionAreas,error:readError}=await supabase.from("company_region_areas")
+                .select("area_level,label").eq("region_id",regionId);
+              if(readError) throw readError;
+              const known=new Set((existingRegionAreas||[]).map(x=>x.area_level+":"+x.label.toLowerCase()));
+              const missing=areaRows.filter(x=>!known.has(x.area_level+":"+x.label.toLowerCase()));
+              if(missing.length){
+                const {error:regionAreaError}=await supabase.from("company_region_areas").insert(
+                  missing.map(x=>({region_id:regionId,area_level:x.area_level,province,
+                    district:x.district,city:x.city,label:x.label}))
+                );
+                if(regionAreaError) throw regionAreaError;
+              }
             }
           }
-        }
+        }, async (jobId) => {
+          // Verify the deletion result; an RLS-denied delete can otherwise look successful.
+          const {data: deleted, error: cleanupError} = await supabase.from("jobs")
+            .delete().eq("id",jobId).select("id").maybeSingle();
+          return !cleanupError && deleted?.id === jobId;
+        });
       }
       created += 1;
     } catch (error) {

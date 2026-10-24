@@ -540,3 +540,56 @@ test("all CV uploads and job applications require an authenticated verified acco
  assert.match(guarded,/revoke all on public\.guest_job_applications/);
  assert.match(guarded,/drop policy if exists guest_submitted_employer_read/);
 });
+
+test("CSV import removes incomplete jobs after region-area failures", async () => {
+  // Execute the actual production rollback helper with fake persistence calls.
+  const ts = await import("typescript");
+  const vm = await import("node:vm");
+  const compiled = ts.default.transpileModule(read("lib/job-import-cleanup.ts"), {
+    compilerOptions: {
+      module: ts.default.ModuleKind.CommonJS,
+      target: ts.default.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const sandboxModule = {exports: {}};
+  vm.runInNewContext(compiled, {module: sandboxModule, exports: sandboxModule.exports, Error});
+  const {persistImportedJobDetails} = sandboxModule.exports;
+
+  const deleted = [];
+  await assert.rejects(
+    persistImportedJobDetails("job-1", async () => {
+      throw new Error("company_region_areas insert failed");
+    }, async (id) => {
+      deleted.push(id);
+      return true;
+    }),
+    /company_region_areas insert failed.*incomplete pending job was removed/i,
+  );
+  assert.deepEqual(deleted, ["job-1"]);
+
+  await assert.rejects(
+    persistImportedJobDetails("job-2", async () => {
+      throw new Error("job_coverage_areas insert failed");
+    }, async () => false),
+    /job_coverage_areas insert failed.*manual review required/i,
+  );
+  await assert.rejects(
+    persistImportedJobDetails("job-3", async () => {
+      throw new Error("company_regions lookup failed");
+    }, async () => {
+      throw new Error("RLS denied cleanup");
+    }),
+    /company_regions lookup failed.*manual review required/i,
+  );
+
+  const saved = await persistImportedJobDetails("job-4", async () => ({id: "job-4"}), async () => {
+    throw new Error("Cleanup must not run after success");
+  });
+  assert.equal(saved.id, "job-4");
+
+  const bulk = read("app/admin/create/bulk-actions.ts");
+  assert.match(bulk, /persistImportedJobDetails\(job\.id/);
+  assert.match(bulk, /if\(readError\) throw readError/);
+  assert.match(bulk, /if\(regionAreaError\) throw regionAreaError/);
+  assert.match(bulk, /\.delete\(\)\.eq\("id",jobId\)\.select\("id"\)\.maybeSingle\(\)/);
+});
