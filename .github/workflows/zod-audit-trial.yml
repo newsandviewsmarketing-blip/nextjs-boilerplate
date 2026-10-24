@@ -1,0 +1,49 @@
+name: Isolated Zod audit remediation
+
+on:
+  push:
+    branches: [security/zod-audit-20261024]
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: github.repository == 'newsandviewsmarketing-blip/nextjs-boilerplate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/zod-audit-20261024
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Non-forced lockfile-only security remediation
+        run: npm audit fix --package-lock-only --ignore-scripts --no-fund
+      - name: Verify locked installation
+        run: npm ci
+      - name: Full dependency audit (high or critical must fail)
+        run: npm run security:audit
+      - name: Repository audit
+        run: npm run audit
+      - name: Lint
+        run: npm run lint
+      - name: Source tests
+        run: npm test
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Production build in isolated runner only
+        run: npm run build
+      - name: Commit verified lockfile on isolated branch only
+        run: |
+          git diff --exit-code -- package.json
+          git config user.name "VetConnect Security CI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "security(lock): resolve patched Zod transitive dependency"
+            git push origin HEAD:security/zod-audit-20261024
+          fi
