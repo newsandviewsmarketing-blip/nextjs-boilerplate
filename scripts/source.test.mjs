@@ -551,9 +551,9 @@ test("CSV import removes incomplete jobs after region-area failures", async () =
       target: ts.default.ScriptTarget.ES2022,
     },
   }).outputText;
-  const module = {exports: {}};
-  vm.runInNewContext(compiled, {module, exports: module.exports, Error});
-  const {persistImportedJobDetails} = module.exports;
+  const sandboxModule = {exports: {}};
+  vm.runInNewContext(compiled, {module: sandboxModule, exports: sandboxModule.exports, Error});
+  const {persistImportedJobDetails} = sandboxModule.exports;
 
   const deleted = [];
   await assert.rejects(
