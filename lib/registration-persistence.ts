@@ -61,6 +61,23 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
       }
     }
   }
-  // Employer, clinic, and lab records remain in their existing category-specific workflows.
+  if(role==="company"){
+    const clinic=str(meta,"registration_intent")==="clinic";
+    const {error}=await supabase.from("company_profiles").update({
+      business_type:clinic?"Veterinary Clinic / Hospital":str(meta,"company_type"),
+      registration_number:clinic?null:str(meta,"company_registration_number"),
+      address:clinic?str(meta,"facility_address",250):null,
+      description:clinic?str(meta,"facility_type"):"Registered VetConnect employer / company onboarding"
+    }).eq("user_id",userId);
+    if(error)return "Unable to save business onboarding: "+error.message;
+  }
+  if(role==="laboratory"){
+    const {error}=await supabase.from("laboratories").update({
+      laboratory_type:str(meta,"laboratory_type")||null,
+      address:str(meta,"lab_location",250)||null,
+      tests_offered:str(meta,"tests_offered",250).split(",").map(x=>x.trim()).filter(Boolean)
+    }).eq("owner_id",userId);
+    if(error)return "Unable to save laboratory onboarding details: "+error.message;
+  }
   return null;
 }
