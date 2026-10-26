@@ -22,7 +22,8 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
       {name:"Assisted entry",href:"/admin/directory?kind=managed_person",permission:"directories.manage"}]},
     {title:"Marketplace & HR",items:[
       {name:"Products & medicines",href:"/admin/products",permission:"products.manage"},
-      {name:"Jobs",href:"/admin/directory?kind=job",permission:"directories.manage"},
+      {name:"Jobs",href:"/admin/jobs",permission:"jobs.manage"},
+      {name:"Applications",href:"/admin/applications",permission:"jobs.manage"},
       {name:"Job images",href:"/admin/jobs-media",permission:"jobs.manage"}]},
     {title:"Administration",items:[
       {name:"Master directory",href:"/admin/directory",permission:"directories.manage"},

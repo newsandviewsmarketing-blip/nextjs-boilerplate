@@ -57,7 +57,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
     requireCount("accounts","profiles","id");
     requireCount("customers","profiles","id",[["primary_role","user"]]);
     requireCount("newcomers","profiles","id",[["account_status","active"]]);
-    requireCount("applications","job_applications","id");
+
     requireCount("clinicAffiliations","clinic_members","clinic_id",[["membership_status","pending"]]);
   }
   if(productsAllowed){
@@ -65,6 +65,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
     requireCount("productsPending","products","id",[["verification_status","pending"]]);
   }
   if(jobsAllowed) {
+    requireCount("applications","job_applications","id");
     requireCount("jobs","jobs","id");
     requireCount("jobsPending","jobs","id",[["verification_status","pending"]]);
   }
@@ -74,21 +75,21 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   const value=(key:string)=>metricCounts.get(key)??null;
   const cards:Metric[]=[];
   const add=(ok:boolean,label:string,number:number|null,href:string,note:string,attention=false)=>{if(ok)cards.push({label,value:number,href,note,attention});};
-  add(profilesAllowed||usersAllowed||directoryAllowed,"Veterinarians",total("vets","managedVets"),usersAllowed?"/admin/users?role=veterinarian":"/admin/directory?kind=managed_person","Registered and staff-assisted");
-  add(profilesAllowed||usersAllowed||directoryAllowed,"Professionals",total("professionals","managedProfessionals"),usersAllowed?"/admin/users?role=professional":"/admin/directory?kind=managed_person","Accounts and assisted records");
-  add(directoryAllowed||profilesAllowed,"Companies & firms",value("companies"),"/admin/directory?kind=company","Organization records");
-  add(directoryAllowed||profilesAllowed,"Clinics",value("clinics"),"/admin/directory?kind=clinic","Clinics and hospitals");
-  add(directoryAllowed||profilesAllowed,"Laboratories",value("labs"),"/admin/directory?kind=laboratory","Diagnostic facilities");
+  add(usersAllowed||directoryAllowed,"Veterinarians",total("vets","managedVets"),directoryAllowed?"/admin/directory?q=veterinarian":"/admin/users?role=veterinarian","Registered and staff-assisted");
+  add(usersAllowed||directoryAllowed,"Professionals",total("professionals","managedProfessionals"),directoryAllowed?"/admin/directory?q=professional":"/admin/users?role=professional","Accounts and assisted records");
+  add(directoryAllowed,"Companies & firms",value("companies"),"/admin/directory?kind=company","Organization records");
+  add(directoryAllowed,"Clinics",value("clinics"),"/admin/directory?kind=clinic","Clinics and hospitals");
+  add(directoryAllowed,"Laboratories",value("labs"),"/admin/directory?kind=laboratory","Diagnostic facilities");
   add(usersAllowed,"Customers",value("customers"),"/admin/users?role=user","Registered customer accounts");
-  add(usersAllowed,"Newcomers / accounts",value("accounts"),"/admin/users","All registered accounts");
+  add(usersAllowed,"Registered accounts",value("accounts"),"/admin/users","All registered accounts");
   add(productsAllowed,"Marketplace products",value("products"),"/admin/products","Medicines, feed and other products");
-  add(jobsAllowed,"Jobs & HR",value("jobs"),directoryAllowed?"/admin/directory?kind=job":"/admin/reviews#jobs-review","Vacancy records");
-  add(usersAllowed,"Job applications",value("applications"),"/admin/users","Applications recorded");
+  add(jobsAllowed,"Jobs & HR",value("jobs"),"/admin/jobs","Vacancy records");
+  add(jobsAllowed,"Job applications",value("applications"),"/admin/applications","Applications recorded");
   add(profilesAllowed,"Pending profiles",total("vetsPending","professionalsPending","companyPending","labsPending","managedPending","clinicsPending","companiesPending"),"/admin/reviews#pending-profiles","Approval queue",true);
   add(credentialAllowed,"PVMC checks",total("pvmcPending","managedPvmcPending"),"/admin/reviews#credential-checks","Independent verification",true);
   add(productsAllowed,"Pending products",value("productsPending"),"/admin/reviews#pending-products","Publication review",true);
   add(jobsAllowed,"Pending jobs",value("jobsPending"),"/admin/reviews#jobs-review","Employer submissions",true);
-  add(usersAllowed,"Pending clinic affiliations",value("clinicAffiliations"),"/admin/clinics","Membership requests",true);
+  add(usersAllowed,"Pending clinic affiliations",value("clinicAffiliations"),"/admin/clinic-affiliations","Membership requests",true);
   add(can("master_data.manage"),"Category suggestions",value("suggestions"),"/admin/data#suggestions-to-review","New category/city/degree requests",true);
 
   const activity:Activity[]=[];
@@ -117,7 +118,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   for(const item of clinics.data??[])addActivity({id:"clinic-"+item.id,kind:"clinic",name:item.clinic_name,at:item.created_at,status:item.verification_status,href:"/admin/reviews#profile-clinics-"+item.id,description:"Clinic needs review"});
   for(const item of laboratories.data??[])addActivity({id:"laboratory-"+item.id,kind:"laboratory",name:item.laboratory_name,at:item.created_at,status:item.verification_status,href:"/admin/reviews#profile-laboratories-"+item.id,description:"Laboratory needs review"});
   for(const item of products.data??[])addActivity({id:"product-"+item.id,kind:"product",name:item.product_name,at:item.created_at,status:item.verification_status,href:item.verification_status==="pending"?"/admin/reviews#product-"+item.id:"/admin/products/"+item.id,description:"Marketplace product"});
-  for(const item of jobs.data??[])addActivity({id:"job-"+item.id,kind:"job",name:item.title,at:item.created_at,status:item.verification_status,href:item.verification_status==="pending"?"/admin/reviews#job-"+item.id:"/admin/directory/job/"+item.id,description:"Employer opportunity"});
+  for(const item of jobs.data??[])addActivity({id:"job-"+item.id,kind:"job",name:item.title,at:item.created_at,status:item.verification_status,href:item.verification_status==="pending"?"/admin/reviews#job-"+item.id:"/admin/jobs?search="+encodeURIComponent(item.title),description:"Employer opportunity"});
   for(const item of audit.data??[])addActivity({id:"audit-"+item.id,kind:"administration",name:item.action.replaceAll("_"," ").replaceAll("."," · "),at:item.created_at,status:"recorded",href:"/admin/audit",description:"Latest recorded actions: "+item.entity_type.replaceAll("_"," ")});
   const filtered=activity
     .sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))
@@ -167,7 +168,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
           <div className="admin-pulse-grid">
             <article><Link href="/admin/users"><b>{value("accounts")===null?"—":value("accounts")}</b><span>New registrations and account directory</span></Link></article>
             <article><Link href="/admin/users?role=veterinarian"><b>{value("vets")===null?"—":value("vets")}</b><span>Veterinarian accounts</span></Link></article>
-            <article><Link href="/admin/users"><b>{value("applications")===null?"—":value("applications")}</b><span>Job applications</span></Link></article>
+            <article><Link href="/admin/users"><b>{value("customers")===null?"—":value("customers")}</b><span>Customer accounts</span></Link></article>
             <article><Link href="/admin/reviews"><b>{value("clinicAffiliations")===null?"—":value("clinicAffiliations")}</b><span>Pending clinic affiliations</span></Link></article>
           </div><p className="vc-panel-footnote">These are all-time totals unless identified as a current pending queue. The activity list provides recent timestamps; a dedicated time-series report requires additional validated queries.</p>
         </section>}

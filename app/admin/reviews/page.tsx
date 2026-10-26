@@ -294,7 +294,7 @@ export default async function AdminPage({
               <span>Jobs</span>
             </article>
           </div>
-          <div className="admin-review-list">
+          <div id="pending-profiles" className="admin-review-list vc-review-target">
             {pending.length === 0 && (
               <div className="empty-state">
                 <h2>No profiles are waiting for review.</h2>
@@ -424,7 +424,7 @@ export default async function AdminPage({
             })}
           </div>
           <div className="section-heading admin-product-heading">
-            <span className="section-kicker">VETERINARY CREDENTIAL REVIEW</span>
+            <span id="credential-checks" className="section-kicker vc-review-target">VETERINARY CREDENTIAL REVIEW</span>
             <h2>PVMC verification is separate from profile approval.</h2>
             <p>Registration numbers remain private. Only the verified status is published.</p>
           </div>
@@ -452,7 +452,7 @@ export default async function AdminPage({
             })}
           </div>
           <div className="section-heading admin-product-heading">
-            <span className="section-kicker">PRODUCT MODERATION</span>
+            <span id="pending-products" className="section-kicker vc-review-target">PRODUCT MODERATION</span>
             <h2>Marketplace submissions.</h2>
             <p>Approve complete company listings before they become public.</p>
           </div>
