@@ -72,12 +72,12 @@ export default async function AdminOverviewPage() {
       .eq("verification_status", "pending");
     pendingJobs = count ?? 0;
   }
-  if (hasAdminPermission(identity,"jobs.manage") || hasAdminPermission(identity,"master_data.manage")) {
+  if (effectivePermissions.has("jobs.manage") || effectivePermissions.has("master_data.manage")) {
     const {data:notices}=await supabase.from("admin_review_notifications")
       .select("id,event_kind,entity_id,detail,created_at").order("created_at",{ascending:false}).limit(8);
     recentReviewNotices=(notices??[]) as typeof recentReviewNotices;
   }
-  if(hasAdminPermission(identity,"master_data.manage")){
+  if(effectivePermissions.has("master_data.manage")){
     const {count}=await supabase.from("master_data_suggestions")
       .select("id",{head:true,count:"exact"}).eq("status","pending");
     pendingMasterSuggestions=count??0;
@@ -223,7 +223,7 @@ export default async function AdminOverviewPage() {
                 </>
               )}
             </div>
-            {hasAdminPermission(identity,"master_data.manage") && <div className="admin-summary phase4-summary">
+            {effectivePermissions.has("master_data.manage") && <div className="admin-summary phase4-summary">
               <article><Link href="/admin/data#suggestions-to-review"><b>{pendingMasterSuggestions}</b><span>Master data suggestions to review →</span></Link></article>
             </div>}
             {recentReviewNotices.length>0 && <section className="backend-form-card">
