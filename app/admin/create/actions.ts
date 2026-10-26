@@ -38,10 +38,13 @@ async function saveDocument(
 export async function createManagedPersonAction(formData: FormData) {
   const identity = await requireAdminPermission("profiles.create", "/admin/create?type=person");
   const publish = formData.get("publish_now") === "on";
-  if (publish) await requireAdminPermission("profiles.review", "/admin/create?type=person");
   const fullName = text(formData, "full_name");
   const profileKind = text(formData, "profile_kind") || "professional";
   if (!fullName) createError("person", "Full name is required.");
+  if (!["veterinarian", "professional"].includes(profileKind)) createError("person", "Invalid profile type.");
+  // Entering a PVMC number is not credential verification. Veterinarians stay unpublished.
+  const canPublishNow = publish && profileKind === "professional";
+  if (canPublishNow) await requireAdminPermission("profiles.review", "/admin/create?type=person");
   const pvmc = optional(formData, "pvmc_number");
   const supabase = await createClient();
   const { data, error } = await supabase.from("managed_people").insert({
@@ -54,9 +57,9 @@ export async function createManagedPersonAction(formData: FormData) {
     services: list(formData,"services"), skills: list(formData,"skills"), years_experience: Number(text(formData,"years_experience") || 0),
     province: optional(formData,"province"), district: optional(formData,"district"), tehsil: optional(formData,"tehsil"), city: optional(formData,"city"),
     address: optional(formData,"address"), google_maps_url: optional(formData,"google_maps_url"), image_url: optional(formData,"image_url"),
-    verification_status: publish ? "approved" : "pending",
-    pvmc_verification_status: publish && profileKind === "veterinarian" && pvmc ? "approved" : "pending",
-    is_published: publish, verified_by: publish ? identity.userId : null, verified_at: publish ? new Date().toISOString() : null,
+    verification_status: canPublishNow ? "approved" : "pending",
+    pvmc_verification_status: "pending",
+    is_published: canPublishNow, verified_by: canPublishNow ? identity.userId : null, verified_at: canPublishNow ? new Date().toISOString() : null,
     created_by: identity.userId, updated_by: identity.userId,
   }).select("id").single();
   if (error || !data) createError("person", error?.message ?? "Could not create profile.");
@@ -71,7 +74,7 @@ export async function createManagedPersonAction(formData: FormData) {
   }
 
   revalidatePath("/admin/directory"); revalidatePath("/vets"); revalidatePath("/professionals");
-  redirect("/admin/create?type=person&message=Assisted%20profile%20created.");
+  redirect(`/admin/create?type=person&message=${encodeURIComponent(profileKind === "veterinarian" ? "Veterinarian saved for profile and PVMC credential review." : "Assisted profile created.")}`);
 }
 
 export async function createCompanyAction(formData: FormData) {

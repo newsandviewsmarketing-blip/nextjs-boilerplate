@@ -3,17 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import {
-  canModerateProducts,
-  canManageJobs,
-  canReviewProfiles,
-  getCurrentIdentity,
-} from "@/lib/auth";
+import { getCurrentIdentity } from "@/lib/auth";
+import { getEffectiveAdminPermission } from "@/lib/admin";
 
 export async function reviewProfileAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles)) redirect("/dashboard?error=Admin%20access%20is%20required.");
+  if (!(await getEffectiveAdminPermission(identity, "profiles.review"))) redirect("/dashboard?error=Admin%20access%20is%20required.");
 
   const profileType = String(formData.get("profile_type") ?? "");
   const recordSource = String(formData.get("record_source") ?? "account");
@@ -137,7 +133,7 @@ export async function reviewProfileAction(formData: FormData) {
 export async function reviewVeterinarianCredentialAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles)) redirect("/dashboard?error=Verification%20access%20is%20required.");
+  if (!(await getEffectiveAdminPermission(identity, "regulatory.review"))) redirect("/dashboard?error=Verification%20access%20is%20required.");
 
   const userId = String(formData.get("user_id") ?? "");
   const recordSource = String(formData.get("record_source") ?? "account");
@@ -191,7 +187,7 @@ export async function reviewVeterinarianCredentialAction(formData: FormData) {
 export async function reviewProductAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canModerateProducts)) {
+  if (!(await getEffectiveAdminPermission(identity, "products.manage"))) {
     redirect("/dashboard?error=Admin%20access%20is%20required.");
   }
 
@@ -240,7 +236,7 @@ export async function reviewProductAction(formData: FormData) {
 export async function reviewJobAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin/reviews");
-  if (!identity.roles.some(canManageJobs)) redirect("/dashboard?error=Job%20review%20permission%20is%20required.");
+  if (!(await getEffectiveAdminPermission(identity, "jobs.manage"))) redirect("/dashboard?error=Job%20review%20permission%20is%20required.");
   const jobId=String(formData.get("job_id") ?? "");
   const decision=String(formData.get("decision") ?? "");
   if(!jobId || !["approved","rejected"].includes(decision))
@@ -281,7 +277,7 @@ export async function reviewJobAction(formData: FormData) {
 export async function reviewProductRegulatoryAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles)) {
+  if (!(await getEffectiveAdminPermission(identity, "regulatory.review"))) {
     redirect("/dashboard?error=Verification%20access%20is%20required.");
   }
   const productId = String(formData.get("product_id") ?? "");

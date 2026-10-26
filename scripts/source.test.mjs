@@ -619,3 +619,33 @@ test("CSV import removes incomplete jobs after region-area failures", async () =
   assert.match(bulk, /if\(regionAreaError\) throw regionAreaError/);
   assert.match(bulk, /\.delete\(\)\.eq\("id",jobId\)\.select\("id"\)\.maybeSingle\(\)/);
 });
+
+test("Phase 2 dashboard links to actionable administration, reports and records", () => {
+  const overview = read("app/admin/page.tsx");
+  const reviews = read("app/admin/reviews/page.tsx");
+  const nav = read("app/admin/components/AdminNav.tsx");
+  const report = read("app/admin/reports/page.tsx");
+  const exportRoute = read("app/admin/reports/export/route.ts");
+  const company = read("app/dashboard/company/page.tsx");
+  const account = read("app/dashboard/page.tsx");
+  assert.match(overview, /getEffectiveAdminPermissions/);
+  assert.match(overview, /Pending profiles/);
+  assert.match(overview, /New registrations/);
+  assert.match(overview, /admin\/reviews#profile-account-/);
+  assert.match(overview, /newRegistrations24h/);
+  assert.match(overview, /24\*60\*60\*1000/);
+  assert.match(reviews, /id=\{\`profile-\$\{row\.record_source/);
+  assert.match(reviews, /id=\{\`credential-\$\{row\.record_source/);
+  assert.match(reviews, /id=\{\`product-\$\{product.id\}/);
+  assert.match(nav, /getEffectiveAdminPermissions/);
+  assert.match(nav, /Printable reports/);
+  assert.match(report, /PrintReportButton/);
+  assert.match(exportRoute, /getEffectiveAdminPermission\(identity,"audit.view"\)/);
+  assert.match(exportRoute, /no-store/);
+  assert.match(exportRoute, /csvCell/);
+  assert.match(company, /company-applications/);
+  assert.match(account, /vc-customer-hub/);
+  for(const file of ["app/admin/jobs/page.tsx","app/admin/jobs/[id]/page.tsx","app/admin/applications/page.tsx","app/admin/clinic-affiliations/page.tsx","app/admin/reports/page.tsx"]){
+    assert.ok(read(file).length>300, file+" is missing");
+  }
+});
