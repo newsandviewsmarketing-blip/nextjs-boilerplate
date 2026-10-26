@@ -65,7 +65,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  const revoked=new Set<string>(Array.isArray(permissions.data?.revoked_permissions)?permissions.data.revoked_permissions:[]);
  const publicVet=accountStatus==="active"&&v?.verification_status==="approved"&&v?.pvmc_verification_status==="approved";
  const publicPro=accountStatus==="active"&&pr?.verification_status==="approved"&&pr?.profile_visibility==="public";
- const label=safeName(p.full_name||p.email||"Unnamed account");
+ const label=isSuspiciousProfileName(String(p.full_name??"")) ? `Flagged account · ${id.slice(0,8)}` : safeName(p.full_name||p.email||"Unnamed account");
  const publicHref=publicVet?"/vets/"+id:publicPro&&pr?.slug?"/professionals/"+pr.slug:null;
  const alertSpam=isSuspiciousProfileName(String(p.full_name??""));
  const docLinks=await Promise.all((uploads.data??[]).map(async row=>{

@@ -2,6 +2,7 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AdminNav from "./components/AdminNav";
+import { isSuspiciousProfileName } from "@/lib/profile-name";
 import { requireAdminPermission, getEffectiveAdminPermissions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -123,7 +124,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   const accountIds=[...(vets.data??[]).map(x=>x.user_id),...(professionals.data??[]).map(x=>x.user_id)].filter(Boolean);
   const lookup=accountIds.length ? await supabase.from("profiles").select("id,full_name").in("id",accountIds) : {data:[]};
   const names=new Map((lookup.data??[]).map(item=>[item.id,item.full_name]));
-  for(const item of profiles.data??[])addActivity({id:"registration-"+item.id,kind:"registration",name:item.full_name||"New account",status:item.account_status,at:item.created_at,href:"/admin/users/"+item.id,description:"New "+item.primary_role.replaceAll("_"," ")+" registration"});
+  for(const item of profiles.data??[])addActivity({id:"registration-"+item.id,kind:"registration",name:isSuspiciousProfileName(item.full_name||"")?`Flagged account · ${item.id.slice(0,8)}`:item.full_name||"New account",status:item.account_status,at:item.created_at,href:"/admin/users/"+item.id,description:"New "+item.primary_role.replaceAll("_"," ")+" registration"});
   for(const item of vets.data??[])addActivity({id:"vet-"+item.user_id,kind:"veterinarian",name:names.get(item.user_id)||"Veterinarian registration",status:item.verification_status,at:item.created_at,href:"/admin/reviews#profile-account-"+item.user_id,description:"Veterinarian profile needs review"});
   for(const item of professionals.data??[])addActivity({id:"professional-"+item.user_id,kind:"professional",name:names.get(item.user_id)||"Professional registration",status:item.verification_status,at:item.created_at,href:"/admin/reviews#profile-account-"+item.user_id,description:"Professional profile needs review"});
   for(const item of managed.data??[])addActivity({id:"managed-"+item.id,kind:item.profile_kind,name:item.full_name||"Assisted entry",status:item.verification_status,at:item.created_at,href:"/admin/reviews#profile-managed_people-"+item.id,description:"Assisted "+item.profile_kind+" awaits review"});

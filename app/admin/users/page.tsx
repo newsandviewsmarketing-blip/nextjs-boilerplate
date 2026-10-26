@@ -3,6 +3,7 @@ import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import AdminNav from "../components/AdminNav";
+import { isSuspiciousProfileName } from "@/lib/profile-name";
 import { requireAdminPermission, staffRoleOptions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -156,7 +157,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                     const vet = vetMap.get(user.id);
                     return (
                       <tr key={user.id}>
-                        <td><Link href={`/admin/users/${user.id}`} className="vc-dossier-link" target="_blank" rel="noopener noreferrer"><b>{(user.full_name || "Unnamed account").slice(0,90)}</b></Link><small>{user.email}</small></td>
+                        <td><Link href={`/admin/users/${user.id}`} className="vc-dossier-link" target="_blank" rel="noopener noreferrer"><b>{isSuspiciousProfileName(user.full_name||"") ? `Flagged account · ${user.id.slice(0,8)}` : (user.full_name || "Unnamed account").slice(0,90)}</b></Link><small>{user.email}</small></td>
                         <td>{user.primary_role.replaceAll("_", " ")}</td>
                         <td>{user.province || "—"}</td>
                         <td>{user.district || "—"}</td>
