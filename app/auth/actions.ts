@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
 import { profileNameProblem } from "@/lib/profile-name";
+import {registrationExtraFields} from "@/lib/registration-categories";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -292,6 +293,9 @@ export async function requestRegistrationOtpAction(
     );
   }
 
+  const extras=registrationExtraFields(formData,role,isClinicRegistration?"clinic":"");
+  if(extras.error)redirect(withMessage(registrationPath,"error",extras.error));
+
   const supabase = await createClient();
 
   const { error } =
@@ -305,6 +309,7 @@ export async function requestRegistrationOtpAction(
           city,
           phone,
           pvmc_number: pvmcNumber,
+          ...extras.data,
           organization_name:
             organizationName,
           registration_intent:
@@ -616,6 +621,9 @@ export async function registerAction(
     );
   }
 
+  const extras=registrationExtraFields(formData,role,isClinicRegistration?"clinic":"");
+  if(extras.error)redirect(withMessage(registrationPath,"error",extras.error));
+
   const headerStore =
     await headers();
 
@@ -640,6 +648,7 @@ export async function registerAction(
           city,
           phone,
           pvmc_number: pvmcNumber,
+          ...extras.data,
           organization_name:
             organizationName,
           registration_intent:
