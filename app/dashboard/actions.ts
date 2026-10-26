@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
 import { profileNameProblem } from "@/lib/profile-name";
+import {PRACTICE_AREAS,SPECIALIZATIONS} from "@/lib/registration-categories";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -65,14 +66,21 @@ export async function updateProfileAction(formData: FormData) {
     identity.profile?.primary_role ===
     "veterinarian"
   ) {
-    const services = formData.getAll("services").map((item) => String(item).trim()).filter(Boolean);
+    const pvmcNumber=value(formData,"pvmc_number");
+    if(!pvmcNumber) redirect(message("error","PVMC registration number is required to save a veterinarian profile. For a student or allied professional, contact support to correct the account category."));
+    const mainSector=value(formData,"veterinary_sector");
+    const extraAreas=formData.getAll("practice_areas").map(String).filter(x=>(PRACTICE_AREAS as readonly string[]).includes(x));
+    const chosenServices=formData.getAll("services").map(String).map(x=>x.trim()).filter(Boolean);
+    const services=[...new Set([...chosenServices.filter(x=>!x.startsWith("Practice area: ")),...extraAreas.map(x=>"Practice area: "+x),...(mainSector?["Practice area: "+mainSector]:[])])];
+    const baseSpec=value(formData,"specialization");
+    const otherSpecs=formData.getAll("specializations_extra").map(String).filter(x=>(SPECIALIZATIONS as readonly string[]).includes(x));
+    const specializations=[...new Set([baseSpec,...otherSpecs].filter(Boolean))].join(", ");
 
     const { error } = await supabase
       .from("veterinarian_profiles")
       .update({
         pvmc_number:
-          value(formData, "pvmc_number") ||
-          null,
+          pvmcNumber,
 
         qualifications:
           value(formData, "qualifications") ||
@@ -80,9 +88,7 @@ export async function updateProfileAction(formData: FormData) {
 
         veterinary_sector: value(formData, "veterinary_sector") || null,
 
-        specialization:
-          value(formData, "specialization") ||
-          null,
+        specialization: specializations || null,
 
         years_experience: Number(
           value(
