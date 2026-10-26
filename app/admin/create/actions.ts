@@ -79,6 +79,22 @@ export async function createManagedPersonAction(formData: FormData) {
   }).select("id").single();
   if (error || !data) createError("person", error?.message ?? "Could not create profile.");
 
+  if(mode==="student"){
+    // Private administrative evidence, not public skills, bios or RVMP licence.
+    const {error:studentLogError}=await supabase.from("audit_logs").insert({
+      actor_id:identity.userId,entity_type:"managed_person",entity_id:data.id,
+      action:"assisted.student_enrollment_submitted",
+      metadata:{
+        study_program:text(formData,"study_program").slice(0,120),
+        institution:text(formData,"organization_name").slice(0,180),
+        academic_year:text(formData,"academic_year").slice(0,60),
+        student_college_registration_number:text(formData,"student_college_registration_number").slice(0,75)||null,
+        pvmc_student_reference:text(formData,"pvmc_student_reference").slice(0,75)||null,
+        registration_status:"self_reported_pending_verification"
+      }
+    });
+    if(studentLogError)createError("person","Student profile was created, but private registration evidence was not filed. Contact an administrator before continuing.");
+  }
   try {
     const imageUrl = await uploadPublicImage(supabase, uploadedFile(formData, "profile_image"), identity.userId, "person");
     if (imageUrl) await supabase.from("managed_people").update({ image_url: imageUrl, updated_by: identity.userId }).eq("id", data.id);
