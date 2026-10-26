@@ -1,0 +1,46 @@
+# Temporary isolated runtime-parity verification for the PR #34 integration head.
+# Runs on a dedicated branch only; does not deploy or write to production.
+name: VetConnect Node 24 parity trial
+
+on:
+  push:
+    branches:
+      - test/node24-parity-20261026
+
+permissions:
+  contents: read
+
+jobs:
+  node24-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out isolated source
+        uses: actions/checkout@v4
+
+      - name: Use Vercel-matched Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Repository structure audit
+        run: npm run audit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Execute source, location and CSV cleanup tests
+        run: npm test
+
+      - name: TypeScript checks
+        run: npm run typecheck
+
+      - name: Production-mode compile on isolated runner
+        run: npm run build
+
+      - name: Dependency security audit
+        run: npm run security:audit
