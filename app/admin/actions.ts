@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
 import { getEffectiveAdminPermission } from "@/lib/admin";
-import {vetProfileApprovalProblem,veterinaryCredentialApprovalProblem} from "@/lib/veterinary-verification";
+import {vetProfileApprovalProblem,veterinaryCredentialApprovalProblem,credentialDataFlags} from "@/lib/veterinary-verification";
 
 export async function reviewProfileAction(formData: FormData) {
   const identity = await getCurrentIdentity();
@@ -217,6 +217,49 @@ export async function reviewVeterinarianCredentialAction(formData: FormData) {
     redirect(`${returnTo}?message=${encodeURIComponent(`PVMC credential ${decision}; review recorded.`)}`);
   }
   redirect(`/admin/reviews?message=${encodeURIComponent(`PVMC credential ${decision}.`)}`);
+}
+
+// Reopens an already-APPROVED but internally inconsistent veterinary credential.
+// This action does NOT accuse the owner of misconduct. It pauses a misleading verified claim
+// pending a documented PVMC registry / qualification review by an authorized officer.
+export async function reopenVeterinaryCredentialAction(formData:FormData) {
+ const identity=await getCurrentIdentity();
+ if(!identity) redirect("/login?next=/admin");
+ if(!identity.roles.includes("super_admin") || !(await getEffectiveAdminPermission(identity,"regulatory.review"))) {
+   redirect("/dashboard?error=Regulatory%20super-admin%20approval%20required.");
+ }
+ const id=String(formData.get("user_id")??"");
+ const note=String(formData.get("reason")??"").trim();
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) redirect("/admin/credential-recheck?error=Invalid%20record");
+ const returnTo=`/admin/users/${id}`;
+ if(note.length<25 || note.length>1500) redirect(`${returnTo}?error=${encodeURIComponent("Please document a review reason (25 to 1500 characters).")}`);
+ const supabase=await createClient();
+ const {data:existing,error:loadError}=await supabase.from("veterinarian_profiles")
+   .select("qualifications,pvmc_number,verification_status,pvmc_verification_status").eq("user_id",id).maybeSingle();
+ if(loadError||!existing) redirect(`${returnTo}?error=Unable%20to%20load%20credential%20record`);
+ if(existing.pvmc_verification_status!=="approved" || !credentialDataFlags(existing).length) {
+   redirect(`${returnTo}?error=${encodeURIComponent("Credential is not currently flagged for data reconciliation.")}`);
+ }
+ const {data:updated,error}=await supabase.from("veterinarian_profiles").update({
+   pvmc_verification_status:"pending", pvmc_verified_at:null,pvmc_verified_by:null
+ }).eq("user_id",id).eq("pvmc_verification_status","approved").select("user_id").maybeSingle();
+ if(error||!updated) redirect(`${returnTo}?error=${encodeURIComponent(error?.message||"Could not reopen credential review.")}`);
+ const [{error:historyError},{error:auditError}]=await Promise.all([
+  supabase.from("verification_records").insert({
+    entity_type:"veterinarian",entity_id:id,verification_type:"pvmc_credential",
+    status:"pending",notes:note,reviewed_by:identity.userId,reviewed_at:new Date().toISOString()
+  }),
+  supabase.from("audit_logs").insert({
+    actor_id:identity.userId,action:"account.veterinarian.pvmc.recheck_requested",
+    entity_type:"veterinarian",entity_id:id,
+    metadata:{reason:note,previous_pvmc_status:"approved",new_pvmc_status:"pending",source:"credential_recheck"}
+  })
+ ]);
+ revalidatePath("/admin");revalidatePath("/admin/users");revalidatePath(returnTo);
+ revalidatePath("/admin/reviews");revalidatePath("/admin/credential-recheck");revalidatePath("/vets");
+ const message=historyError||auditError?"Credential reopened, but one or more audit entries failed; escalate to the system administrator.":
+ "PVMC credential returned to pending for documented re-verification.";
+ redirect(`${returnTo}?message=${encodeURIComponent(message)}`);
 }
 
 export async function reviewProductAction(formData: FormData) {
