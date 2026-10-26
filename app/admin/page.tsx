@@ -172,7 +172,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
             <div><label htmlFor="activity-status">Status</label><select id="activity-status" name="status" defaultValue={params.status??"all"}><option value="all">Any status</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="active">Active</option><option value="recorded">Recorded</option></select></div>
             <button className="button button-primary" type="submit">Filter</button><Link href="/admin">Clear</Link>
           </form>
-          {filtered.length ? <div className="vc-activity-list">{filtered.map(item=><Link className="vc-activity-entry" key={item.id} href={item.href}>
+          {filtered.length ? <div className="vc-activity-list">{filtered.map(item=><Link className="vc-activity-entry" key={item.id} href={item.href} target="_blank" rel="noopener noreferrer">
             <span className="vc-activity-mark" aria-hidden="true"></span><span className="vc-activity-content"><strong>{item.name}</strong><small>{item.description} · {item.kind.replaceAll("_"," ")}</small></span>
             <span className="vc-activity-meta"><em className={`vc-status vc-status-${item.status}`}>{item.status}</em><time dateTime={item.at}>{format(item.at)}</time></span><span aria-hidden="true">↗</span>
           </Link>)}</div>:<p className="empty-state">No matching recent records. Use the full directory or account search to locate older records.</p>}

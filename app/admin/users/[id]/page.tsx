@@ -72,7 +72,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
    const {data}=await supabase.storage.from("record-documents").createSignedUrl(row.storage_path,60*10);
    return {...row,secureUrl:data?.signedUrl??null};
  }));
- const toEdit=canManage|| (canReview&&isSuperAdmin);
+ const toEdit=canManage;
  const specRows:[string,Item|null][]=[["Veterinarian profile",v],["Professional profile",pr],["Company profile",co]];
  const allLinks=[
   {label:"Directory",href:"/admin/directory",ok:rights.has("directories.manage")},

@@ -41,7 +41,7 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
           <span className="vc-nav-label">{group.title}</span>
           {group.title==="Overview" && review && <Link href="/admin/reviews">Approvals & review queue</Link>}
           {group.items.filter(item=>allowed(item.permission)).map(item=><Link href={item.href} key={item.name}>{item.name}</Link>)}
-          {group.title==="Marketplace & HR" && allowed("jobs.manage") && <Link href="/admin/reviews#jobs-review">Job approvals</Link>}
+          
         </div>)}
         {assist && <div className="vc-nav-section"><span className="vc-nav-label">Quick actions</span><Link href="/admin/create">Add new record</Link></div>}
         <div className="vc-nav-section"><Link href="/dashboard">My workspace</Link></div>
