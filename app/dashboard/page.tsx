@@ -146,7 +146,18 @@ export default async function DashboardPage({
         </div>
       </section>
       <section className="section compact-section">
-        <div className="shell dashboard-layout">
+        <div className="shell"><section className="vc-customer-hub" aria-label="Personal VetConnect dashboard">
+  <div className="vc-customer-hub-head"><div><span className="section-kicker">YOUR WORKSPACE</span><h2>Manage your VetConnect activity</h2><p>Account status: <b>{identity.profile?.account_status ?? "active"}</b>{verificationStatus ? ` · Profile review: ${statusLabel(verificationStatus)}` : ""}. New records may need approval before publication.</p></div>
+    <a className="button button-secondary" href="#account-settings">Account settings</a></div>
+  <nav className="vc-customer-shortcuts" aria-label="My workspace quick links">
+    {["veterinarian","professional","candidate"].includes(role) && <Link href="/dashboard/professional">Professional profile & CV</Link>}
+    {["veterinarian","professional","candidate"].includes(role) && <Link href="/dashboard/career">Jobs & applications</Link>}
+    {["veterinarian","professional"].includes(role) && <Link href="/dashboard/clinics">Clinic workspace</Link>}
+    {role==="company" && <Link href="/dashboard/company">Company products & jobs</Link>}
+    {role==="laboratory" && <Link href="/dashboard/laboratory">Laboratory workspace</Link>}
+    <Link href="/marketplace">Marketplace</Link><Link href="/jobs">Browse jobs</Link><Link href="/clinics">Find clinics</Link>
+  </nav></section></div>
+  <div className="shell dashboard-layout">
           <aside className="dashboard-sidebar">
             <h3>Account overview</h3>
             <div className="dashboard-stat">
@@ -174,7 +185,7 @@ export default async function DashboardPage({
           </aside>
           <div>
             <FormMessage {...params} />
-            <form className="backend-form-card" action={updateProfileAction}>
+            <form id="account-settings" className="backend-form-card vc-review-target" action={updateProfileAction}>
               <div className="section-heading">
                 <span className="section-kicker">PROFILE</span>
                 <h2>Manage your account details.</h2>

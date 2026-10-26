@@ -3486,3 +3486,33 @@ textarea:focus {
 .guest-consent input{width:auto;flex:none;margin-top:4px;}
 .cf-turnstile{max-width:100%;overflow:hidden;}
 @media(max-width:640px){.guest-job-apply{padding:14px;}.guest-job-apply .button{width:100%;}}
+
+/* Phase 2 coordinated operations UI. No gradients or decorative 3D effects. */
+:root { --vc-navy:#1c304c; --vc-teal:#075f66; --vc-accent:#d87b35; --vc-canvas:#f5f8fb; --vc-border:#dce5ed; }
+.vc-sidebar { border-radius:14px; border-color:var(--vc-border); box-shadow:none; }
+.vc-sidebar-brand { background:var(--vc-navy); padding:19px; }
+.vc-sidebar-brand span { color:#ffd1a6; }
+.vc-sidebar-fold summary { display:none; }
+.vc-sidebar .vc-nav-section { padding:12px 9px; border-bottom:1px solid var(--vc-border); }
+.vc-sidebar .vc-nav-label { display:block; padding:7px 12px; color:#637587; text-transform:uppercase; font-size:10px; letter-spacing:.10em; font-weight:800; }
+.vc-sidebar .vc-nav-section a { display:block; padding:9px 12px; border-radius:9px; color:var(--vc-navy); font-size:13px; font-weight:650; }
+.vc-sidebar .vc-nav-section a:hover,.vc-sidebar .vc-nav-section a:focus-visible { background:#edf5f5; color:var(--vc-teal); outline-offset:2px; }
+.vc-review-target { scroll-margin-top:102px; }
+.vc-review-target:target { outline:2px solid var(--vc-teal); outline-offset:5px; border-radius:12px; }
+.vc-company-metrics .vc-metric-link { display:block; min-height:90px; text-decoration:none; }
+.vc-company-metrics .vc-metric-link:focus-visible { outline:2px solid var(--vc-teal); outline-offset:3px; }
+.vc-customer-hub { padding:22px 26px; margin:0 0 24px; background:#fff; border:1px solid var(--vc-border); border-radius:14px; }
+.vc-customer-hub-head { display:flex; gap:20px; justify-content:space-between; align-items:center; }
+.vc-customer-hub h2 { color:var(--vc-navy); font-size:1.5rem; margin:7px 0; }
+.vc-customer-hub p { color:#576678; line-height:1.6; margin:0; }
+.vc-customer-shortcuts { display:flex; gap:9px; flex-wrap:wrap; margin:16px 0 23px; }
+.vc-customer-shortcuts a { background:#edf5f5; border:1px solid #d4e5e5; color:#07555b; padding:10px 13px; border-radius:9px; text-decoration:none; font-size:13px; font-weight:750; }
+.vc-customer-shortcuts a:hover,.vc-customer-shortcuts a:focus-visible { background:#dbeeed; outline-offset:2px; }
+@media(max-width:780px){
+  .vc-sidebar { position:static; width:100%; max-width:none; margin-bottom:18px; }
+  .vc-sidebar-fold summary { display:block; padding:14px 17px; cursor:pointer; background:#eef4f7; font-weight:800; color:var(--vc-navy); }
+  .vc-sidebar .vc-nav-section a { min-height:43px; }
+  .vc-customer-hub-head { align-items:flex-start; flex-direction:column; }
+  .vc-customer-hub { padding:17px; }
+}
+@media print {.vc-sidebar,.site-header,.site-footer,.vc-customer-shortcuts,.vc-report-actions,.vc-admin-actions {display:none!important} .vc-review-target:target {outline:0}}
