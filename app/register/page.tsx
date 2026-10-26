@@ -9,8 +9,8 @@ import { isAllowedSelfRegistrationRole } from "@/lib/auth";
 const roles = [
   [
     "veterinarian",
-    "Veterinary Professional",
-    "Qualifications, PVMC details, expertise and verification.",
+    "Registered Veterinarian (DVM / PVMC)",
+    "Choose only if you hold a DVM or recognized veterinary qualification. Practice verification requires a valid PVMC record.",
   ],
   [
     "company",
@@ -19,13 +19,13 @@ const roles = [
   ],
   [
     "candidate",
-    "Student / Job Seeker",
-    "Career profile, CV, jobs, internships and learning.",
+    "Veterinary Student / Job Seeker",
+    "Students and trainees are not shown as licensed veterinary practitioners; use this pathway for career development.",
   ],
   [
     "professional",
-    "Industry Professional",
-    "Structured profile for nutrition, laboratory, research, academia, farm and technical roles.",
+    "Livestock / Allied Industry Professional",
+    "Nutrition, dairy, livestock, farm management, laboratory, research and technical professionals. This is not a veterinary practice licence.",
   ],
   [
     "laboratory",
@@ -57,7 +57,7 @@ export default async function RegisterPage({
     ? "company"
     : params.role && isAllowedSelfRegistrationRole(params.role)
       ? params.role
-      : "veterinarian";
+      : "";
 
   return (
     <main>
@@ -170,6 +170,7 @@ export default async function RegisterPage({
                     defaultValue={selectedRole}
                     required
                   >
+                    <option value="" disabled>Choose your account category</option>
                     {roles.map((role) => (
                       <option key={role[0]} value={role[0]}>
                         {role[1]}

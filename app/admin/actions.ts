@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
 import { getEffectiveAdminPermission } from "@/lib/admin";
+import {vetProfileApprovalProblem,veterinaryCredentialApprovalProblem} from "@/lib/veterinary-verification";
 
 export async function reviewProfileAction(formData: FormData) {
   const identity = await getCurrentIdentity();
@@ -36,6 +37,11 @@ export async function reviewProfileAction(formData: FormData) {
       .select("profile_kind,pvmc_verification_status")
       .eq("id", entityId)
       .maybeSingle();
+    if (decision === "approved" && managed?.profile_kind === "veterinarian") {
+      const {data:vetData,error:vetError}=await supabase.from("managed_people").select("qualifications").eq("id",entityId).maybeSingle();
+      const problem=vetError?"Unable to load veterinary qualification":vetProfileApprovalProblem(vetData?.qualifications);
+      if(problem) redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent(problem)}`);
+    }
     const publishNow = decision === "approved" && managed?.profile_kind === "professional";
     const result = await supabase.from("managed_people").update({
       verification_status: decision,
@@ -79,6 +85,11 @@ export async function reviewProfileAction(formData: FormData) {
       professional: "professional_profiles",
     }[profileType] as "veterinarian_profiles" | "company_profiles" | "professional_profiles" | undefined;
     if (!table) redirect("/admin/reviews?error=Invalid%20account%20profile%20type.");
+    if(decision==="approved" && profileType==="veterinarian") {
+      const {data:vetData,error:vetError}=await supabase.from("veterinarian_profiles").select("qualifications").eq("user_id",entityId).maybeSingle();
+      const problem=vetError?"Unable to load veterinary qualification":vetProfileApprovalProblem(vetData?.qualifications);
+      if(problem) redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent(problem)}`);
+    }
     const result = await supabase.from(table).update({
       verification_status: decision,
       rejection_reason: decision === "rejected" ? reason || "Please update the submitted information." : null,
@@ -155,6 +166,14 @@ export async function reviewVeterinarianCredentialAction(formData: FormData) {
 
   const supabase = await createClient();
   const reviewedAt = decision === "approved" ? new Date().toISOString() : null;
+  if (decision==="approved") {
+    const table=recordSource==="managed_people"?"managed_people":"veterinarian_profiles";
+    const idField=recordSource==="managed_people"?"id":"user_id";
+    const {data,error}=await supabase.from(table).select("qualifications,pvmc_number,verification_status,pvmc_verification_status").eq(idField,userId).maybeSingle();
+    if(error || !data) redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent("Could not retrieve the veterinary credential record.")}`);
+    const problem=veterinaryCredentialApprovalProblem(data,reason);
+    if(problem) redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent(problem)}`);
+  }
   if (recordSource === "managed_people") {
     const { data: managed } = await supabase.from("managed_people").select("verification_status").eq("id", userId).maybeSingle();
     const result = await supabase.from("managed_people").update({
