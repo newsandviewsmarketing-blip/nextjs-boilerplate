@@ -12,7 +12,7 @@ import {isSuspiciousProfileName} from "@/lib/profile-name";
 import {credentialDataFlags} from "@/lib/veterinary-verification";
 import {correctUserDossierAction,correctSpecialistDossierAction} from "./actions";
 import {updateUserStatusAction,updateStaffRolesAction,updateUserPermissionsAction} from "../actions";
-import {reviewProfileAction,reviewVeterinarianCredentialAction} from "../../actions";
+import {reviewProfileAction,reviewVeterinarianCredentialAction,reopenVeterinaryCredentialAction} from "../../actions";
 
 export const dynamic="force-dynamic";
 type Props={params:Promise<{id:string}>;searchParams:Promise<{error?:string;message?:string}>};
@@ -178,6 +178,16 @@ export default async function AdminUserDossier({params,searchParams}:Props){
           <label htmlFor="pvmc-reason">Evidence source / reviewer decision</label><input id="pvmc-reason" name="reason" placeholder="PVMC verification source and decision note"/>
           <div className="vc-editor-buttons"><FormSubmitButton className="button button-primary" name="decision" value="approved" pendingLabel="Saving decision…">Verify credential</FormSubmitButton><button className="button button-secondary" type="submit" name="decision" value="rejected">Reject credential</button></div>
         </form>
+     </div>}
+     {isSuperAdmin&&canRegulatory&&v?.pvmc_verification_status==="approved"&&vetCredentialIssues.length>0&&<div className="vc-editor-action">
+       <h3>Reopen PVMC credential for verification</h3>
+       <p>The stored PVMC-approval flag does not match required evidence. Reopening the credential returns its status to pending; it does not suspend or accuse the account holder. Record the follow-up reason.</p>
+       <form className="vc-editor-decision" action={reopenVeterinaryCredentialAction}>
+         <input type="hidden" name="user_id" value={id}/>
+         <label htmlFor="reopen-pvmc-note">Verification gap and requested documents</label>
+         <textarea id="reopen-pvmc-note" name="reason" minLength={25} maxLength={1500} required placeholder="Example: Original DVM transcript, registration number and active PVMC registry entry required to resolve approved status without evidence."/>
+         <FormSubmitButton className="button button-secondary" pendingLabel="Reopening review…">Reopen PVMC verification</FormSubmitButton>
+       </form>
      </div>}
      {canManage&&<div className="vc-editor-action"><h3>Account access</h3><p>Suspension blocks VetConnect account use. It does not delete data or change previous audit entries.</p>
         {accountStatus==="active"?<form action={updateUserStatusAction} className="vc-editor-decision">
