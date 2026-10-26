@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
+import { profileNameProblem } from "@/lib/profile-name";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -264,6 +265,9 @@ export async function requestRegistrationOtpAction(
       ),
     );
   }
+
+  const nameProblem = profileNameProblem(fullName);
+  if (nameProblem) redirect(withMessage(registrationPath, "error", nameProblem));
 
   if (!isAllowedSelfRegistrationRole(role)) {
     redirect(
@@ -565,6 +569,9 @@ export async function registerAction(
       ),
     );
   }
+
+  const nameProblem = profileNameProblem(fullName);
+  if (nameProblem) redirect(withMessage(registrationPath, "error", nameProblem));
 
   if (!isAllowedSelfRegistrationRole(role)) {
     redirect(

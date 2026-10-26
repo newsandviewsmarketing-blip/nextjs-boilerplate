@@ -17,6 +17,11 @@ export async function reviewProfileAction(formData: FormData) {
   const entityId = String(formData.get("entity_id") ?? userId);
   const decision = String(formData.get("decision") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
+  const requestedReturnTo = String(formData.get("return_to") ?? "");
+  const directoryKind = recordSource === "managed_people" ? "managed_person" : recordSource === "companies" ? "company" : recordSource === "clinics" ? "clinic" : recordSource === "laboratories" ? "laboratory" : null;
+  const allowedDirectoryReturn = directoryKind ? `/admin/directory/${directoryKind}/${entityId}` : null;
+  const returnTo = recordSource === "account" && requestedReturnTo === `/admin/users/${entityId}` ? requestedReturnTo
+    : allowedDirectoryReturn === requestedReturnTo ? allowedDirectoryReturn : null;
   if (!entityId || !["veterinarian", "company", "professional", "laboratory", "clinic"].includes(profileType) || !["approved", "rejected"].includes(decision)) {
     redirect("/admin/reviews?error=Invalid%20review%20request.");
   }
@@ -127,6 +132,10 @@ export async function reviewProfileAction(formData: FormData) {
   revalidatePath("/companies");
   revalidatePath("/clinics");
   revalidatePath("/labs");
+  if (returnTo) {
+    revalidatePath(returnTo);
+    redirect(`${returnTo}?message=${encodeURIComponent(`Profile ${decision}; review recorded.`)}`);
+  }
   redirect(`/admin/reviews?message=${encodeURIComponent(`Profile ${decision}.`)}`);
 }
 
@@ -137,6 +146,9 @@ export async function reviewVeterinarianCredentialAction(formData: FormData) {
 
   const userId = String(formData.get("user_id") ?? "");
   const recordSource = String(formData.get("record_source") ?? "account");
+  const requestedReturnTo = String(formData.get("return_to") ?? "");
+  const returnTo = recordSource === "account" && requestedReturnTo === `/admin/users/${userId}` ? requestedReturnTo
+    : recordSource === "managed_people" && requestedReturnTo === `/admin/directory/managed_person/${userId}` ? requestedReturnTo : null;
   const decision = String(formData.get("decision") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
   if (!userId || !["approved", "rejected"].includes(decision)) redirect("/admin/reviews?error=Invalid%20credential%20review%20request.");
@@ -181,6 +193,10 @@ export async function reviewVeterinarianCredentialAction(formData: FormData) {
   revalidatePath("/admin/reviews");
   revalidatePath("/admin/directory");
   revalidatePath("/vets");
+  if (returnTo) {
+    revalidatePath(returnTo);
+    redirect(`${returnTo}?message=${encodeURIComponent(`PVMC credential ${decision}; review recorded.`)}`);
+  }
   redirect(`/admin/reviews?message=${encodeURIComponent(`PVMC credential ${decision}.`)}`);
 }
 

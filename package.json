@@ -8,7 +8,7 @@
     "start": "next start",
     "audit": "node scripts/audit-structure.mjs",
     "lint": "eslint .",
-    "test": "node --test scripts/source.test.mjs scripts/phase1-security.test.mjs",
+    "test": "node --test scripts/source.test.mjs scripts/phase1-security.test.mjs scripts/editor-dossier.test.mjs",
     "typecheck": "tsc --noEmit",
     "security:audit": "npm audit --audit-level=high",
     "check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build",
