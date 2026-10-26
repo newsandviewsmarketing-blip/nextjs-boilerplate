@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
+import { profileNameProblem } from "@/lib/profile-name";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -22,6 +23,8 @@ export async function updateProfileAction(formData: FormData) {
 
   const supabase = await createClient();
   const fullName = value(formData, "full_name");
+  const nameProblem = profileNameProblem(fullName);
+  if (nameProblem) redirect(message("error", nameProblem));
   const phone = value(formData, "phone");
   const city = value(formData, "city");
   const province = value(formData, "province");
