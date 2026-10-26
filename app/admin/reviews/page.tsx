@@ -12,7 +12,7 @@ import {
   reviewProductRegulatoryAction,
 } from "../actions";
 import { getCurrentIdentity } from "@/lib/auth";
-import { hasAdminPermission } from "@/lib/admin";
+import { getEffectiveAdminPermissions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -63,11 +63,12 @@ export default async function AdminPage({
   if (!isSupabaseConfigured()) redirect("/dashboard");
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
+  const effectivePermissions = await getEffectiveAdminPermissions(identity);
   if (
-    !hasAdminPermission(identity, "profiles.review") &&
-    !hasAdminPermission(identity, "products.manage") &&
-    !hasAdminPermission(identity, "jobs.manage") &&
-    !hasAdminPermission(identity, "regulatory.review")
+    !effectivePermissions.has("profiles.review") &&
+    !effectivePermissions.has("products.manage") &&
+    !effectivePermissions.has("jobs.manage") &&
+    !effectivePermissions.has("regulatory.review")
   )
     redirect("/dashboard?error=Admin%20access%20is%20required.");
 

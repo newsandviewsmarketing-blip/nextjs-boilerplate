@@ -2,13 +2,14 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AdminNav from "./components/AdminNav";
-import { requireAdminPermission, hasAdminPermission } from "@/lib/admin";
+import { requireAdminPermission, getEffectiveAdminPermissions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
   const identity = await requireAdminPermission("admin.view", "/admin");
+  const effectivePermissions = await getEffectiveAdminPermissions(identity);
   const supabase = await createClient();
 
   let pendingProfiles = 0;
@@ -38,7 +39,7 @@ export default async function AdminOverviewPage() {
     created_at: string;
   }> = [];
 
-  if (hasAdminPermission(identity, "profiles.review")) {
+  if (effectivePermissions.has("profiles.review")) {
     const [vets, companies, professionals, laboratories, credentials] =
       await Promise.all([
         supabase.from("veterinarian_profiles").select("user_id", { count: "exact", head: true }).eq("verification_status", "pending"),
@@ -55,7 +56,7 @@ export default async function AdminOverviewPage() {
     pendingCredentials = credentials.count ?? 0;
   }
 
-  if (hasAdminPermission(identity, "products.manage")) {
+  if (effectivePermissions.has("products.manage")) {
     const [pending, published] = await Promise.all([
       supabase.from("products").select("id", { count: "exact", head: true }).eq("verification_status", "pending").is("archived_at", null),
       supabase.from("products").select("id", { count: "exact", head: true }).eq("is_published", true).is("archived_at", null),
@@ -64,7 +65,7 @@ export default async function AdminOverviewPage() {
     publishedProducts = published.count ?? 0;
   }
 
-  if (hasAdminPermission(identity, "jobs.manage")) {
+  if (effectivePermissions.has("jobs.manage")) {
     const { count } = await supabase
       .from("jobs")
       .select("id", { count: "exact", head: true })
@@ -82,7 +83,7 @@ export default async function AdminOverviewPage() {
     pendingMasterSuggestions=count??0;
   }
 
-  if (hasAdminPermission(identity, "users.manage")) {
+  if (effectivePermissions.has("users.manage")) {
     // Server-rendered admin metrics need a current rolling 24-hour cutoff.
     // eslint-disable-next-line react-hooks/purity
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -130,7 +131,7 @@ export default async function AdminOverviewPage() {
     pendingClinicClaims = clinicClaims.count ?? 0;
   }
 
-  if (hasAdminPermission(identity, "audit.view")) {
+  if (effectivePermissions.has("audit.view")) {
     const { data } = await supabase
       .from("audit_logs")
       .select("id, action, entity_type, created_at")
@@ -142,30 +143,30 @@ export default async function AdminOverviewPage() {
   const modules = [
     {
       allowed:
-        hasAdminPermission(identity, "profiles.review") ||
-        hasAdminPermission(identity, "regulatory.review") ||
-        hasAdminPermission(identity, "jobs.manage"),
+        effectivePermissions.has("profiles.review") ||
+        effectivePermissions.has("regulatory.review") ||
+        effectivePermissions.has("jobs.manage"),
       tag: "VERIFY",
       title: "Review queues",
       text: "Profiles, PVMC credentials, product regulatory records and jobs awaiting a decision.",
       href: "/admin/reviews",
     },
     {
-      allowed: hasAdminPermission(identity, "products.manage"),
+      allowed: effectivePermissions.has("products.manage"),
       tag: "MARKETPLACE",
       title: "Product management",
       text: "Add, edit, publish, unpublish, archive, restore or remove product records.",
       href: "/admin/products",
     },
     {
-      allowed: hasAdminPermission(identity, "users.manage"),
+      allowed: effectivePermissions.has("users.manage"),
       tag: "ACCESS",
       title: "Users and hierarchy",
       text: "Activate accounts and assign multiple staff roles without changing user-owned profiles.",
       href: "/admin/users",
     },
     {
-      allowed: hasAdminPermission(identity, "audit.view"),
+      allowed: effectivePermissions.has("audit.view"),
       tag: "GOVERNANCE",
       title: "Audit log",
       text: "Read the latest administrative changes and publishing decisions.",
@@ -197,22 +198,22 @@ export default async function AdminOverviewPage() {
               <p>Only modules permitted for your assigned role are shown.</p>
             </div>
             <div className="admin-summary phase4-summary">
-              {hasAdminPermission(identity, "profiles.review") && (
+              {effectivePermissions.has("profiles.review") && (
                 <>
                   <article><b>{pendingProfiles}</b><span>Profiles to review</span></article>
                   <article><b>{pendingCredentials}</b><span>Credential checks</span></article>
                 </>
               )}
-              {hasAdminPermission(identity, "products.manage") && (
+              {effectivePermissions.has("products.manage") && (
                 <>
                   <article><b>{pendingProducts}</b><span>Products to review</span></article>
                   <article><b>{publishedProducts}</b><span>Published products</span></article>
                 </>
               )}
-              {hasAdminPermission(identity, "jobs.manage") && (
+              {effectivePermissions.has("jobs.manage") && (
                 <article><Link href="/admin/reviews#jobs-review"><b>{pendingJobs}</b><span>Jobs to review →</span></Link></article>
               )}
-              {hasAdminPermission(identity, "users.manage") && (
+              {effectivePermissions.has("users.manage") && (
                 <>
                   <article><b>{activeUsers}</b><span>Active user accounts</span></article>
                   <article><b>{totalVeterinarians}</b><span>Total veterinarians</span></article>
@@ -236,7 +237,7 @@ export default async function AdminOverviewPage() {
                 </Link>
               </p>)}
             </section>}
-            {hasAdminPermission(identity, "users.manage") && (
+            {effectivePermissions.has("users.manage") && (
               <section className="admin-pulse-panel" aria-labelledby="operational-pulse-heading">
                 <div className="section-heading compact-heading">
                   <span className="section-kicker">LAST 24 HOURS</span>
@@ -256,7 +257,7 @@ export default async function AdminOverviewPage() {
               </section>
             )}
 
-            {hasAdminPermission(identity, "audit.view") && recentAudit.length > 0 && (
+            {effectivePermissions.has("audit.view") && recentAudit.length > 0 && (
               <section className="admin-recent-activity" aria-labelledby="recent-activity-heading">
                 <div className="admin-activity-header">
                   <div>
