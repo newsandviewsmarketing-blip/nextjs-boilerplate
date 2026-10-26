@@ -71,6 +71,18 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   }
   if(can("master_data.manage")) requireCount("suggestions","master_data_suggestions","id",[["status","pending"]]);
   await Promise.all(requirements.map(([key,table,column,filters])=>countOf(key,table,column,filters)));
+  // Fresh 24-hour numbers are separate from all-time account totals.
+  const since24h=new Date(Date.now()-24*60*60*1000).toISOString();
+  const [recentRegistrations,recentApplications,recentProducts,recentJobs]=await Promise.all([
+    usersAllowed?supabase.from("profiles").select("id",{head:true,count:"exact"}).gte("created_at",since24h):Promise.resolve({count:null,error:null}),
+    jobsAllowed?supabase.from("job_applications").select("id",{head:true,count:"exact"}).gte("applied_at",since24h):Promise.resolve({count:null,error:null}),
+    productsAllowed?supabase.from("products").select("id",{head:true,count:"exact"}).gte("created_at",since24h):Promise.resolve({count:null,error:null}),
+    jobsAllowed?supabase.from("jobs").select("id",{head:true,count:"exact"}).gte("created_at",since24h):Promise.resolve({count:null,error:null})
+  ]);
+  metricCounts.set("newRegistrations24h",recentRegistrations.error?null:recentRegistrations.count);
+  metricCounts.set("newApplications24h",recentApplications.error?null:recentApplications.count);
+  metricCounts.set("newProducts24h",recentProducts.error?null:recentProducts.count);
+  metricCounts.set("newJobs24h",recentJobs.error?null:recentJobs.count);
   const total=(...keys:string[]):number|null => keys.some(key=>metricCounts.get(key)==null) ? null : keys.reduce((sum,key)=>sum+(metricCounts.get(key)??0),0);
   const value=(key:string)=>metricCounts.get(key)??null;
   const cards:Metric[]=[];
@@ -164,13 +176,13 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
             <span className="vc-activity-meta"><em className={`vc-status vc-status-${item.status}`}>{item.status}</em><time dateTime={item.at}>{format(item.at)}</time></span><span aria-hidden="true">↗</span>
           </Link>)}</div>:<p className="empty-state">No matching recent records. Use the full directory or account search to locate older records.</p>}
         </section>
-        {usersAllowed && <section className="vc-admin-panel" aria-labelledby="pulse-title"><div className="vc-panel-header"><div><span className="section-kicker">LAST 24 HOURS</span><h2 id="pulse-title">Operational pulse</h2></div></div>
+        {(usersAllowed||jobsAllowed) && <section className="vc-admin-panel" aria-labelledby="pulse-title"><div className="vc-panel-header"><div><span className="section-kicker">LAST 24 HOURS</span><h2 id="pulse-title">Operational pulse</h2></div></div>
           <div className="admin-pulse-grid">
-            <article><Link href="/admin/users"><b>{value("accounts")===null?"—":value("accounts")}</b><span>New registrations and account directory</span></Link></article>
-            <article><Link href="/admin/users?role=veterinarian"><b>{value("vets")===null?"—":value("vets")}</b><span>Veterinarian accounts</span></Link></article>
-            <article><Link href="/admin/users"><b>{value("customers")===null?"—":value("customers")}</b><span>Customer accounts</span></Link></article>
-            <article><Link href="/admin/reviews"><b>{value("clinicAffiliations")===null?"—":value("clinicAffiliations")}</b><span>Pending clinic affiliations</span></Link></article>
-          </div><p className="vc-panel-footnote">These are all-time totals unless identified as a current pending queue. The activity list provides recent timestamps; a dedicated time-series report requires additional validated queries.</p>
+            {usersAllowed&&<article><Link href="/admin/users"><b>{value("newRegistrations24h")===null?"—":value("newRegistrations24h")}</b><span>New registrations</span></Link></article>}
+            {jobsAllowed&&<article><Link href="/admin/jobs"><b>{value("newJobs24h")===null?"—":value("newJobs24h")}</b><span>New job posts</span></Link></article>}
+            {jobsAllowed&&<article><Link href="/admin/applications"><b>{value("newApplications24h")===null?"—":value("newApplications24h")}</b><span>New job applications</span></Link></article>}
+            {usersAllowed&&<article><Link href="/admin/clinic-affiliations"><b>{value("clinicAffiliations")===null?"—":value("clinicAffiliations")}</b><span>Pending clinic affiliations</span></Link></article>}
+          </div><p className="vc-panel-footnote">The first three cards show the last rolling 24 hours. Clinic affiliations show the current pending queue.</p>
         </section>}
         <section className="vc-admin-panel"><div className="vc-panel-header"><div><span className="section-kicker">ADMINISTRATION</span><h2>Operations & quick actions</h2><p>Separate, permission-controlled pages for review, data entry, business records and governance.</p></div></div>
           <div className="vc-admin-shortcuts">
