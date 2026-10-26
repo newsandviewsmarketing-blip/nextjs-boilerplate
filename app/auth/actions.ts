@@ -132,15 +132,6 @@ export async function loginAction(formData: FormData) {
     "/login",
   );
 
-  if(mode==="register"){
-    const {data:current}=await supabase.auth.getUser();
-    const user=current.user;
-    if(user?.user_metadata?.registration_details_pending===true){
-      const issue=await persistRegisteredCategoryDetails(supabase,user.id,user.user_metadata);
-      if(issue)redirect("/dashboard?error="+encodeURIComponent("Your account is confirmed but category details need attention: "+issue));
-      await supabase.auth.updateUser({data:{registration_details_pending:false}});
-    }
-  }
   revalidatePath("/", "layout");
   redirect(next);
 }
@@ -495,6 +486,16 @@ export async function verifyEmailOtpAction(
     supabase,
     "/login",
   );
+
+  if(mode==="register"){
+    const {data:current}=await supabase.auth.getUser();
+    const user=current.user;
+    if(user?.user_metadata?.registration_details_pending===true){
+      const issue=await persistRegisteredCategoryDetails(supabase,user.id,user.user_metadata);
+      if(issue)redirect("/dashboard?error="+encodeURIComponent("Your account is confirmed but category details need attention: "+issue));
+      await supabase.auth.updateUser({data:{registration_details_pending:false}});
+    }
+  }
 
   revalidatePath("/", "layout");
 
