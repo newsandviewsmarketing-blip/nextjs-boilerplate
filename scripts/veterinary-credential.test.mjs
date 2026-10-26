@@ -5,7 +5,7 @@ const read=(f)=>readFileSync(f,"utf8");
 
 test("Veterinary practitioner enrolment is explicitly selected, not auto-assigned",()=>{
  const registration=read("app/register/page.tsx");
- assert.match(registration,/Choose your account category/);
+ assert.match(registration,/Select your registration category above/);
  assert.match(registration,/Registered Veterinarian \(DVM \/ PVMC\)/);
  assert.match(registration,/Veterinary Student \/ Job Seeker/);
  assert.match(registration,/Livestock \/ Allied Industry Professional/);
