@@ -1,0 +1,24 @@
+# Temporary branch-only validation; no credentials or production writes.
+name: VetConnect Phase 2 UI Trial
+on:
+  push:
+    branches: [design/phase2-admin-customer-workspaces-20261026]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run audit
+      - run: npm run lint
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run security:audit
