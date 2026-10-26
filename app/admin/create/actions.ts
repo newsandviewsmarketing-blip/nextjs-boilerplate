@@ -6,6 +6,7 @@ import {jobAdvertFile,saveJobAdvertImage} from "@/lib/job-advert-image";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin";
+import {registrationExtraFields,PRACTICE_AREAS,SPECIALIZATIONS} from "@/lib/registration-categories";
 import { createClient } from "@/lib/supabase/server";
 import {
   recordUploadedDocument,
@@ -46,6 +47,20 @@ export async function createManagedPersonAction(formData: FormData) {
   const canPublishNow = publish && profileKind === "professional";
   if (canPublishNow) await requireAdminPermission("profiles.review", "/admin/create?type=person");
   const pvmc = optional(formData, "pvmc_number");
+  const mode=text(formData,"assisted_profile_mode");
+  if(!["veterinarian","professional","student"].includes(mode))createError("person","Select a valid registration category.");
+  if((mode==="veterinarian")!==(profileKind==="veterinarian"))createError("person","Veterinary professional category does not match the form.");
+  const practiceAreas=formData.getAll("practice_areas").map(String).filter(x=>(PRACTICE_AREAS as readonly string[]).includes(x));
+  const specializations=formData.getAll("specializations").map(String).filter(x=>(SPECIALIZATIONS as readonly string[]).includes(x));
+  if(mode==="veterinarian"){
+    const check=registrationExtraFields(formData,"veterinarian","");
+    if(check.error)createError("person",check.error);
+  }
+  if(mode==="student"&&!text(formData,"organization_name"))createError("person","University/college is required for students.");
+  if(mode==="professional"&&!text(formData,"professional_type"))createError("person","Choose an allied professional role.");
+  const sector=mode==="veterinarian"?practiceAreas[0]??null:optional(formData,"veterinary_sector");
+  const specialization=mode==="veterinarian"?[...specializations,optional(formData,"specialization_other")].filter(Boolean).join(", "):optional(formData,"specialization_other");
+  const allServices=[...new Set([...practiceAreas.map(x=>"Practice area: "+x),...list(formData,"services")])];
   const supabase = await createClient();
   const { data, error } = await supabase.from("managed_people").insert({
     full_name: fullName, slug: uniqueSlug(fullName), profile_kind: profileKind,
@@ -53,8 +68,8 @@ export async function createManagedPersonAction(formData: FormData) {
     qualifications: optional(formData,"qualifications"), professional_type: optional(formData,"professional_type"),
     headline: optional(formData,"headline"), public_summary: optional(formData,"public_summary"),
     current_position: optional(formData,"current_position"), organization_name: optional(formData,"organization_name"),
-    pvmc_number: pvmc, veterinary_sector: optional(formData,"veterinary_sector"), specialization: optional(formData,"specialization"),
-    services: list(formData,"services"), skills: list(formData,"skills"), years_experience: Number(text(formData,"years_experience") || 0),
+    pvmc_number: pvmc, veterinary_sector: sector, specialization: specialization || null,
+    services: allServices, skills: list(formData,"skills"), years_experience: Number(text(formData,"years_experience") || 0),
     province: optional(formData,"province"), district: optional(formData,"district"), tehsil: optional(formData,"tehsil"), city: optional(formData,"city"),
     address: optional(formData,"address"), google_maps_url: optional(formData,"google_maps_url"), image_url: optional(formData,"image_url"),
     verification_status: canPublishNow ? "approved" : "pending",
