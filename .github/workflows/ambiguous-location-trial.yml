@@ -1,0 +1,38 @@
+# Temporary branch-only validation for ambiguous tehsil location matching.
+# No deployment, secrets, database access, or production changes.
+name: VetConnect ambiguous location trial
+
+on:
+  push:
+    branches:
+      - fix/ambiguous-tehsil-location-20261026
+
+permissions:
+  contents: read
+
+jobs:
+  verify-location-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out isolated source
+        uses: actions/checkout@v4
+      - name: Use Vercel-matched Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Repository structure audit
+        run: npm run audit
+      - name: Lint
+        run: npm run lint
+      - name: Execute source and location regression tests
+        run: npm test
+      - name: TypeScript checks
+        run: npm run typecheck
+      - name: Production-mode compile on isolated runner
+        run: npm run build
+      - name: Dependency security audit
+        run: npm run security:audit
