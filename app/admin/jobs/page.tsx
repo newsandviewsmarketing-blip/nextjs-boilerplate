@@ -25,7 +25,7 @@ export default async function AdminJobsPage({searchParams}:{searchParams:Promise
       {error?<p role="alert">Jobs could not be loaded. Counts may be incomplete.</p>:<div className="admin-directory-table-wrap"><table className="admin-directory-table">
         <thead><tr><th>Job title</th><th>Sector</th><th>Submitted</th><th>Review status</th><th>Public</th><th>Open</th></tr></thead><tbody>
           {rows.map(row=><tr key={row.id}><td>{row.title}</td><td>{row.sector||"Not specified"}</td><td>{new Date(row.created_at).toLocaleDateString("en-PK",{timeZone:"Asia/Karachi"})}</td>
-            <td>{row.verification_status}</td><td>{row.is_published?"Published":"Not published"}</td><td><Link href={row.verification_status==="pending"?"/admin/reviews#job-"+row.id:"/admin/directory/job/"+row.id}>Open record</Link></td></tr>)}
+            <td>{row.verification_status}</td><td>{row.is_published?"Published":"Not published"}</td><td><Link href={"/admin/jobs/"+row.id}>Open record</Link></td></tr>)}
         </tbody></table>{rows.length===0&&<p>No matching jobs.</p>}</div>}
     </section></div>
   </div></section><SiteFooter/></main>;

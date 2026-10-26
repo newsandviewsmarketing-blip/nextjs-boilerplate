@@ -72,6 +72,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   if(can("master_data.manage")) requireCount("suggestions","master_data_suggestions","id",[["status","pending"]]);
   await Promise.all(requirements.map(([key,table,column,filters])=>countOf(key,table,column,filters)));
   // Fresh 24-hour numbers are separate from all-time account totals.
+  // eslint-disable-next-line react-hooks/purity
   const since24h=new Date(Date.now()-24*60*60*1000).toISOString();
   const [recentRegistrations,recentApplications,recentProducts,recentJobs]=await Promise.all([
     usersAllowed?supabase.from("profiles").select("id",{head:true,count:"exact"}).gte("created_at",since24h):Promise.resolve({count:null,error:null}),
