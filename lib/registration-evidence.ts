@@ -40,5 +40,5 @@ export function registrationEvidenceRequirements(
 }
 
 export function isValidPakistaniCnic(value: string): boolean {
-  return /^\\d{5}-?\\d{7}-?\\d$/.test(value.trim());
+  return /^\d{5}-?\d{7}-?\d$/.test(value.trim());
 }
