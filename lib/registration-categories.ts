@@ -50,7 +50,8 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     data.student_track=track;
     for(const k of ["institution","student_college_registration_number","pvmc_student_reference","academic_year","study_program","career_interest","highest_qualification"])
       if(!capture(k,k.includes("number")||k.includes("reference")?75:180))return {error:"A student or career field is invalid.",data:{}};
-    if(track==="job_seeker"&&!field(form,"highest_qualification"))return {error:"Job seekers must provide their highest qualification.",data:{}};
+    if(track==="job_seeker"&&(!field(form,"highest_qualification")||!field(form,"institution")))
+      return {error:"Job seekers must provide their highest qualification and awarding institution.",data:{}};
     if(track!=="job_seeker"&&(!field(form,"institution")||!field(form,"study_program")||!field(form,"student_college_registration_number")))
       return {error:"Students must provide their institution, program and college registration number.",data:{}};
   }else if(role==="professional"){
