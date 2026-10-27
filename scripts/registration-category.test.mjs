@@ -47,3 +47,32 @@ test("Member profile keeps multiple practice areas and requires licence number",
  assert.match(action,/PVMC registration number is required/);
  assert.match(action,/Practice area:/);
 });
+
+test("Veterinarian degree and institution survive OTP metadata persistence",()=>{
+ const gate=read("lib/registration-categories.ts");
+ const persist=read("lib/registration-persistence.ts");
+ assert.match(gate,/data\\.qualifications=qual/);
+ assert.match(gate,/data\\.institution=field\\(form,"institution"\\)/);
+ assert.match(persist,/credentialLabel=institution\\?qualification/);
+});
+test("Clinic onboarding persists a clinic record and reviewer evidence",()=>{
+ const fields=read("app/register/RegistrationDetails.tsx");
+ const persist=read("lib/registration-persistence.ts");
+ const migration=read("supabase/migrations/20261027130000_registration_clinic_profile_fields.sql");
+ const review=read("supabase/migrations/202610280001_registration_review_workflow.sql");
+ const admin=read("app/admin/reviews/page.tsx");
+ assert.match(fields,/name="clinic_cities"/);
+ assert.match(persist,/from\\("clinics"\\)/);
+ assert.match(persist,/responsible_veterinarian_pvmc/);
+ assert.match(persist,/other_cities:additionalCities/);
+ assert.match(migration,/responsible_veterinarian_pvmc/);
+ assert.match(review,/Clinic registration profile is missing/);
+ assert.match(admin,/Responsible vet PVMC reference/);
+});
+test("Employer job posting keeps existing multi-city coverage workflow",()=>{
+ const page=read("app/dashboard/company/page.tsx");
+ const actions=read("app/dashboard/company/actions.ts");
+ assert.match(page,/JobTerritoryFields/);
+ assert.match(actions,/coverage_cities/);
+ assert.match(actions,/job_coverage/);
+});
