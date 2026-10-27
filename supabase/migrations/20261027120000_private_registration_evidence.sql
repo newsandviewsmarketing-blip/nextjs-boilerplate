@@ -115,6 +115,15 @@ create trigger vetconnect_registration_completion_gate
   after insert on auth.users
   for each row execute function public.mark_registration_completion_pending();
 
+insert into public.registration_completion_gate (user_id, registration_intent, student_track)
+select id,
+  case when raw_user_meta_data ->> 'registration_intent' = 'clinic' then 'clinic' else '' end,
+  case when raw_user_meta_data ->> 'student_track' in ('dvm_student','postgraduate_student','phd_student','job_seeker')
+    then raw_user_meta_data ->> 'student_track' else '' end
+from auth.users
+where raw_user_meta_data ->> 'registration_details_pending' = 'true'
+on conflict (user_id) do nothing;
+
 create or replace function public.complete_registration_submission()
 returns void
 language plpgsql
