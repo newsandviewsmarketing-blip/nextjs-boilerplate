@@ -24,8 +24,6 @@ export default async function CompleteRegistrationPage({
   const requirements = registrationEvidenceRequirements(role, gate?.registration_intent ?? "", gate?.student_track ?? "");
   const existing = await supabase.from("registration_evidence")
     .select("document_type").eq("user_id", auth.user.id);
-  const uploaded = new Set((existing.data ?? []).map((row) => row.document_type));
-  const requiredTypes = [...requirements.map((item) => item.type), "cnic_front", "cnic_back"];
   if (!profileError && !gateError && gate?.completed_at) redirect("/dashboard");
 
   return (
