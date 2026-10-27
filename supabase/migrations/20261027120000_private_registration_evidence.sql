@@ -27,10 +27,6 @@ drop policy if exists registration_evidence_owner_insert on public.registration_
 create policy registration_evidence_owner_insert on public.registration_evidence
   for insert to authenticated with check (user_id = auth.uid() and verification_status = 'pending');
 
-drop policy if exists registration_evidence_owner_delete on public.registration_evidence;
-create policy registration_evidence_owner_delete on public.registration_evidence
-  for delete to authenticated using (user_id = auth.uid() and verification_status = 'pending');
-
 create or replace function public.validate_registration_evidence_object()
 returns trigger
 language plpgsql
@@ -74,12 +70,6 @@ create policy registration_evidence_storage_owner_insert on storage.objects
     bucket_id = 'registration-evidence' and (storage.foldername(name))[1] = auth.uid()::text
   );
 
-drop policy if exists registration_evidence_storage_owner_delete on storage.objects;
-create policy registration_evidence_storage_owner_delete on storage.objects
-  for delete to authenticated using (
-    bucket_id = 'registration-evidence' and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
 create table if not exists public.registration_completion_gate (
   user_id uuid primary key references auth.users(id) on delete cascade,
   registration_intent text not null default '' check (registration_intent in ('','clinic')),
@@ -93,6 +83,21 @@ alter table public.registration_completion_gate enable row level security;
 drop policy if exists registration_completion_gate_owner_read on public.registration_completion_gate;
 create policy registration_completion_gate_owner_read on public.registration_completion_gate
   for select to authenticated using (user_id = auth.uid());
+
+drop policy if exists registration_evidence_owner_delete on public.registration_evidence;
+create policy registration_evidence_owner_delete on public.registration_evidence
+  for delete to authenticated using (
+    user_id = auth.uid() and verification_status = 'pending'
+    and exists (select 1 from public.registration_completion_gate g where g.user_id = auth.uid() and g.completed_at is null)
+  );
+
+drop policy if exists registration_evidence_storage_owner_delete on storage.objects;
+create policy registration_evidence_storage_owner_delete on storage.objects
+  for delete to authenticated using (
+    bucket_id = 'registration-evidence'
+    and (storage.foldername(name))[1] = auth.uid()::text
+    and exists (select 1 from public.registration_completion_gate g where g.user_id = auth.uid() and g.completed_at is null)
+  );
 
 create or replace function public.mark_registration_completion_pending()
 returns trigger
@@ -137,7 +142,7 @@ set search_path = public, auth
 as $$
 declare
   current_user_id uuid := auth.uid();
-  current_role text;
+  account_role_value text;
   gate_intent text;
   gate_student_track text;
 begin
