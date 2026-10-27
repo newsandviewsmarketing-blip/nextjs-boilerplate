@@ -31,6 +31,30 @@ drop policy if exists registration_evidence_owner_delete on public.registration_
 create policy registration_evidence_owner_delete on public.registration_evidence
   for delete to authenticated using (user_id = auth.uid() and verification_status = 'pending');
 
+create or replace function public.validate_registration_evidence_object()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, storage
+as $
+begin
+  if not exists (
+    select 1 from storage.objects
+    where bucket_id = 'registration-evidence'
+      and name = new.storage_path
+      and (storage.foldername(name))[1] = new.user_id::text
+  ) then
+    raise exception 'Registration evidence must reference an uploaded private object owned by the account';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists registration_evidence_object_check on public.registration_evidence;
+create trigger registration_evidence_object_check
+  before insert on public.registration_evidence
+  for each row execute function public.validate_registration_evidence_object();
+
 create index if not exists registration_evidence_user_type_idx
   on public.registration_evidence(user_id, document_type, created_at desc);
 
@@ -58,6 +82,8 @@ create policy registration_evidence_storage_owner_delete on storage.objects
 
 create table if not exists public.registration_completion_gate (
   user_id uuid primary key references auth.users(id) on delete cascade,
+  registration_intent text not null default '' check (registration_intent in ('','clinic')),
+  student_track text not null default '' check (student_track in ('','dvm_student','postgraduate_student','phd_student','job_seeker')),
   created_at timestamptz not null default now(),
   completed_at timestamptz
 );
@@ -98,7 +124,8 @@ as $
 declare
   current_user_id uuid := auth.uid();
   current_role text;
-  metadata jsonb;
+  gate_intent text;
+  gate_student_track text;
 begin
   if current_user_id is null then
     raise exception 'Authentication required';
@@ -108,14 +135,13 @@ begin
   from public.profiles
   where id = current_user_id;
 
-  select raw_user_meta_data into metadata
-  from auth.users
-  where id = current_user_id;
+  select registration_intent, student_track
+    into gate_intent, gate_student_track
+  from public.registration_completion_gate
+  where user_id = current_user_id and completed_at is null
+  for update;
 
-  if not exists (
-    select 1 from public.registration_completion_gate
-    where user_id = current_user_id and completed_at is null
-  ) then
+  if not found then
     return;
   end if;
 
@@ -135,7 +161,7 @@ begin
       raise exception 'Veterinary degree and PVMC evidence are required';
     end if;
   elsif current_role = 'candidate' then
-    if metadata ->> 'student_track' = 'job_seeker' then
+    if gate_student_track = 'job_seeker' then
       if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='qualification_certificate') then
         raise exception 'Qualification evidence is required';
       end if;
@@ -149,7 +175,7 @@ begin
       raise exception 'Professional qualification evidence is required';
     end if;
   elsif current_role = 'company' then
-    if metadata ->> 'registration_intent' = 'clinic' then
+    if gate_intent = 'clinic' then
       if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='clinic_registration')
         or not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='pvmc_registration') then
         raise exception 'Clinic registration and responsible veterinarian PVMC evidence are required';
