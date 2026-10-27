@@ -65,7 +65,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const clinic=str(meta,"registration_intent")==="clinic";
     const {error}=await supabase.from("company_profiles").update({
       business_type:clinic?"Veterinary Clinic / Hospital":str(meta,"company_type"),
-      registration_number:clinic?null:str(meta,"company_registration_number"),
+      registration_number:str(meta,"company_registration_number"),
       address:clinic?str(meta,"facility_address",250):null,
       description:clinic?str(meta,"facility_type"):"Registered VetConnect employer / company onboarding"
     }).eq("user_id",userId);
@@ -74,6 +74,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   if(role==="laboratory"){
     const {error}=await supabase.from("laboratories").update({
       laboratory_type:str(meta,"laboratory_type")||null,
+      registration_number:str(meta,"laboratory_registration_number",120)||null,
       address:str(meta,"lab_location",250)||null,
       tests_offered:str(meta,"tests_offered",250).split(",").map(x=>x.trim()).filter(Boolean)
     }).eq("owner_id",userId);
