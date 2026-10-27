@@ -1,27 +1,30 @@
-# Registration Category Onboarding - VetConnect (Draft)
+# Registration Category Onboarding — VetConnect (Draft)
 
-## Registration steps
-- The seven public category cards keep the veterinarian path separate; no category is preselected.
-- Email confirmation is followed by a required identity and evidence step. A database trigger creates an immutable completion gate for each new auth account; the dashboard checks that gate, so changing user metadata cannot skip the required upload. Pending legacy registrations are backfilled by the migration.
-- Every account submits a CNIC number plus front and back images.
-- Veterinarian: DVM or applicable PVMC-recognized BVSc qualification, PVMC practitioner number, degree certificate and PVMC registration proof; multiple practice areas/specializations remain supported.
-- Student: university/college registration details and current student card or enrollment letter. Job seeker: highest degree/qualification certificate. An optional PVMC student reference is not an RVMP licence.
-- Allied professional: highest qualification/degree evidence.
-- Company/employer: company registration or NTN evidence.
-- Clinic/hospital: clinic/business evidence and responsible veterinarian's PVMC proof.
-- Laboratory: registration, licence or accreditation evidence.
-- Animal owner/customer: CNIC identity evidence.
-- Files accept PDF, JPG, PNG or WebP, up to 8 MB each. The server validates required files, declared type and file signature before storing them in the private `registration-evidence` bucket. Evidence rows are owner-only; the files are not exposed on public profiles.
-- The additive migration creates a private evidence table, owner-only storage policies, a completion gate and an RPC that checks the category-specific evidence before opening the gate. It must be applied to an isolated staging project before exercising the upload flow. It has not been applied to production.
-- Category data is persisted only after the required evidence is submitted. Uploaded records start with `pending` verification status; upload does not grant a licence, approval or publication.
-- Student references remain owner-only pending `professional_credentials` and are never treated as practitioner licences. Admin-assisted student identifiers remain private audit evidence.
-- Member veterinarians still need a PVMC number to save their profile. Multiple practice areas remain in the existing `services[]` structure using `Practice area:` prefixes for compatibility.
+## Registration and review flow
+- The existing category cards remain in place, with distinct veterinarian, candidate/student/job-seeker, allied professional, company/employer, clinic, laboratory and customer criteria.
+- Every account must save a valid Pakistani CNIC number and provide front/back CNIC evidence. Individuals provide a profile photo; companies, clinics and laboratories provide a logo.
+- Veterinarians provide PVMC registration number, degree and PVMC evidence. Students provide current enrollment proof and university registration details. Job seekers provide highest qualification evidence. Allied professionals provide qualification proof. Employers provide company registration/NTN evidence. Clinics provide facility/business proof and responsible veterinarian PVMC evidence. Laboratories provide registration/licence proof.
+- Evidence uploads go directly to private Supabase Storage, are validated for category, MIME type, file signature and size, and are recorded as resumable account drafts after each upload. The authenticated owner can return using the same account and continue.
+- Submission changes the registration gate to pending. The admin queue exposes documents through short-lived signed links only to users with profiles.review. Admins can approve or return an application with a required note. Only approval publishes eligible profiles/company/lab data. Veterinary practice still requires the existing separate PVMC review.
+- New submissions/resubmissions send a document-free email to the configured admin address; decisions send a status email to the registrant. Email settings: RESEND_API_KEY, VETCONNECT_NOTIFICATION_FROM, VETCONNECT_ADMIN_EMAIL, and optionally VETCONNECT_APP_URL (defaults to the public VetConnect URL). Email delivery must be verified in staging.
+- There is no registration payment flow in this change. Existing public API routes/contracts and site branding are unchanged.
 
-## Product, privacy and release limits
-- The registration form does not connect to PVMC. Official registry checks remain manual. Do not guess the format of PVMC student references.
-- CNIC and evidence are sensitive personal information. Keep the storage bucket private and do not put CNIC values, document URLs, or file contents in auth metadata or public profiles.
-- The current draft stores CNIC number and document metadata in `registration_evidence`; RLS permits the account owner to read its own records and upload pending records. The database checks that each evidence row points to an uploaded private object. A dedicated admin evidence review UI and retention policy are still required before production.
-- Degree equivalencies and recognized veterinary qualifications must be confirmed with PVMC before production.
-- Use an isolated Supabase staging project to test OTP confirmation, password confirmation, file signatures and size limits, upload failure cleanup, category persistence, and RLS. Do not use real CNICs or credentials in development screenshots.
-- The existing public veterinary verification state still requires the separate PVMC integrity release gates. This draft does not change current approval or publication status.
-- No live database edit, production merge, production deployment, DNS change, or live user data change is included.
+## Database migrations and checks
+- 20261027120000_private_registration_evidence.sql creates the private evidence store and signup completion gate.
+- 202610280001_registration_review_workflow.sql adds incremental drafts, admin-only review access, approval state and approval RPC, plus laboratory registration/logo fields.
+- Neither migration has been applied to production. Apply both in order to an isolated staging project, inspect policies and role grants, and verify no public exposure.
+- Staging checklist:
+  1. Confirm email signup/OTP and password sign-in for each category.
+  2. Confirm required fields and document rules for each role and pathway.
+  3. Save partial drafts, sign out, return with the same account, and continue.
+  4. Check owner/admin/unauthorized storage and database reads; ensure signed admin links expire and are not sent by email.
+  5. Verify pending registrations cannot enter the dashboard or public listings.
+  6. Approve and reject as an authorized admin; verify public visibility only after approval and verify rejection notes/resubmission.
+  7. Verify admin and registrant email delivery without document attachments.
+- GitHub CI must pass on the final commit. Browser QA with real CNIC data is prohibited; use synthetic staging-only data.
+
+## Privacy and release controls
+- CNIC, identity documents and credential files are sensitive. Keep registration-evidence private, never put document contents/URLs/CNIC into public profiles or email, and use short-lived signed links only for authorized reviewers.
+- A retention/deletion schedule for CNIC and credential evidence has not been selected. This must be decided and documented before production rollout; migrations do not auto-delete.
+- PVMC registry checks, degree equivalency and licence validity remain manual.
+- PR #42 is stacked on the security recheck PR and is draft. No production migration or deployment has been made. Merge dependencies and complete staging checks before production release.
