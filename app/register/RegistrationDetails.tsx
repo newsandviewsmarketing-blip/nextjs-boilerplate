@@ -4,6 +4,15 @@ import { PRACTICE_AREAS, SPECIALIZATIONS } from "@/lib/registration-categories";
 
 export default function RegistrationDetails({ role, clinic = false }: { role: string; clinic?: boolean }) {
   const [track, setTrack] = useState("");
+  const [clinicCityInput, setClinicCityInput] = useState("");
+  const [clinicCities, setClinicCities] = useState<string[]>([]);
+  const addClinicCity = () => {
+    const city = clinicCityInput.trim().replace(/\\s+/g, " ");
+    if (city && city.length <= 120 && !clinicCities.some(x => x.toLowerCase() === city.toLowerCase()) && clinicCities.length < 20) {
+      setClinicCities(prev => [...prev, city]);
+    }
+    setClinicCityInput("");
+  };
   if (role==="veterinarian") return <>
     <div><label htmlFor="vet-degree">Veterinary qualification *</label><select id="vet-degree" name="qualifications" required defaultValue=""><option value="" disabled>Select degree</option><option value="DVM">DVM</option><option value="BVSc">BVSc (where PVMC-recognized)</option></select></div>
     <div><label htmlFor="vet-institution">Awarding university / institution *</label><input id="vet-institution" name="institution" maxLength={180} required/></div>
@@ -40,7 +49,21 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <div><label htmlFor="clinic-name">Clinic / veterinary hospital name *</label><input name="organization_name" id="clinic-name" required maxLength={180}/></div>
     <div><label htmlFor="facility-type">Facility type *</label><select name="facility_type" id="facility-type" required><option>Veterinary Clinic</option><option>Pet Clinic</option><option>Veterinary Hospital</option><option>Mobile Veterinary Service</option><option>Farm Veterinary Clinic</option></select></div>
     <div><label htmlFor="company-reg-clinic">Business registration / NTN *</label><input name="company_registration_number" id="company-reg-clinic" maxLength={180} required/></div>
-    <div><label htmlFor="clinic-address">Facility address *</label><input name="facility_address" id="clinic-address" maxLength={250} required/></div>
+    <div><label htmlFor="clinic-address">Primary facility address *</label><input name="facility_address" id="clinic-address" maxLength={250} required/></div>
+    <div className="form-span-2">
+      <label htmlFor="clinic-city-input">Additional service cities</label>
+      <div className="inline-field">
+        <input id="clinic-city-input" value={clinicCityInput} maxLength={120} placeholder="Add another city or town"
+          onChange={e=>setClinicCityInput(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addClinicCity();}}}/>
+        <button className="button button-secondary" type="button" onClick={addClinicCity} disabled={!clinicCityInput.trim()||clinicCities.length>=20}>Add city</button>
+      </div>
+      {clinicCities.length>0&&<div className="service-checkbox-grid" aria-label="Additional clinic cities">{clinicCities.map(city=><span className="checkbox-line" key={city}>
+        {city}<button type="button" aria-label={"Remove "+city} onClick={()=>setClinicCities(prev=>prev.filter(x=>x!==city))}>×</button>
+        <input type="hidden" name="clinic_cities" value={city}/>
+      </span>)}</div>}
+      <small>Add each additional city once. You can edit the list before submitting.</small>
+    </div>
     <div><label htmlFor="clinic-vet">Responsible veterinarian full name *</label><input name="responsible_veterinarian" id="clinic-vet" maxLength={180} required/></div>
     <div><label htmlFor="clinic-pvmc">Responsible veterinarian PVMC registration number *</label><input name="pvmc_number" id="clinic-pvmc" required maxLength={70}/></div>
   </>;
