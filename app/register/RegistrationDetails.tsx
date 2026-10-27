@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { PRACTICE_AREAS, SPECIALIZATIONS } from "@/lib/registration-categories";
+import { PRACTICE_AREAS, SPECIALIZATIONS, PROFESSIONAL_CATEGORIES } from "@/lib/registration-categories";
 
 export default function RegistrationDetails({ role, clinic = false }: { role: string; clinic?: boolean }) {
   const [track, setTrack] = useState("");
@@ -38,11 +38,18 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <p className="form-help form-span-2">Students submit current institutional evidence. Graduates and job seekers submit their highest qualification. Neither pathway authorizes veterinary practice.</p>
   </>;
   if (role==="professional") return <>
-    <div><label htmlFor="allied-role">Industry professional category *</label><select id="allied-role" name="professional_type" required defaultValue=""><option value="" disabled>Select role</option>{["Animal Nutritionist","Dairy Nutritionist","Farm Manager","Livestock Production Specialist","Poultry Professional","Veterinary Sales / Marketing","Laboratory Technologist","Researcher / Academic","Feed Formulation Specialist","Other Allied Professional"].map(x=><option key={x}>{x}</option>)}</select></div>
+    <details className="form-span-2 service-selector-fieldset">
+      <summary>Professional categories * <span>(choose all that apply)</span></summary>
+      <div className="service-checkbox-grid">{PROFESSIONAL_CATEGORIES.map((x,i)=><label className="checkbox-line" key={x}><input type="checkbox" name="professional_types" value={x} id={"allied-role-"+i}/>{x}</label>)}</div>
+    </details>
     <div><label htmlFor="allied-qualification">Highest qualification *</label><input id="allied-qualification" name="highest_qualification" placeholder="BSc, MSc, MPhil, PhD, diploma" maxLength={180} required/></div>
-    <div><label htmlFor="allied-sector">Sector *</label><select name="industry_sector" id="allied-sector" required defaultValue=""><option value="" disabled>Select sector</option>{PRACTICE_AREAS.map(x=><option key={x}>{x}</option>)}</select></div>
+    <details className="form-span-2 service-selector-fieldset">
+      <summary>Industry sectors * <span>(choose all that apply)</span></summary>
+      <div className="service-checkbox-grid">{PRACTICE_AREAS.map((x,i)=><label className="checkbox-line" key={x}><input type="checkbox" name="industry_sectors" value={x} id={"allied-sector-"+i}/>{x}</label>)}</div>
+    </details>
     <div><label htmlFor="allied-org">Organization / employer</label><input name="organization_name" id="allied-org" maxLength={180}/></div>
     <div className="form-span-2"><label htmlFor="allied-spec">Area of expertise *</label><input id="allied-spec" name="specialization_other" maxLength={120} required/></div>
+    <p className="form-help form-span-2">Select every relevant category and sector. Your profile will use the first selected category as its main heading and retain the full list for search and profile display.</p>
     <p className="form-help form-span-2">Veterinary, nutrition, poultry, dairy, livestock and allied professionals submit proof of their listed education and credentials.</p>
   </>;
   if (role==="company" && clinic) return <>
