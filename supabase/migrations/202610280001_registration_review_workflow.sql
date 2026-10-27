@@ -42,6 +42,7 @@ alter table public.registration_evidence
   add column if not exists reviewed_by uuid references public.profiles(id) on delete set null;
 
 alter table public.laboratories add column if not exists logo_url text;
+alter table public.laboratories add column if not exists registration_number text;
 
 create index if not exists registration_completion_gate_review_idx
   on public.registration_completion_gate(review_status, submitted_at desc);
