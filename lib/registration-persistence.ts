@@ -117,23 +117,8 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   if(role==="company"){
     const clinic=str(meta,"registration_intent")==="clinic";
     const companyName=str(meta,"organization_name",180);
-    const companySector=str(meta,"industry_sector",180);
-    const {error}=await supabase.from("company_profiles").update({
-      company_name:companyName,
-      business_type:clinic?"Veterinary Clinic / Hospital":str(meta,"company_type"),
-      registration_number:str(meta,"company_registration_number"),
-      address:clinic?str(meta,"facility_address",250):null,
-      description:clinic?str(meta,"facility_type"):"Registered VetConnect employer / company onboarding"
-    }).eq("user_id",userId);
-    if(error)return "Unable to save business onboarding: "+error.message;
-    // The employer profile is the shared company identity used by job and marketplace tools.
-    // Keep the selected business sector in its existing relation table.
-    if(companySector){
-      const {error:sectorClearError}=await supabase.from("company_sectors").delete().eq("company_user_id",userId);
-      if(sectorClearError)return "Unable to update the company sector: "+sectorClearError.message;
-      const {error:sectorInsertError}=await supabase.from("company_sectors").insert({company_user_id:userId,sector:companySector});
-      if(sectorInsertError)return "Unable to save the company sector: "+sectorInsertError.message;
-    }
+    // Business details stay in the private registration row until admin approval.
+    // A pending company has no active workspace membership and cannot update canonical company tables.
     if(clinic){
       const clinicName=companyName||str(meta,"full_name",180);
       const slug=clinicName.toLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)+"-"+userId.slice(0,8);
