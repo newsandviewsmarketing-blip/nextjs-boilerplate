@@ -35,7 +35,7 @@ async function currentRegistration() {
 }
 
 export async function saveRegistrationCnicAction(formData: FormData) {
-  const { supabase, user } = await currentRegistration();
+  const { supabase, user, gate } = await currentRegistration();
   const cnic = String(formData.get("cnic_number") ?? "").replace(/-/g, "").trim();
   if (!isValidPakistaniCnic(cnic)) return;
   if (gate.completed_at && gate.review_status !== "rejected") throw new Error("Your CNIC cannot be edited while a submission is under review.");
