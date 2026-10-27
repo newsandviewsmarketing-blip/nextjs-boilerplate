@@ -18,9 +18,11 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const specs=safeList(meta,"specializations",SPECIALIZATIONS);
     const specialOther=str(meta,"specialization_other",120);
     const qualification=str(meta,"qualifications",120);
-    if(!pvmc||!areas.length||!qualification)return "Your veterinary registration is missing a PVMC number, qualification or practice area.";
+    const institution=str(meta,"institution",180);
+    if(!pvmc||!areas.length||!qualification||!institution)return "Your veterinary registration is missing a PVMC number, qualification, awarding institution or practice area.";
+    const credentialLabel=institution?qualification+" — "+institution:qualification;
     const {error}=await supabase.from("veterinarian_profiles").update({
-      pvmc_number:pvmc, qualifications:qualification,
+      pvmc_number:pvmc, qualifications:credentialLabel,
       veterinary_sector:areas[0],specialization:[...specs,...(specialOther?[specialOther]:[])].join(", ")||null,
       services:areas.map(x=>"Practice area: "+x),
     }).eq("user_id",userId);
@@ -30,13 +32,39 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const student=role==="candidate"&&track&&track!=="job_seeker";
     const label=student?track==="dvm_student"?"DVM Student":track==="postgraduate_student"?"Postgraduate Student":"PhD Student":
       role==="candidate"?"Job Seeker":str(meta,"professional_type")||"Allied Professional";
+    const institution=str(meta,"institution",180);
+    const qualification=student?str(meta,"study_program",180):str(meta,"highest_qualification",180);
+    const interest=str(meta,"career_interest",180);
+    const selectedFields=[
+      ...safeList(meta,"professional_types",["Animal Nutritionist","Dairy Nutritionist","Farm Manager","Livestock Production Specialist","Poultry Professional","Veterinary Sales / Marketing","Laboratory Technologist","Researcher / Academic","Feed Formulation Specialist","Other Allied Professional"]),
+      str(meta,"professional_type",100),
+    ].filter(Boolean);
+    const sectors=[str(meta,"industry_sector",120)].filter(Boolean);
+    const expertise=[str(meta,"specialization_other",120),interest].filter(Boolean);
+    const skills=[...new Set([...selectedFields,...sectors,...expertise].map(x=>x.trim()).filter(Boolean))];
     const {error}=await supabase.from("professional_profiles").update({
       professional_type:label,
-      organization_name:student?str(meta,"institution"):str(meta,"organization_name"),
-      headline:student?str(meta,"study_program")||label:str(meta,"specialization_other"),
+      organization_name:student?institution:str(meta,"organization_name"),
+      headline:student?str(meta,"study_program")||label:role==="candidate"?(interest||"Job Seeker"):str(meta,"specialization_other"),
+      skills,
       profile_visibility:"owner_only",
     }).eq("user_id",userId);
     if(error)return "Unable to save professional onboarding details: "+error.message;
+    // Store the qualification and institution in the normalized education record
+    // so the reviewer can see the submitted credential after OTP confirmation.
+    if(qualification){
+      const {data:educationRows,error:educationReadError}=await supabase.from("professional_education")
+        .select("id").eq("professional_user_id",userId).eq("degree",qualification).eq("institution",institution||"");
+      if(educationReadError)return "Could not verify the saved education record: "+educationReadError.message;
+      if(!educationRows?.length){
+        const {error:educationInsertError}=await supabase.from("professional_education").insert({
+          professional_user_id:userId,degree:qualification,institution:institution||null,
+          field_of_study:str(meta,"industry_sector",120)||str(meta,"study_program",180)||null,
+          is_current:Boolean(student),visibility:"owner_only"
+        });
+        if(educationInsertError)return "Unable to save the submitted education details: "+educationInsertError.message;
+      }
+    }
     // Student registration numbers are PRIVATE credential records, never public skills or CV text.
     // Do not treat university and PVMC student references as RVMP practitioner licence numbers.
     if(student){
@@ -63,13 +91,44 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   }
   if(role==="company"){
     const clinic=str(meta,"registration_intent")==="clinic";
+    const companyName=str(meta,"organization_name",180);
+    const companySector=str(meta,"industry_sector",180);
     const {error}=await supabase.from("company_profiles").update({
+      company_name:companyName,
       business_type:clinic?"Veterinary Clinic / Hospital":str(meta,"company_type"),
       registration_number:str(meta,"company_registration_number"),
       address:clinic?str(meta,"facility_address",250):null,
       description:clinic?str(meta,"facility_type"):"Registered VetConnect employer / company onboarding"
     }).eq("user_id",userId);
     if(error)return "Unable to save business onboarding: "+error.message;
+    // The employer profile is the shared company identity used by job and marketplace tools.
+    // Keep the selected business sector in its existing relation table.
+    if(companySector){
+      const {error:sectorClearError}=await supabase.from("company_sectors").delete().eq("company_user_id",userId);
+      if(sectorClearError)return "Unable to update the company sector: "+sectorClearError.message;
+      const {error:sectorInsertError}=await supabase.from("company_sectors").insert({company_user_id:userId,sector:companySector});
+      if(sectorInsertError)return "Unable to save the company sector: "+sectorInsertError.message;
+    }
+    if(clinic){
+      const clinicName=companyName||str(meta,"full_name",180);
+      const slug=clinicName.toLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)+"-"+userId.slice(0,8);
+      const {data:existingClinic,error:clinicReadError}=await supabase.from("clinics").select("id").eq("owner_id",userId).limit(1).maybeSingle();
+      if(clinicReadError)return "Unable to check the clinic profile: "+clinicReadError.message;
+      const clinicData={
+        clinic_name:clinicName,
+        facility_type:str(meta,"facility_type",120)||"Veterinary Clinic",
+        city:str(meta,"city",120)||null,
+        address:str(meta,"facility_address",250)||null,
+        public_phone:str(meta,"phone",35)||null,
+        public_email:str(meta,"email",254)||null,
+        verification_status:"pending",
+        is_published:false,
+      };
+      const clinicResult=existingClinic
+        ? await supabase.from("clinics").update(clinicData).eq("id",existingClinic.id)
+        : await supabase.from("clinics").insert({...clinicData,owner_id:userId,slug});
+      if(clinicResult.error)return "Unable to save the clinic profile: "+clinicResult.error.message;
+    }
   }
   if(role==="laboratory"){
     const {error}=await supabase.from("laboratories").update({
