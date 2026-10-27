@@ -11,6 +11,11 @@ export const SPECIALIZATIONS = [
   "Microbiology","Veterinary Public Health","Animal Nutrition",
   "Feed Formulation","Diagnostics","Regulatory Affairs","Veterinary Epidemiology"
 ] as const;
+export const PROFESSIONAL_CATEGORIES = [
+  "Animal Nutritionist","Dairy Nutritionist","Farm Manager","Livestock Production Specialist",
+  "Poultry Professional","Veterinary Sales / Marketing","Laboratory Technologist",
+  "Researcher / Academic","Feed Formulation Specialist","Other Allied Professional"
+] as const;
 
 const field=(form:FormData,key:string)=>String(form.get(key)??"").trim();
 const clean=(v:string,size=180)=>v.length<=size && !/[<>\u0000-\u001f]/.test(v);
