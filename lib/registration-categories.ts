@@ -54,11 +54,20 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     if(track!=="job_seeker"&&(!field(form,"institution")||!field(form,"study_program")||!field(form,"student_college_registration_number")))
       return {error:"Students must provide their institution, program and college registration number.",data:{}};
   }else if(role==="professional"){
-    for(const k of ["professional_type","highest_qualification","industry_sector","organization_name","specialization_other"])
+    for(const k of ["highest_qualification","organization_name","specialization_other"])
       if(!capture(k,k==="specialization_other"?120:180))return {error:"An industry-professional field is invalid.",data:{}};
-    if(!field(form,"professional_type")||!field(form,"highest_qualification")||!field(form,"industry_sector")||!field(form,"specialization_other"))
-      return {error:"Select your professional category and sector, and enter your qualification and area of expertise.",data:{}};
-    if(!(PRACTICE_AREAS as readonly string[]).includes(field(form,"industry_sector")))return {error:"Select a listed industry sector.",data:{}};
+    const categories=[...new Set([...values(form,"professional_types"),field(form,"professional_type")].filter(Boolean))];
+    const sectors=[...new Set([...values(form,"industry_sectors"),field(form,"industry_sector")].filter(Boolean))];
+    if(!categories.length||categories.length>10||categories.some(x=>!(PROFESSIONAL_CATEGORIES as readonly string[]).includes(x)))
+      return {error:"Select at least one valid professional category.",data:{}};
+    if(!sectors.length||sectors.length>12||sectors.some(x=>!(PRACTICE_AREAS as readonly string[]).includes(x)))
+      return {error:"Select at least one valid industry sector.",data:{}};
+    if(!field(form,"highest_qualification")||!field(form,"specialization_other"))
+      return {error:"Enter your highest qualification and area of expertise.",data:{}};
+    data.professional_types=categories;
+    data.professional_type=categories[0];
+    data.industry_sectors=sectors;
+    data.industry_sector=sectors[0];
   }else if(role==="company"&&intent==="clinic"){
     for(const k of ["organization_name","facility_type","company_registration_number","facility_address","responsible_veterinarian","pvmc_number"])
       if(!required(k,250))return {error:"Clinic name, registration / NTN, address and responsible veterinarian details are required.",data:{}};
