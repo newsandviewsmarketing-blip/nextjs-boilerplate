@@ -19,14 +19,14 @@ export default async function CompleteRegistrationPage({
   const { data: profile, error: profileError } = await supabase
     .from("profiles").select("primary_role").eq("id", auth.user.id).maybeSingle();
   const role = profile?.primary_role ?? "";
-  const intent = auth.user.user_metadata?.registration_intent === "clinic" ? "clinic" : "";
-  const track = typeof auth.user.user_metadata?.student_track === "string" ? auth.user.user_metadata.student_track : "";
-  const requirements = registrationEvidenceRequirements(role, intent, track);
+  const { data: gate, error: gateError } = await supabase.from("registration_completion_gate")
+    .select("registration_intent, student_track, completed_at").eq("user_id", auth.user.id).maybeSingle();
+  const requirements = registrationEvidenceRequirements(role, gate?.registration_intent ?? "", gate?.student_track ?? "");
   const existing = await supabase.from("registration_evidence")
     .select("document_type").eq("user_id", auth.user.id);
   const uploaded = new Set((existing.data ?? []).map((row) => row.document_type));
   const requiredTypes = [...requirements.map((item) => item.type), "cnic_front", "cnic_back"];
-  if (!profileError && !existing.error && requiredTypes.every((type) => uploaded.has(type))) redirect("/dashboard");
+  if (!profileError && !gateError && gate?.completed_at) redirect("/dashboard");
 
   return (
     <main>
@@ -39,7 +39,7 @@ export default async function CompleteRegistrationPage({
               <h1>Complete your registration</h1>
               <p>Upload your CNIC and the documents required for your selected category. Files are stored privately and remain pending verification.</p>
             </div>
-            <FormMessage error={params.error || (profileError || existing.error ? "Private registration storage is not ready. Please contact VetConnect support." : undefined)} />
+            <FormMessage error={params.error || (profileError || existing.error || gateError ? "Private registration storage is not ready. Please contact VetConnect support." : undefined)} />
             <RegistrationEvidenceForm requirements={requirements} />
             <p className="form-help">Your CNIC and credential files are held for VetConnect identity and category verification. Do not submit another person’s documents.</p>
             <LinkBack />
