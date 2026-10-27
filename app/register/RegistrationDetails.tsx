@@ -1,6 +1,9 @@
+"use client";
+import { useState } from "react";
 import { PRACTICE_AREAS, SPECIALIZATIONS } from "@/lib/registration-categories";
 
 export default function RegistrationDetails({ role, clinic = false }: { role: string; clinic?: boolean }) {
+  const [track, setTrack] = useState("");
   if (role === "veterinarian") return <>
     <div><label htmlFor="vet-degree">Veterinary qualification *</label><select id="vet-degree" name="qualifications" required defaultValue=""><option value="" disabled>Select degree</option><option value="DVM">DVM</option><option value="BVSc">BVSc (where PVMC-recognized)</option></select></div>
     <div><label htmlFor="vet-institution">Awarding university / institution *</label><input id="vet-institution" name="institution" maxLength={180} required/></div>
@@ -11,15 +14,19 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <p className="form-help form-span-2">You may work across pets, dairy, livestock and poultry. Practice rights are not granted until the administrator verifies your qualifications and PVMC status.</p>
   </>;
   if (role === "candidate") return <>
-    <div><label htmlFor="student-track">Career status *</label><select name="student_track" id="student-track" required defaultValue=""><option value="" disabled>Select status</option><option value="dvm_student">DVM student</option><option value="postgraduate_student">Postgraduate student (MPhil / MSc)</option><option value="phd_student">PhD student</option><option value="job_seeker">Graduate / job seeker</option></select></div>
-    <div><label htmlFor="student-institution">College / university *</label><input name="institution" id="student-institution" maxLength={180} required/></div>
-    <div><label htmlFor="student-program">Program / field *</label><input name="study_program" id="student-program" placeholder="DVM, MPhil, PhD, Animal Nutrition" maxLength={180} required/></div>
-    <div><label htmlFor="college-reg">College / university registration number *</label><input name="student_college_registration_number" id="college-reg" maxLength={75} required/></div>
-    <div><label htmlFor="student-qualification">Highest qualification (for graduates)</label><input name="highest_qualification" id="student-qualification" maxLength={180} placeholder="DVM, BSc, MSc, MPhil, PhD"/></div>
-    <div><label htmlFor="pvmc-student">PVMC student reference (if issued)</label><input name="pvmc_student_reference" id="pvmc-student" maxLength={75}/><small>This is not an RVMP practitioner licence.</small></div>
-    <div><label htmlFor="student-year">Academic year / semester</label><input name="academic_year" id="student-year" maxLength={180}/></div>
-    <div><label htmlFor="career-interest">Career interests / desired role</label><input name="career_interest" id="career-interest" maxLength={180} placeholder="Internships, animal health, nutrition, research"/></div>
-    <p className="form-help form-span-2">Student registration does not authorize veterinary practice. Students submit institutional evidence; job seekers submit their highest qualification.</p>
+    <div><label htmlFor="student-track">Career status *</label><select name="student_track" id="student-track" required value={track} onChange={e=>setTrack(e.target.value)}><option value="" disabled>Select status</option><option value="dvm_student">DVM student</option><option value="postgraduate_student">Postgraduate student (MPhil / MSc)</option><option value="phd_student">PhD student</option><option value="job_seeker">Graduate / job seeker</option></select></div>
+    {track === "job_seeker" ? <>
+      <div><label htmlFor="job-qualification">Highest qualification *</label><input name="highest_qualification" id="job-qualification" maxLength={180} required placeholder="DVM, BSc, MSc, MPhil, PhD"/></div>
+      <div><label htmlFor="job-institution">Awarding institution *</label><input name="institution" id="job-institution" maxLength={180} required/></div>
+      <div><label htmlFor="career-interest">Career interests / desired role</label><input name="career_interest" id="career-interest" maxLength={180} placeholder="Internships, animal health, nutrition, research"/></div>
+    </> : track ? <>
+      <div><label htmlFor="student-institution">College / university *</label><input name="institution" id="student-institution" maxLength={180} required/></div>
+      <div><label htmlFor="student-program">Program / field *</label><input name="study_program" id="student-program" placeholder="DVM, MPhil, PhD, Animal Nutrition" maxLength={180} required/></div>
+      <div><label htmlFor="college-reg">College / university registration number *</label><input name="student_college_registration_number" id="college-reg" maxLength={75} required/></div>
+      <div><label htmlFor="pvmc-student">PVMC student reference (if issued)</label><input name="pvmc_student_reference" id="pvmc-student" maxLength={75}/><small>This is not an RVMP practitioner licence.</small></div>
+      <div><label htmlFor="student-year">Academic year / semester</label><input name="academic_year" id="student-year" maxLength={180}/></div>
+    </> : <p className="form-help form-span-2">Select a career status to see the information required for your pathway.</p>}
+    <p className="form-help form-span-2">Students submit current institutional evidence. Graduates and job seekers submit their highest qualification. Neither pathway authorizes veterinary practice.</p>
   </>;
   if (role === "professional") return <>
     <div><label htmlFor="allied-role">Industry professional category *</label><select id="allied-role" name="professional_type" required defaultValue=""><option value="" disabled>Select role</option>{["Animal Nutritionist","Dairy Nutritionist","Farm Manager","Livestock Production Specialist","Poultry Professional","Veterinary Sales / Marketing","Laboratory Technologist","Researcher / Academic","Feed Formulation Specialist","Other Allied Professional"].map(x=><option key={x}>{x}</option>)}</select></div>
