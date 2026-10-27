@@ -28,6 +28,17 @@ export async function reviewProfileAction(formData: FormData) {
   }
 
   const supabase = await createClient();
+  if (recordSource === "account" && profileType && userId) {
+    const { data: registrationGate, error: registrationGateError } = await supabase
+      .from("registration_completion_gate")
+      .select("review_status,completed_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (registrationGateError) redirect("/admin/reviews?error=Registration%20gate%20could%20not%20be%20verified.");
+    if (registrationGate && registrationGate.review_status !== "approved") {
+      redirect("/admin/reviews?error=Use%20the%20registration%20evidence%20queue%20before%20approving%20this%20account.");
+    }
+  }
   const reviewedAt = decision === "approved" ? new Date().toISOString() : null;
   let error: { message: string } | null = null;
 
