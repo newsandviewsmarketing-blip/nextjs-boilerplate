@@ -370,6 +370,20 @@ begin
       verified_by = case when p_decision='approved' then p_reviewer_id else null end
     from public.company_profiles cp
     where cp.user_id = p_user_id and c.legacy_company_user_id = p_user_id;
+
+    if gate_row.registration_intent = 'clinic' then
+      update public.clinics set
+        verification_status = p_decision,
+        rejection_reason = case when p_decision='rejected' then p_reason else null end,
+        is_published = p_decision='approved',
+        logo_url = case when p_decision='approved' then p_public_image_url else logo_url end,
+        verified_at = case when p_decision='approved' then now() else null end,
+        verified_by = case when p_decision='approved' then p_reviewer_id else null end
+      where owner_id = p_user_id;
+      if not found then
+        raise exception 'Clinic registration profile is missing';
+      end if;
+    end if;
   elsif account_role_value = 'laboratory' then
     update public.laboratories set
       verification_status = p_decision,
