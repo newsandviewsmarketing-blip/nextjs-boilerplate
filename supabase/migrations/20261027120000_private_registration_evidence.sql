@@ -36,7 +36,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, storage
-as $
+as $$
 begin
   if not exists (
     select 1 from storage.objects
@@ -48,7 +48,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists registration_evidence_object_check on public.registration_evidence;
 create trigger registration_evidence_object_check
@@ -99,16 +99,21 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, auth
-as $
+as $$
 begin
   if new.raw_user_meta_data ->> 'registration_details_pending' = 'true' then
-    insert into public.registration_completion_gate (user_id)
-    values (new.id)
+    insert into public.registration_completion_gate (user_id, registration_intent, student_track)
+    values (
+      new.id,
+      case when new.raw_user_meta_data ->> 'registration_intent' = 'clinic' then 'clinic' else '' end,
+      case when new.raw_user_meta_data ->> 'student_track' in ('dvm_student','postgraduate_student','phd_student','job_seeker')
+        then new.raw_user_meta_data ->> 'student_track' else '' end
+    )
     on conflict (user_id) do nothing;
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists vetconnect_registration_completion_gate on auth.users;
 create trigger vetconnect_registration_completion_gate
@@ -129,7 +134,7 @@ returns void
 language plpgsql
 security definer
 set search_path = public, auth
-as $
+as $$
 declare
   current_user_id uuid := auth.uid();
   current_role text;
@@ -204,7 +209,7 @@ begin
   set completed_at = now()
   where user_id = current_user_id and completed_at is null;
 end;
-$;
+$$;
 
 revoke all on function public.complete_registration_submission() from public;
 grant execute on function public.complete_registration_submission() to authenticated;
