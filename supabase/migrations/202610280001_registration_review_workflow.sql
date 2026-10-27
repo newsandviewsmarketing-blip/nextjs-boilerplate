@@ -284,9 +284,9 @@ begin
     raise exception 'Registration profile is missing';
   end if;
 
-  select category_details into category_details
-  from public.registration_profile_details
-  where user_id = p_user_id;
+  select details.category_details into category_details
+  from public.registration_profile_details as details
+  where details.user_id = p_user_id;
   category_details := coalesce(category_details, '{}'::jsonb);
 
   required_types := array['cnic_front','cnic_back'];
