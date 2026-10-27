@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { persistRegisteredCategoryDetails } from "@/lib/registration-persistence";
 
 function loginRedirect(
   origin: string,
@@ -145,6 +146,8 @@ export async function GET(request: NextRequest) {
 
   const {data:account}=await supabase.auth.getUser();
   if(account.user?.user_metadata?.registration_details_pending===true){
+    const issue=await persistRegisteredCategoryDetails(supabase,account.user.id,account.user.user_metadata);
+    if(issue) return NextResponse.redirect(new URL(`/register/complete?error=${encodeURIComponent(issue)}`, url.origin));
     return NextResponse.redirect(new URL("/register/complete", url.origin));
   }
 
