@@ -10,7 +10,6 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
 import { profileNameProblem } from "@/lib/profile-name";
 import {registrationExtraFields} from "@/lib/registration-categories";
-import {persistRegisteredCategoryDetails} from "@/lib/registration-persistence";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -489,11 +488,8 @@ export async function verifyEmailOtpAction(
 
   if(mode==="register"){
     const {data:current}=await supabase.auth.getUser();
-    const user=current.user;
-    if(user?.user_metadata?.registration_details_pending===true){
-      const issue=await persistRegisteredCategoryDetails(supabase,user.id,user.user_metadata);
-      if(issue)redirect("/dashboard?error="+encodeURIComponent("Your account is confirmed but category details need attention: "+issue));
-      await supabase.auth.updateUser({data:{registration_details_pending:false}});
+    if(current.user?.user_metadata?.registration_details_pending===true){
+      redirect("/register/complete");
     }
   }
 
@@ -685,7 +681,7 @@ export async function registerAction(
     redirect(
       withMessage(
         `/login?next=${encodeURIComponent(
-          registrationNext,
+          "/register/complete",
         )}`,
         "message",
         "Account created. Check your email to confirm your address, then sign in.",
@@ -700,7 +696,7 @@ export async function registerAction(
 
   revalidatePath("/", "layout");
 
-  redirect(registrationNext);
+  redirect("/register/complete");
 }
 
 
