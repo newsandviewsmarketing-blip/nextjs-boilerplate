@@ -38,7 +38,7 @@ export default function RegistrationEvidenceForm({ requirements, cnic = "", save
   return <form action={completeRegistrationAction}>
     <FormMessage error={error}/>
     <div className="form-grid">
-      <div><label htmlFor="cnic-number">CNIC number *</label><input id="cnic-number" name="cnic_number" required inputMode="numeric" autoComplete="off" placeholder="12345-1234567-1" pattern="[0-9]{5}-?[0-9]{7}-?[0-9]" maxLength={15} defaultValue={cnic} onBlur={saveCnic}/><small>{cnicSaved?"Saved securely to your account.":"Enter a valid CNIC; it will be saved when you leave this field."}</small></div>
+      <div><label htmlFor="cnic-number">CNIC number *</label><input id="cnic-number" name="cnic_number" required inputMode="numeric" autoComplete="off" placeholder="12345-1234567-1" pattern="[0-9]{5}-?[0-9]{7}-?[0-9]" maxLength={15} defaultValue={cnic} onChange={()=>setCnicSaved(false)} onBlur={saveCnic}/><small>{cnicSaved?"Saved securely to your account.":"Enter a valid CNIC; it will be saved when you leave this field."}</small></div>
       {required.map(item=><div key={item.type}><label htmlFor={item.type}>{item.label} *</label><input id={item.type} type="file" accept={item.imageOnly?".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp":".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"} onChange={e=>upload(item.type,e.target.files?.[0])}/><small>{busy===item.type?"Uploading and saving securely…":files[item.type]?"Saved: "+files[item.type]:"Choose a file to save it to your private draft."}</small></div>)}
     </div>
     <p className="form-help">Each document is saved as soon as it uploads and remains private. You can sign out and resume later with the same email. Identity files are not attached to email notifications.</p>
