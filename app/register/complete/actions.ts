@@ -90,18 +90,18 @@ export async function completeRegistrationAction(formData: FormData) {
   const { error: insertError } = await supabase.from("registration_evidence").insert(rows);
   if (insertError) return fail("Your private documents could not be recorded. Please retry. " + insertError.message);
 
-  const { error: gateError } = await supabase.rpc("complete_registration_submission");
-  if (gateError) {
-    await supabase.from("registration_evidence").delete().eq("user_id", user.id).in("storage_path", paths);
-    await cleanup();
-    redirect("/register/complete?error=" + encodeURIComponent("Your required documents could not complete registration. " + gateError.message));
-  }
-
   const issue = await persistRegisteredCategoryDetails(supabase, user.id, user.user_metadata);
   if (issue) {
     await supabase.from("registration_evidence").delete().eq("user_id", user.id).in("storage_path", paths);
     await cleanup();
     redirect("/register/complete?error=" + encodeURIComponent(issue));
+  }
+
+  const { error: gateError } = await supabase.rpc("complete_registration_submission");
+  if (gateError) {
+    await supabase.from("registration_evidence").delete().eq("user_id", user.id).in("storage_path", paths);
+    await cleanup();
+    redirect("/register/complete?error=" + encodeURIComponent("Your required documents could not complete registration. " + gateError.message));
   }
 
   await supabase.auth.updateUser({ data: { registration_details_pending: false } });
