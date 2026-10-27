@@ -2,7 +2,6 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
-import {persistRegisteredCategoryDetails} from "@/lib/registration-persistence";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 function loginRedirect(
@@ -145,11 +144,8 @@ export async function GET(request: NextRequest) {
   }
 
   const {data:account}=await supabase.auth.getUser();
-  const user=account.user;
-  if(user?.user_metadata?.registration_details_pending===true){
-    const issue=await persistRegisteredCategoryDetails(supabase,user.id,user.user_metadata);
-    if(issue)return NextResponse.redirect(new URL("/dashboard?error="+encodeURIComponent("Registration details need review: "+issue),url.origin));
-    await supabase.auth.updateUser({data:{registration_details_pending:false}});
+  if(account.user?.user_metadata?.registration_details_pending===true){
+    return NextResponse.redirect(new URL("/register/complete", url.origin));
   }
 
   return NextResponse.redirect(
