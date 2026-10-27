@@ -129,7 +129,7 @@ export default async function RegisterPage({
             <div className="section-heading">
               <span className="section-kicker">SELECTED REGISTRATION PATHWAY</span>
               <h2>{clinicIntent ? "Clinic / Veterinary Hospital" : roles.find(item=>item[0]===selectedRole)?.[1]} registration</h2>
-              <p>Only fields relevant to your category are shown. Choose another card above to change your registration pathway.</p>
+              <p>Only fields relevant to your category are shown. Choose another card above to change your registration pathway. After email confirmation, upload your CNIC and the documents required for this category to complete registration.</p>
             </div>
             <FormMessage error={params.error} message={params.message}/>
             <input type="hidden" name="role" value={selectedRole}/>
@@ -141,7 +141,7 @@ export default async function RegisterPage({
               <div><label htmlFor="city">City / town</label><input id="city" name="city" autoComplete="address-level2" maxLength={120}/></div>
               <RegistrationDetails role={selectedRole} clinic={clinicIntent}/>
             </div>
-            <p className="form-help">An email confirmation code creates your account. Submitted professional credentials, practice rights, business information, and publication are subject to separate verification.</p>
+            <p className="form-help">Email confirmation is the first step. Your registration remains incomplete until you upload your CNIC and category-specific identity, degree, licence, or business evidence. Files are collected in a private verification area and are not shown on public profiles.</p>
             <FormSubmitButton pendingLabel="Sending code...">Send registration code</FormSubmitButton>
           </form> : <section id="registration" className="backend-form-card vc-register-choice" aria-labelledby="select-path-heading">
             <span className="section-kicker">FIRST STEP</span>
