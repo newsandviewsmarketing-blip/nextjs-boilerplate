@@ -88,6 +88,9 @@ export default async function AdminPage({
     return {...doc,signed_url:data?.signedUrl??null};
   }));
   const registrationProfileMap=new Map((registrationProfiles??[]).map(p=>[p.id,p]));
+  const {data:registrationEducation}=registrationIds.length
+    ? await supabase.from("professional_education").select("professional_user_id,degree,institution,field_of_study,is_current").in("professional_user_id",registrationIds).eq("visibility","owner_only")
+    : {data:[]};
   const registrationDocsMap=new Map<string,typeof registrationEvidenceWithUrls>();
   for(const doc of registrationEvidenceWithUrls){const list=registrationDocsMap.get(doc.user_id)??[];list.push(doc);registrationDocsMap.set(doc.user_id,list);}
   const [{ data: vets }, { data: credentialVets }, { data: companies }, { data: professionals }, { data: laboratories }, { data: products }, { data: jobs }] = await Promise.all([
@@ -275,10 +278,24 @@ export default async function AdminPage({
         {(registrationRows??[]).length===0 ? <p className="form-help">No registrations are waiting for review.</p> : (registrationRows??[]).map(row=>{
           const profile=registrationProfileMap.get(row.user_id);
           const docs=registrationDocsMap.get(row.user_id)??[];
+          const role=profile?.primary_role;
+          const vet=(vets??[]).find(x=>x.user_id===row.user_id);
+          const company=(companies??[]).find(x=>x.user_id===row.user_id);
+          const professional=(professionals??[]).find(x=>x.user_id===row.user_id);
+          const laboratory=(laboratories??[]).find(x=>x.owner_id===row.user_id);
+          const clinic=(clinics??[]).find(x=>x.owner_id===row.user_id);
+          const education=(registrationEducation??[]).filter(x=>x.professional_user_id===row.user_id);
           return <article className="admin-review-card" key={row.user_id}>
             <h3>{profile?.full_name??profile?.email??"Registrant"} — {profile?.primary_role??"member"}</h3>
             <p>{profile?.email} · Submitted {row.submitted_at?new Date(row.submitted_at).toLocaleString():""}</p>
             <p>CNIC: {row.cnic_number??"Not recorded"} · Track: {row.registration_intent||row.student_track||"standard"}</p>
+            <dl className="review-details">
+              {role==="veterinarian"&&<><div><dt>Qualification / institution</dt><dd>{vet?.qualifications??"Not recorded"}</dd></div><div><dt>PVMC reference</dt><dd>{vet?.pvmc_number??"Not recorded"}</dd></div><div><dt>Practice areas</dt><dd>{Array.isArray(vet?.services)?vet.services.join(", "):"Not recorded"}</dd></div></>}
+              {role==="professional"||role==="candidate" ? <><div><dt>Profile category</dt><dd>{professional?.professional_type??"Not recorded"}</dd></div><div><dt>Organization / institution</dt><dd>{professional?.organization_name??"Not recorded"}</dd></div><div><dt>Education</dt><dd>{education.length?education.map(x=>[x.degree,x.institution].filter(Boolean).join(" · ")).join("; "):"Not recorded"}</dd></div><div><dt>Expertise / interests</dt><dd>{Array.isArray(professional?.skills)?professional.skills.join(", "):professional?.headline??"Not recorded"}</dd></div></> : null}
+              {role==="company"&&row.registration_intent==="clinic"&&<><div><dt>Clinic</dt><dd>{clinic?.clinic_name??company?.company_name??"Not recorded"}</dd></div><div><dt>Registration / NTN</dt><dd>{clinic?.registration_number??company?.registration_number??"Not recorded"}</dd></div><div><dt>Responsible veterinarian</dt><dd>{clinic?.responsible_veterinarian_name??"Not recorded"}</dd></div><div><dt>Responsible vet PVMC reference</dt><dd>{clinic?.responsible_veterinarian_pvmc??"Not recorded"}</dd></div><div><dt>Locations</dt><dd>{[clinic?.city,...(Array.isArray(clinic?.other_cities)?clinic.other_cities:[])].filter(Boolean).join(", ")||"Not recorded"}</dd></div></>}
+              {role==="company"&&row.registration_intent!=="clinic"&&<><div><dt>Company</dt><dd>{company?.company_name??"Not recorded"}</dd></div><div><dt>Business type</dt><dd>{company?.business_type??"Not recorded"}</dd></div><div><dt>Registration / NTN</dt><dd>{company?.registration_number??"Not recorded"}</dd></div></>}
+              {role==="laboratory"&&<><div><dt>Laboratory</dt><dd>{laboratory?.laboratory_name??"Not recorded"}</dd></div><div><dt>Type and registration</dt><dd>{[laboratory?.laboratory_type,laboratory?.registration_number].filter(Boolean).join(" · ")||"Not recorded"}</dd></div></>}
+            </dl>
             <ul>{docs.map((doc,i)=><li key={doc.document_type+"-"+i}>{doc.document_type}: {doc.signed_url?<a href={doc.signed_url} target="_blank" rel="noreferrer">{doc.original_filename}</a>:doc.original_filename}</li>)}</ul>
             <form action={reviewRegistrationSubmissionAction}>
               <input type="hidden" name="user_id" value={row.user_id}/>
