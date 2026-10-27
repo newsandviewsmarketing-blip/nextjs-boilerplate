@@ -10,6 +10,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
 import { profileNameProblem } from "@/lib/profile-name";
 import {registrationExtraFields} from "@/lib/registration-categories";
+import { persistRegisteredCategoryDetails } from "@/lib/registration-persistence";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -489,6 +490,8 @@ export async function verifyEmailOtpAction(
   if(mode==="register"){
     const {data:current}=await supabase.auth.getUser();
     if(current.user?.user_metadata?.registration_details_pending===true){
+      const issue=await persistRegisteredCategoryDetails(supabase,current.user.id,current.user.user_metadata);
+      if(issue) redirect(`/register/complete?error=${encodeURIComponent(issue)}`);
       redirect("/register/complete");
     }
   }
@@ -693,6 +696,12 @@ export async function registerAction(
     supabase,
     "/login",
   );
+
+  const {data:registered}=await supabase.auth.getUser();
+  if(registered.user?.user_metadata?.registration_details_pending===true){
+    const issue=await persistRegisteredCategoryDetails(supabase,registered.user.id,registered.user.user_metadata);
+    if(issue) redirect(`/register/complete?error=${encodeURIComponent(issue)}`);
+  }
 
   revalidatePath("/", "layout");
 
