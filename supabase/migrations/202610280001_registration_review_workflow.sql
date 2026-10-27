@@ -250,6 +250,7 @@ set search_path = public, auth
 as $$
 declare
   account_role_value text;
+  category_details jsonb := '{}'::jsonb;
   canonical_company_id uuid;
   gate_row public.registration_completion_gate%rowtype;
   required_types text[];
@@ -282,6 +283,11 @@ begin
   if account_role_value is null then
     raise exception 'Registration profile is missing';
   end if;
+
+  select category_details into category_details
+  from public.registration_profile_details
+  where user_id = p_user_id;
+  category_details := coalesce(category_details, '{}'::jsonb);
 
   required_types := array['cnic_front','cnic_back'];
   if account_role_value in ('veterinarian','candidate','professional','user') then
@@ -355,7 +361,28 @@ begin
       verified_by = case when p_decision='approved' then p_reviewer_id else null end
     where user_id = p_user_id;
   elsif account_role_value = 'company' then
+    if p_decision = 'approved' and (
+      coalesce(category_details->>'organization_name','') = ''
+      or coalesce(category_details->>'company_registration_number','') = ''
+    ) then
+      raise exception 'Required company registration details are missing from the private review record';
+    end if;
+
     update public.company_profiles set
+      company_name = coalesce(nullif(category_details->>'organization_name',''), company_name),
+      business_type = case
+        when gate_row.registration_intent='clinic' then 'Veterinary Clinic / Hospital'
+        else coalesce(nullif(category_details->>'company_type',''), business_type)
+      end,
+      registration_number = coalesce(nullif(category_details->>'company_registration_number',''), registration_number),
+      address = case
+        when gate_row.registration_intent='clinic' then coalesce(nullif(category_details->>'facility_address',''), address)
+        else address
+      end,
+      description = case
+        when gate_row.registration_intent='clinic' then coalesce(nullif(category_details->>'facility_type',''), description)
+        else 'Registered VetConnect employer / company onboarding'
+      end,
       verification_status = p_decision,
       rejection_reason = case when p_decision='rejected' then p_reason else null end,
       logo_url = case when p_decision='approved' then p_public_image_url else logo_url end,
@@ -393,6 +420,21 @@ begin
       if canonical_company_id is null then
         raise exception 'Canonical company profile could not be created';
       end if;
+
+      delete from public.company_sectors where company_user_id=p_user_id;
+      insert into public.company_sectors (company_user_id,sector)
+      select p_user_id, sector_value
+      from (
+        select distinct btrim(value) as sector_value
+        from jsonb_array_elements_text(
+          case
+            when jsonb_typeof(category_details->'industry_sectors')='array' then category_details->'industry_sectors'
+            when coalesce(category_details->>'industry_sector','')<>'' then jsonb_build_array(category_details->>'industry_sector')
+            else '[]'::jsonb
+          end
+        ) as sectors(value)
+      ) selected_sectors
+      where sector_value<>'';
 
       insert into public.company_members (
         company_id,user_id,member_role,designation,permissions,relationship_type,
