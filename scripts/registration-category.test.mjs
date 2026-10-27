@@ -67,7 +67,8 @@ test("Clinic onboarding persists a clinic record and reviewer evidence",()=>{
  assert.ok(persist.includes("other_cities:additionalCities"));
  assert.ok(migration.includes("responsible_veterinarian_pvmc"));
  assert.ok(review.includes("Clinic registration profile is missing"));
- assert.ok(admin.includes("Responsible vet PVMC reference"));
+ assert.ok(admin.includes("registration_profile_details"));
+ assert.ok(admin.includes("detailEntries"));
 });
 test("Employer job posting keeps existing multi-city coverage workflow",()=>{
  const page=read("app/dashboard/company/page.tsx");
