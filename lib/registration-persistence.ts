@@ -14,6 +14,26 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   const {data:record,error:statusError}=await supabase.from("profiles").select("primary_role").eq("id",userId).maybeSingle();
   if(statusError||!record)return "Registration account could not be loaded.";
   const role=record.primary_role;
+  const allowedKeys=[
+    "pvmc_number","qualifications","institution","practice_areas","specializations","specialization_other",
+    "student_track","highest_qualification","study_program","student_college_registration_number",
+    "pvmc_student_reference","academic_year","career_interest","professional_type","professional_types",
+    "industry_sector","industry_sectors","organization_name","facility_type","company_type",
+    "company_registration_number","facility_address","responsible_veterinarian","clinic_cities",
+    "laboratory_type","laboratory_registration_number","tests_offered","lab_location","customer_type","animal_interest"
+  ];
+  const categoryDetails:Metadata={};
+  for(const key of allowedKeys){
+    const value=meta[key];
+    if(typeof value==="string"&&value.length<=250)categoryDetails[key]=value;
+    else if(Array.isArray(value)&&value.length<=30&&value.every(item=>typeof item==="string"&&item.length<=180))
+      categoryDetails[key]=[...new Set(value.map((item:string)=>item.trim()).filter(Boolean))];
+  }
+  const {error:detailsError}=await supabase.from("registration_profile_details").upsert(
+    {user_id:userId,category_details:categoryDetails},
+    {onConflict:"user_id"}
+  );
+  if(detailsError)return "Unable to securely save your registration details: "+detailsError.message;
   if(role==="veterinarian"){
     const pvmc=str(meta,"pvmc_number",70);
     const areas=safeList(meta,"practice_areas",PRACTICE_AREAS);
