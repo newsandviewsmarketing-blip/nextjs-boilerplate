@@ -61,6 +61,9 @@ test("Clinic onboarding persists a clinic record and reviewer evidence",()=>{
  const migration=read("supabase/migrations/20261027130000_registration_clinic_profile_fields.sql");
  const review=read("supabase/migrations/202610280001_registration_review_workflow.sql");
  const admin=read("app/admin/reviews/page.tsx");
+ const publicDirectory=read("app/clinics/page.tsx");
+ const publicDetail=read("app/clinics/[slug]/page.tsx");
+ const publicView=read("supabase/migrations/20261027150000_public_clinic_service_cities.sql");
  assert.ok(fields.includes('name="clinic_cities"'));
  assert.ok(persist.includes('from("clinics")'));
  assert.ok(persist.includes("responsible_veterinarian_pvmc"));
@@ -69,6 +72,9 @@ test("Clinic onboarding persists a clinic record and reviewer evidence",()=>{
  assert.ok(review.includes("Clinic registration profile is missing"));
  assert.ok(admin.includes("registration_profile_details"));
  assert.ok(admin.includes("detailEntries"));
+ assert.ok(publicView.includes("other_cities"));
+ assert.ok(publicDirectory.includes("clinic.other_cities"));
+ assert.ok(publicDetail.includes("clinic.other_cities"));
 });
 test("Employer job posting keeps existing multi-city coverage workflow",()=>{
  const page=read("app/dashboard/company/page.tsx");
