@@ -250,6 +250,7 @@ set search_path = public, auth
 as $$
 declare
   account_role_value text;
+  canonical_company_id uuid;
   gate_row public.registration_completion_gate%rowtype;
   required_types text[];
   missing_type text;
@@ -361,6 +362,61 @@ begin
       verified_at = case when p_decision='approved' then now() else null end,
       verified_by = case when p_decision='approved' then p_reviewer_id else null end
     where user_id = p_user_id;
+
+    if p_decision = 'approved' then
+      insert into public.companies (
+        legacy_company_user_id, canonical_name, legal_name, trade_name, slug,
+        country, verification_status, record_status, created_by, verified_at, verified_by
+      )
+      select
+        p_user_id,
+        coalesce(nullif(cp.company_name,''),'VetConnect Company'),
+        nullif(cp.legal_name,''), nullif(cp.trade_name,''),
+        coalesce(
+          nullif(regexp_replace(lower(coalesce(cp.slug,cp.company_name)), '[^a-z0-9]+', '-', 'g'), ''),
+          'company'
+        ) || '-' || left(p_user_id::text,8),
+        coalesce(nullif(cp.country,''),'Pakistan'),
+        'approved'::public.approval_status, 'active', p_user_id, now(), p_reviewer_id
+      from public.company_profiles cp
+      where cp.user_id=p_user_id
+      on conflict (legacy_company_user_id) do update set
+        canonical_name=excluded.canonical_name,
+        legal_name=excluded.legal_name,
+        trade_name=excluded.trade_name,
+        verification_status='approved'::public.approval_status,
+        record_status='active',
+        verified_at=now(),
+        verified_by=p_reviewer_id
+      returning id into canonical_company_id;
+
+      if canonical_company_id is null then
+        raise exception 'Canonical company profile could not be created';
+      end if;
+
+      insert into public.company_members (
+        company_id,user_id,member_role,designation,permissions,relationship_type,
+        membership_status,verification_status,claim_source,is_current,is_public,
+        is_primary,confirmed_by,confirmed_at
+      ) values (
+        canonical_company_id,p_user_id,'owner','Owner',
+        array['company.manage','members.manage','jobs.manage','applicants.manage','products.manage','company.view_private'],
+        'owner','active','approved'::public.approval_status,'owner_created',true,true,
+        true,p_reviewer_id,now()
+      )
+      on conflict (company_id,user_id) do update set
+        member_role='owner',
+        permissions=excluded.permissions,
+        relationship_type='owner',
+        membership_status='active',
+        verification_status='approved'::public.approval_status,
+        claim_source='owner_created',
+        is_current=true,
+        is_public=true,
+        is_primary=true,
+        confirmed_by=p_reviewer_id,
+        confirmed_at=now();
+    end if;
 
     update public.companies c set
       logo_url = case when p_decision='approved' then p_public_image_url else c.logo_url end,
