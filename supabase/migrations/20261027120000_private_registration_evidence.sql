@@ -106,16 +106,14 @@ security definer
 set search_path = public, auth
 as $$
 begin
-  if new.raw_user_meta_data ->> 'registration_details_pending' = 'true' then
-    insert into public.registration_completion_gate (user_id, registration_intent, student_track)
-    values (
-      new.id,
-      case when new.raw_user_meta_data ->> 'registration_intent' = 'clinic' then 'clinic' else '' end,
-      case when new.raw_user_meta_data ->> 'student_track' in ('dvm_student','postgraduate_student','phd_student','job_seeker')
-        then new.raw_user_meta_data ->> 'student_track' else '' end
-    )
-    on conflict (user_id) do nothing;
-  end if;
+  insert into public.registration_completion_gate (user_id, registration_intent, student_track)
+  values (
+    new.id,
+    case when new.raw_user_meta_data ->> 'registration_intent' = 'clinic' then 'clinic' else '' end,
+    case when new.raw_user_meta_data ->> 'student_track' in ('dvm_student','postgraduate_student','phd_student','job_seeker')
+      then new.raw_user_meta_data ->> 'student_track' else '' end
+  )
+  on conflict (user_id) do nothing;
   return new;
 end;
 $$;
@@ -206,8 +204,6 @@ begin
     if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='laboratory_registration') then
       raise exception 'Laboratory registration evidence is required';
     end if;
-  elsif current_role <> 'user' then
-    raise exception 'Unsupported registration category';
   end if;
 
   update public.registration_completion_gate
