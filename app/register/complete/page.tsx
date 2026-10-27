@@ -20,11 +20,12 @@ export default async function CompleteRegistrationPage({
     .from("profiles").select("primary_role").eq("id", auth.user.id).maybeSingle();
   const role = profile?.primary_role ?? "";
   const { data: gate, error: gateError } = await supabase.from("registration_completion_gate")
-    .select("registration_intent, student_track, completed_at").eq("user_id", auth.user.id).maybeSingle();
+    .select("registration_intent, student_track, completed_at, review_status, cnic_number").eq("user_id", auth.user.id).maybeSingle();
   const requirements = registrationEvidenceRequirements(role, gate?.registration_intent ?? "", gate?.student_track ?? "");
   const existing = await supabase.from("registration_evidence")
-    .select("document_type").eq("user_id", auth.user.id);
-  if (!profileError && !gateError && gate?.completed_at) redirect("/dashboard");
+    .select("document_type,original_filename,verification_status,created_at").eq("user_id", auth.user.id).order("created_at", { ascending: false });
+  if (!profileError && !gateError && gate?.review_status === "approved") redirect("/dashboard");
+  if (!profileError && !gateError && gate?.completed_at && gate?.review_status === "pending") redirect("/register/status");
 
   return (
     <main>
@@ -38,7 +39,7 @@ export default async function CompleteRegistrationPage({
               <p>Upload your CNIC and the documents required for your selected category. Files are stored privately and remain pending verification.</p>
             </div>
             <FormMessage error={params.error || (profileError || existing.error || gateError ? "Private registration storage is not ready. Please contact VetConnect support." : undefined)} />
-            <RegistrationEvidenceForm requirements={requirements} />
+            <RegistrationEvidenceForm requirements={requirements} cnic={gate?.cnic_number ?? ""} saved={existing.data ?? []} />
             <p className="form-help">Your CNIC and credential files are held for VetConnect identity and category verification. Do not submit another person’s documents.</p>
             <LinkBack />
           </div>
