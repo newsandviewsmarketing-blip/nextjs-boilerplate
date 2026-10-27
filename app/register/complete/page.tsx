@@ -4,7 +4,7 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import { createClient } from "@/lib/supabase/server";
-import { registrationEvidenceRequirements, REGISTRATION_EVIDENCE_BUCKET } from "@/lib/registration-evidence";
+import { registrationEvidenceRequirements } from "@/lib/registration-evidence";
 import { completeRegistrationAction } from "./actions";
 
 const accepted = ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp";
