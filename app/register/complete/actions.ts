@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { persistRegisteredCategoryDetails } from "@/lib/registration-persistence";
 import {
-  MAX_REGISTRATION_EVIDENCE_BYTES,
   REGISTRATION_EVIDENCE_BUCKET,
   isAcceptedEvidenceFile,
   isValidPakistaniCnic,
