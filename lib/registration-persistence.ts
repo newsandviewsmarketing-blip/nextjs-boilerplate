@@ -6,6 +6,8 @@ type Metadata=Record<string,unknown>;
 const str=(m:Metadata,k:string,size=180)=>typeof m[k]==="string"?(m[k] as string).trim().slice(0,size):"";
 const safeList=(m:Metadata,key:string,options:readonly string[])=>Array.isArray(m[key])?
  [...new Set(m[key].filter((x:unknown)=>typeof x==="string"&&options.includes(x)))] as string[]:[];
+const textList=(m:Metadata,key:string,max=120)=>Array.isArray(m[key])?
+ [...new Set(m[key].filter((x:unknown)=>typeof x==="string").map((x:string)=>x.trim()).filter((x:string)=>x.length>0&&x.length<=max&&!/[<>\\u0000-\\u001f]/.test(x)))].slice(0,30):[];
 export async function persistRegisteredCategoryDetails(supabase:Db,userId:string,meta:Metadata):Promise<string|null>{
   // Called after authenticated OTP/confirmation, for profile content only.
   // Self-editable auth metadata MUST NEVER confer staff permissions or PVMC approval.
@@ -114,11 +116,17 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
       const slug=clinicName.toLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)+"-"+userId.slice(0,8);
       const {data:existingClinic,error:clinicReadError}=await supabase.from("clinics").select("id").eq("owner_id",userId).limit(1).maybeSingle();
       if(clinicReadError)return "Unable to check the clinic profile: "+clinicReadError.message;
+      const primaryCity=str(meta,"city",120);
+      const additionalCities=textList(meta,"clinic_cities").filter(city=>city.toLowerCase()!==primaryCity.toLowerCase());
       const clinicData={
         clinic_name:clinicName,
         facility_type:str(meta,"facility_type",120)||"Veterinary Clinic",
-        city:str(meta,"city",120)||null,
+        city:primaryCity||additionalCities[0]||null,
+        other_cities:additionalCities,
         address:str(meta,"facility_address",250)||null,
+        registration_number:str(meta,"company_registration_number",180)||null,
+        responsible_veterinarian_name:str(meta,"responsible_veterinarian",180)||null,
+        responsible_veterinarian_pvmc:str(meta,"pvmc_number",70)||null,
         public_phone:str(meta,"phone",35)||null,
         public_email:str(meta,"email",254)||null,
         verification_status:"pending",
