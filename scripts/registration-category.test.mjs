@@ -24,6 +24,7 @@ test("Category-sensitive required fields validated before both OTP and signup",(
  assert.equal((auth.match(/registrationExtraFields\(formData,role/g)||[]).length,2);
  assert.match(gate,/Registered veterinarians must provide/);
  assert.match(gate,/Select at least one valid practice area/);
+ assert.ok(gate.includes("Job seekers must provide their highest qualification and awarding institution."));
  assert.match(auth,/persistRegisteredCategoryDetails/);
  assert.match(confirm,/persistRegisteredCategoryDetails/);
  assert.match(persist,/professional_credentials/);
