@@ -1,5 +1,5 @@
 import {createClient} from "@/lib/supabase/server";
-import {PRACTICE_AREAS,SPECIALIZATIONS} from "@/lib/registration-categories";
+import {PRACTICE_AREAS,SPECIALIZATIONS,PROFESSIONAL_CATEGORIES} from "@/lib/registration-categories";
 
 type Db=Awaited<ReturnType<typeof createClient>>;
 type Metadata=Record<string,unknown>;
@@ -38,10 +38,13 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const qualification=student?str(meta,"study_program",180):str(meta,"highest_qualification",180);
     const interest=str(meta,"career_interest",180);
     const selectedFields=[
-      ...safeList(meta,"professional_types",["Animal Nutritionist","Dairy Nutritionist","Farm Manager","Livestock Production Specialist","Poultry Professional","Veterinary Sales / Marketing","Laboratory Technologist","Researcher / Academic","Feed Formulation Specialist","Other Allied Professional"]),
+      ...safeList(meta,"professional_types",PROFESSIONAL_CATEGORIES),
       str(meta,"professional_type",100),
     ].filter(Boolean);
-    const sectors=[str(meta,"industry_sector",120)].filter(Boolean);
+    const sectors=[
+      ...safeList(meta,"industry_sectors",PRACTICE_AREAS),
+      str(meta,"industry_sector",120),
+    ].filter(Boolean);
     const expertise=[str(meta,"specialization_other",120),interest].filter(Boolean);
     const skills=[...new Set([...selectedFields,...sectors,...expertise].map(x=>x.trim()).filter(Boolean))];
     const {error}=await supabase.from("professional_profiles").update({
