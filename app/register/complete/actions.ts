@@ -49,9 +49,10 @@ export async function completeRegistrationAction(formData: FormData) {
     .from("profiles").select("primary_role").eq("id", user.id).maybeSingle();
   if (profileError || !profile?.primary_role) return fail("We could not load your registration category. Please sign in again or contact support.");
 
-  const intent = user.user_metadata?.registration_intent === "clinic" ? "clinic" : "";
-  const track = typeof user.user_metadata?.student_track === "string" ? user.user_metadata.student_track : "";
-  const requirements = registrationEvidenceRequirements(profile.primary_role, intent, track);
+  const { data: gate, error: gateReadError } = await supabase.from("registration_completion_gate")
+    .select("registration_intent, student_track, completed_at").eq("user_id", user.id).maybeSingle();
+  if (gateReadError || !gate || gate.completed_at) return fail("Your registration evidence session is not available. Please contact support.");
+  const requirements = registrationEvidenceRequirements(profile.primary_role, gate.registration_intent, gate.student_track);
   const requiredTypes = [...requirements.map((item) => item.type), "cnic_front", "cnic_back"];
   const cnic = String(formData.get("cnic_number") ?? "").trim();
   if (!isValidPakistaniCnic(cnic)) return fail("Enter a valid 13-digit CNIC in 12345-1234567-1 format.");
