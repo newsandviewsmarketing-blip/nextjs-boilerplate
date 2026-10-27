@@ -2,12 +2,9 @@ import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
-import FormSubmitButton from "../../components/FormSubmitButton";
+import RegistrationEvidenceForm from "./RegistrationEvidenceForm";
 import { createClient } from "@/lib/supabase/server";
 import { registrationEvidenceRequirements } from "@/lib/registration-evidence";
-import { completeRegistrationAction } from "./actions";
-
-const accepted = ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp";
 
 export default async function CompleteRegistrationPage({
   searchParams,
@@ -43,16 +40,7 @@ export default async function CompleteRegistrationPage({
               <p>Upload your CNIC and the documents required for your selected category. Files are stored privately and remain pending verification.</p>
             </div>
             <FormMessage error={params.error || (profileError || existing.error ? "Private registration storage is not ready. Please contact VetConnect support." : undefined)} />
-            <form action={completeRegistrationAction}>
-              <div className="form-grid">
-                <div><label htmlFor="cnic-number">CNIC number *</label><input id="cnic-number" name="cnic_number" required inputMode="numeric" autoComplete="off" placeholder="12345-1234567-1" pattern="[0-9]{5}-?[0-9]{7}-?[0-9]" maxLength={15}/></div>
-                <div><label htmlFor="cnic-front">CNIC front *</label><input id="cnic-front" name="cnic_front" type="file" accept={accepted} required/></div>
-                <div><label htmlFor="cnic-back">CNIC back *</label><input id="cnic-back" name="cnic_back" type="file" accept={accepted} required/></div>
-                {requirements.map((item) => <div key={item.type}><label htmlFor={item.type}>{item.label} *</label><input id={item.type} name={item.type} type="file" accept={accepted} required/></div>)}
-              </div>
-              <p className="form-help">Maximum 8 MB per file. Accepted formats: PDF, JPG, PNG and WebP. Uploaded evidence is private and not displayed on your public profile.</p>
-              <FormSubmitButton pendingLabel="Uploading securely...">Submit registration documents</FormSubmitButton>
-            </form>
+            <RegistrationEvidenceForm requirements={requirements} />
             <p className="form-help">Your CNIC and credential files are held for VetConnect identity and category verification. Do not submit another person’s documents.</p>
             <LinkBack />
           </div>
