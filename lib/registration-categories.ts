@@ -57,6 +57,9 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
   }else if(role==="company"&&intent==="clinic"){
     for(const k of ["organization_name","facility_type","company_registration_number","facility_address","responsible_veterinarian","pvmc_number"])
       if(!required(k,250))return {error:"Clinic name, registration / NTN, address and responsible veterinarian details are required.",data:{}};
+    const cities=values(form,"clinic_cities");
+    if(cities.length>20||cities.some(city=>!clean(city,120)))return {error:"Add no more than 20 valid clinic service cities.",data:{}};
+    data.clinic_cities=cities;
   }else if(role==="company"){
     for(const k of ["organization_name","company_type","company_registration_number","industry_sector"])
       if(!required(k,180))return {error:"Company name, registration / NTN and business sector are required.",data:{}};
