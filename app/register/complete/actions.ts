@@ -96,6 +96,7 @@ export async function completeRegistrationAction(formData: FormData) {
     fail(issue);
   }
 
-  await supabase.auth.updateUser({ data: { registration_details_pending: false } });
+  const { error: metadataError } = await supabase.auth.updateUser({ data: { registration_details_pending: false } });
+  if (metadataError) fail("Your documents were saved privately, but registration could not be finalized. Please retry or contact support.");
   redirect("/dashboard?message=" + encodeURIComponent("Registration submitted with private documents. Your account and credentials remain subject to review."));
 }
