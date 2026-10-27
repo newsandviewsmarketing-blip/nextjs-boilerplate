@@ -26,10 +26,11 @@ async function currentRegistration() {
   if (error || !data.user) redirect("/login?next=/register/complete");
   const [{ data: profile }, { data: gate }] = await Promise.all([
     supabase.from("profiles").select("primary_role").eq("id", data.user.id).maybeSingle(),
-    supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status,cnic_number").eq("user_id", data.user.id).maybeSingle(),
+    supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status,cnic_number,completed_at").eq("user_id", data.user.id).maybeSingle(),
   ]);
   if (!profile?.primary_role || !gate) redirect("/register/complete?error=Registration%20record%20not%20found.");
   if (gate.review_status === "approved") redirect("/dashboard");
+  if (gate.completed_at && gate.review_status === "pending") redirect("/register/status");
   return { supabase, user: data.user, role: profile.primary_role, gate };
 }
 
@@ -37,8 +38,9 @@ export async function saveRegistrationCnicAction(formData: FormData) {
   const { supabase, user } = await currentRegistration();
   const cnic = String(formData.get("cnic_number") ?? "").replace(/-/g, "").trim();
   if (!isValidPakistaniCnic(cnic)) return;
-  const { error } = await supabase.from("registration_completion_gate").update({ cnic_number: cnic }).eq("user_id", user.id);
-  if (error) throw new Error("CNIC could not be saved securely. Please retry.");
+  if (gate.completed_at && gate.review_status !== "rejected") throw new Error("Your CNIC cannot be edited while a submission is under review.");
+  const { data, error } = await supabase.from("registration_completion_gate").update({ cnic_number: cnic }).eq("user_id", user.id).select("user_id").maybeSingle();
+  if (error || !data) throw new Error("CNIC could not be saved securely. Please retry.");
   revalidatePath("/register/complete");
 }
 
