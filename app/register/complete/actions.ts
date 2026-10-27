@@ -56,7 +56,7 @@ export async function completeRegistrationAction(formData: FormData) {
   const cnic = String(formData.get("cnic_number") ?? "").trim();
   if (!isValidPakistaniCnic(cnic)) return fail("Enter a valid 13-digit CNIC in 12345-1234567-1 format.");
   if (evidence.some((item) => !item) || evidence.length !== requiredTypes.length) return fail("Submit every required document.");
-  const byType = new Map(evidence.map((item) => [item!.type, item!]));
+  const byType = new Map<string, { type: string; path: string; filename: string }>(evidence.map((item) => [item!.type, item!] as const));
   if (new Set(evidence.map((item) => item?.type)).size !== requiredTypes.length ||
       requiredTypes.some((type) => !byType.has(type))) return fail("The uploaded documents do not match your registration category.");
 
