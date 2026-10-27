@@ -76,3 +76,16 @@ test("Employer job posting keeps existing multi-city coverage workflow",()=>{
  assert.ok(actions.includes("coverage_cities"));
  assert.ok(actions.includes('from("job_coverage")'));
 });
+
+test("Pending registration details stay private and reviewed company accounts get workspaces",()=>{
+ const persistence=read("lib/registration-persistence.ts");
+ const detailsMigration=read("supabase/migrations/20261027140000_registration_profile_details.sql");
+ const workflow=read("supabase/migrations/202610280001_registration_review_workflow.sql");
+ const admin=read("app/admin/reviews/page.tsx");
+ assert.ok(persistence.includes('from("registration_profile_details")'));
+ assert.ok(detailsMigration.includes("has_admin_permission('profiles.review')"));
+ assert.ok(detailsMigration.includes("g.review_status = 'rejected'"));
+ assert.ok(workflow.includes("insert into public.company_members"));
+ assert.ok(workflow.includes("insert into public.companies"));
+ assert.ok(admin.includes("registration_profile_details"));
+});
