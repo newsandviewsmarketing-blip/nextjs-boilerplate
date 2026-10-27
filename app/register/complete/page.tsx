@@ -36,7 +36,7 @@ export default async function CompleteRegistrationPage({
             <div className="section-heading">
               <span className="section-kicker">IDENTITY AND CREDENTIAL CHECK</span>
               <h1>Complete your registration</h1>
-              <p>Upload your CNIC and the documents required for your selected category. Files are stored privately and remain pending verification.</p>
+              <p>Upload your CNIC and the documents required for your selected category. Files are saved privately as you upload them. Nothing becomes public until an administrator approves your application.</p>
             </div>
             <FormMessage error={params.error || (profileError || existing.error || gateError ? "Private registration storage is not ready. Please contact VetConnect support." : undefined)} />
             <RegistrationEvidenceForm requirements={requirements} cnic={gate?.cnic_number ?? ""} saved={existing.data ?? []} />
