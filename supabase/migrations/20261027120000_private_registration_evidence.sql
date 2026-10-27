@@ -56,4 +56,122 @@ create policy registration_evidence_storage_owner_delete on storage.objects
     bucket_id = 'registration-evidence' and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+create table if not exists public.registration_completion_gate (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+alter table public.registration_completion_gate enable row level security;
+
+drop policy if exists registration_completion_gate_owner_read on public.registration_completion_gate;
+create policy registration_completion_gate_owner_read on public.registration_completion_gate
+  for select to authenticated using (user_id = auth.uid());
+
+create or replace function public.mark_registration_completion_pending()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, auth
+as $
+begin
+  if new.raw_user_meta_data ->> 'registration_details_pending' = 'true' then
+    insert into public.registration_completion_gate (user_id)
+    values (new.id)
+    on conflict (user_id) do nothing;
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists vetconnect_registration_completion_gate on auth.users;
+create trigger vetconnect_registration_completion_gate
+  after insert on auth.users
+  for each row execute function public.mark_registration_completion_pending();
+
+create or replace function public.complete_registration_submission()
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $
+declare
+  current_user_id uuid := auth.uid();
+  current_role text;
+  metadata jsonb;
+begin
+  if current_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select primary_role into current_role
+  from public.profiles
+  where id = current_user_id;
+
+  select raw_user_meta_data into metadata
+  from auth.users
+  where id = current_user_id;
+
+  if not exists (
+    select 1 from public.registration_completion_gate
+    where user_id = current_user_id and completed_at is null
+  ) then
+    return;
+  end if;
+
+  if not exists (
+    select 1 from public.registration_evidence
+    where user_id = current_user_id and document_type = 'cnic_front'
+  ) or not exists (
+    select 1 from public.registration_evidence
+    where user_id = current_user_id and document_type = 'cnic_back'
+  ) then
+    raise exception 'CNIC front and back are required';
+  end if;
+
+  if current_role = 'veterinarian' then
+    if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='degree_certificate')
+      or not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='pvmc_registration') then
+      raise exception 'Veterinary degree and PVMC evidence are required';
+    end if;
+  elsif current_role = 'candidate' then
+    if metadata ->> 'student_track' = 'job_seeker' then
+      if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='qualification_certificate') then
+        raise exception 'Qualification evidence is required';
+      end if;
+    else
+      if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='student_enrollment') then
+        raise exception 'Student enrollment evidence is required';
+      end if;
+    end if;
+  elsif current_role = 'professional' then
+    if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='qualification_certificate') then
+      raise exception 'Professional qualification evidence is required';
+    end if;
+  elsif current_role = 'company' then
+    if metadata ->> 'registration_intent' = 'clinic' then
+      if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='clinic_registration')
+        or not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='pvmc_registration') then
+        raise exception 'Clinic registration and responsible veterinarian PVMC evidence are required';
+      end if;
+    elsif not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='business_registration') then
+      raise exception 'Company registration evidence is required';
+    end if;
+  elsif current_role = 'laboratory' then
+    if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='laboratory_registration') then
+      raise exception 'Laboratory registration evidence is required';
+    end if;
+  elsif current_role <> 'user' then
+    raise exception 'Unsupported registration category';
+  end if;
+
+  update public.registration_completion_gate
+  set completed_at = now()
+  where user_id = current_user_id and completed_at is null;
+end;
+$;
+
+revoke all on function public.complete_registration_submission() from public;
+grant execute on function public.complete_registration_submission() to authenticated;
+
 commit;
