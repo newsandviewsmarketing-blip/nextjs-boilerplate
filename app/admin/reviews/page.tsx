@@ -161,7 +161,7 @@ export default async function AdminPage({
     ...((clinics ?? []) as Array<Record<string, unknown> & { id: string }>).map((row) => ({
       ...row, user_id: row.id, entity_id: row.id, profile_type: "clinic" as const, record_source: "clinics",
     })),
-  ];
+  ].filter(row => row.record_source !== "account" || !registrationIds.includes(row.user_id));
   const ids = [...new Set([
     ...pending.filter((row) => row.record_source === "account").map((row) => row.user_id),
     ...credentialRows.filter((row) => row.record_source === "account").map((row) => row.user_id),
