@@ -53,9 +53,9 @@ export async function saveRegistrationEvidenceDraftAction(formData: FormData) {
   const { data: blob, error: downloadError } = await supabase.storage.from(REGISTRATION_EVIDENCE_BUCKET).download(path);
   if (downloadError || !blob) throw new Error("The private upload could not be verified.");
   const contentType = blob.type.toLowerCase();
-  const imageOnly = type === "cnic_front" || type === "cnic_back" || Boolean(requirement?.imageOnly);
+  const imageOnly = Boolean(requirement?.imageOnly);
   if (!isAcceptedEvidenceFile(contentType, blob.size, imageOnly)) {
-    throw new Error(imageOnly ? "CNIC images, profile photos and company logos must be JPG, PNG or WebP and no larger than 5 MB." : "Documents must be PDF, JPG, PNG or WebP and no larger than 8 MB.");
+    throw new Error(imageOnly ? "Profile photos and company logos must be JPG, PNG or WebP and no larger than 5 MB." : "Documents must be PDF, JPG, PNG or WebP and no larger than 8 MB.");
   }
   if (!signatureMatches(contentType, new Uint8Array(await blob.arrayBuffer()))) throw new Error("The file contents do not match its file type.");
   const { error } = await supabase.from("registration_evidence").insert({
