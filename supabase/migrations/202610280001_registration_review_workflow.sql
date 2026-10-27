@@ -57,7 +57,7 @@ create policy registration_evidence_owner_insert on public.registration_evidence
     and exists (
       select 1 from public.registration_completion_gate g
       where g.user_id = auth.uid()
-        and g.review_status <> 'approved'
+        and (g.completed_at is null or g.review_status = 'rejected')
     )
   );
 
@@ -83,11 +83,23 @@ create policy registration_evidence_admin_read on public.registration_evidence
 drop policy if exists registration_completion_gate_owner_update on public.registration_completion_gate;
 create policy registration_completion_gate_owner_update on public.registration_completion_gate
   for update to authenticated
-  using (user_id = auth.uid() and review_status <> 'approved')
-  with check (user_id = auth.uid() and review_status <> 'approved');
+  using (user_id = auth.uid() and (completed_at is null or review_status = 'rejected'))
+  with check (user_id = auth.uid() and (completed_at is null or review_status = 'rejected'));
 
 revoke update on public.registration_completion_gate from authenticated;
 grant update (cnic_number) on public.registration_completion_gate to authenticated;
+
+drop policy if exists registration_evidence_storage_owner_insert on storage.objects;
+create policy registration_evidence_storage_owner_insert on storage.objects
+  for insert to authenticated with check (
+    bucket_id = 'registration-evidence'
+    and (storage.foldername(name))[1] = auth.uid()::text
+    and exists (
+      select 1 from public.registration_completion_gate g
+      where g.user_id = auth.uid()
+        and (g.completed_at is null or g.review_status = 'rejected')
+    )
+  );
 
 drop policy if exists registration_evidence_storage_admin_read on storage.objects;
 create policy registration_evidence_storage_admin_read on storage.objects
@@ -103,7 +115,8 @@ create policy registration_evidence_storage_owner_delete on storage.objects
     and (storage.foldername(name))[1] = auth.uid()::text
     and exists (
       select 1 from public.registration_completion_gate g
-      where g.user_id = auth.uid() and g.review_status <> 'approved'
+      where g.user_id = auth.uid()
+        and (g.completed_at is null or g.review_status = 'rejected')
     )
   );
 
@@ -136,6 +149,9 @@ begin
   end if;
   if gate_row.review_status = 'approved' then
     raise exception 'An approved registration cannot be changed';
+  end if;
+  if gate_row.completed_at is not null and gate_row.review_status = 'pending' then
+    raise exception 'This registration is already awaiting administrator review';
   end if;
   if gate_row.cnic_number is null or gate_row.cnic_number !~ '^[0-9]{13}$' then
     raise exception 'A valid CNIC number is required';
@@ -194,7 +210,8 @@ begin
   end loop;
 
   update public.registration_evidence e
-  set verification_status = 'pending'
+  set verification_status = 'pending',
+      cnic_number = gate_row.cnic_number
   where e.id in (
     select latest.id from (
       select distinct on (document_type) id, document_type, created_at
