@@ -8,7 +8,7 @@ type SavedEvidence = { document_type: string; original_filename: string; verific
 const safeName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100) || "evidence";
 export default function RegistrationEvidenceForm({ requirements, cnic = "", saved }: { requirements: EvidenceRequirement[]; cnic?: string; saved: SavedEvidence[] }) {
   const client = createClient();
-  const required = [{type:"cnic_front",label:"CNIC front",imageOnly:true}, {type:"cnic_back",label:"CNIC back",imageOnly:true}, ...requirements];
+  const required = [{type:"cnic_front",label:"CNIC front",imageOnly:false}, {type:"cnic_back",label:"CNIC back",imageOnly:false}, ...requirements];
   const initial = Object.fromEntries(saved.filter(x=>["draft","rejected"].includes(x.verification_status)).map(x=>[x.document_type,x.original_filename]));
   const [files, setFiles] = useState<Record<string,string>>(initial);
   const [busy, setBusy] = useState("");
