@@ -29,6 +29,8 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     if(!/\bDVM\b|Doctor of Veterinary Medicine|B\.?V\.?Sc/i.test(qual))
       return {error:"Select a DVM or applicable PVMC-recognized veterinary qualification.",data:{}};
     if(!required("institution"))return {error:"Enter the awarding university or institution.",data:{}};
+    data.qualifications=qual;
+    data.institution=field(form,"institution");
     const areas=values(form,"practice_areas");
     if(!areas.length||areas.length>12||areas.some(x=>!(PRACTICE_AREAS as readonly string[]).includes(x)))return {error:"Select at least one valid practice area.",data:{}};
     const specs=values(form,"specializations");
