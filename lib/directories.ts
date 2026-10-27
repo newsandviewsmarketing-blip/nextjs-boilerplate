@@ -6,7 +6,6 @@ export type PublicVeterinarian = {
   veterinary_sector: string | null;
   years_experience: number;
   city: string | null;
-  other_cities?: string[];
   province: string | null;
   district: string | null;
   tehsil: string | null;
@@ -48,6 +47,7 @@ export type PublicClinic = {
   facility_type: string;
   description: string | null;
   city: string | null;
+  other_cities?: string[];
   province: string | null;
   district?: string | null;
   tehsil?: string | null;
