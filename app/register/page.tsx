@@ -5,7 +5,7 @@ import FormMessage from "../components/FormMessage";
 import FormSubmitButton from "../components/FormSubmitButton";
 import { requestRegistrationOtpAction } from "../auth/actions";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
-import RegistrationDetails from "./RegistrationDetails";
+import RegistrationDetails, { PakistanCityField } from "./RegistrationDetails";
 
 const roles = [
   [
@@ -138,7 +138,7 @@ export default async function RegisterPage({
               <div><label htmlFor="full_name">{clinicIntent?"Clinic owner / authorized representative *":"Full name *"}</label><input id="full_name" name="full_name" autoComplete="name" required maxLength={120}/></div>
               <div><label htmlFor="email">Email address *</label><input id="email" name="email" type="email" autoComplete="email" required maxLength={254}/></div>
               <div><label htmlFor="phone">Phone number</label><input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={35}/></div>
-              <div><label htmlFor="city">City / town</label><input id="city" name="city" autoComplete="address-level2" maxLength={120}/></div>
+              <PakistanCityField id="city" name="city" label="City / town *" required/>
               <RegistrationDetails role={selectedRole} clinic={clinicIntent}/>
             </div>
             <p className="form-help">Email confirmation is the first step. Your registration remains incomplete until you upload your CNIC and category-specific identity, degree, licence, or business evidence. Files are collected in a private verification area and are not shown on public profiles.</p>
