@@ -36,6 +36,8 @@ for (const province of adminAreas.data) {
     for (const tehsil of district.tehsil) {
       const townName = clean(tehsil.name.en);
       addArea(townName, {province:provinceName,district:districtName});
+      // Expose every matchable tehsil in the public job-search dropdown.
+      locationNames.add(tehsil.name.en);
     }
   }
 }
