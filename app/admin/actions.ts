@@ -3,17 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import {
-  canModerateProducts,
-  canManageJobs,
-  canReviewProfiles,
-  getCurrentIdentity,
-} from "@/lib/auth";
+import { getCurrentIdentity } from "@/lib/auth";
+import { getEffectiveAdminPermission } from "@/lib/admin";
 
 export async function reviewProfileAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles)) redirect("/dashboard?error=Admin%20access%20is%20required.");
+  if (!(await getEffectiveAdminPermission(identity, "profiles.review"))) redirect("/dashboard?error=Admin%20access%20is%20required.");
 
   const profileType = String(formData.get("profile_type") ?? "");
   const recordSource = String(formData.get("record_source") ?? "account");
@@ -21,6 +17,11 @@ export async function reviewProfileAction(formData: FormData) {
   const entityId = String(formData.get("entity_id") ?? userId);
   const decision = String(formData.get("decision") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
+  const requestedReturnTo = String(formData.get("return_to") ?? "");
+  const directoryKind = recordSource === "managed_people" ? "managed_person" : recordSource === "companies" ? "company" : recordSource === "clinics" ? "clinic" : recordSource === "laboratories" ? "laboratory" : null;
+  const allowedDirectoryReturn = directoryKind ? `/admin/directory/${directoryKind}/${entityId}` : null;
+  const returnTo = recordSource === "account" && requestedReturnTo === `/admin/users/${entityId}` ? requestedReturnTo
+    : allowedDirectoryReturn === requestedReturnTo ? allowedDirectoryReturn : null;
   if (!entityId || !["veterinarian", "company", "professional", "laboratory", "clinic"].includes(profileType) || !["approved", "rejected"].includes(decision)) {
     redirect("/admin/reviews?error=Invalid%20review%20request.");
   }
@@ -131,16 +132,23 @@ export async function reviewProfileAction(formData: FormData) {
   revalidatePath("/companies");
   revalidatePath("/clinics");
   revalidatePath("/labs");
+  if (returnTo) {
+    revalidatePath(returnTo);
+    redirect(`${returnTo}?message=${encodeURIComponent(`Profile ${decision}; review recorded.`)}`);
+  }
   redirect(`/admin/reviews?message=${encodeURIComponent(`Profile ${decision}.`)}`);
 }
 
 export async function reviewVeterinarianCredentialAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles)) redirect("/dashboard?error=Verification%20access%20is%20required.");
+  if (!(await getEffectiveAdminPermission(identity, "regulatory.review"))) redirect("/dashboard?error=Verification%20access%20is%20required.");
 
   const userId = String(formData.get("user_id") ?? "");
   const recordSource = String(formData.get("record_source") ?? "account");
+  const requestedReturnTo = String(formData.get("return_to") ?? "");
+  const returnTo = recordSource === "account" && requestedReturnTo === `/admin/users/${userId}` ? requestedReturnTo
+    : recordSource === "managed_people" && requestedReturnTo === `/admin/directory/managed_person/${userId}` ? requestedReturnTo : null;
   const decision = String(formData.get("decision") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
   if (!userId || !["approved", "rejected"].includes(decision)) redirect("/admin/reviews?error=Invalid%20credential%20review%20request.");
@@ -185,13 +193,17 @@ export async function reviewVeterinarianCredentialAction(formData: FormData) {
   revalidatePath("/admin/reviews");
   revalidatePath("/admin/directory");
   revalidatePath("/vets");
+  if (returnTo) {
+    revalidatePath(returnTo);
+    redirect(`${returnTo}?message=${encodeURIComponent(`PVMC credential ${decision}; review recorded.`)}`);
+  }
   redirect(`/admin/reviews?message=${encodeURIComponent(`PVMC credential ${decision}.`)}`);
 }
 
 export async function reviewProductAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canModerateProducts)) {
+  if (!(await getEffectiveAdminPermission(identity, "products.manage"))) {
     redirect("/dashboard?error=Admin%20access%20is%20required.");
   }
 
@@ -239,40 +251,49 @@ export async function reviewProductAction(formData: FormData) {
 
 export async function reviewJobAction(formData: FormData) {
   const identity = await getCurrentIdentity();
-  if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canManageJobs)) {
-    redirect("/dashboard?error=Content%20moderation%20access%20is%20required.");
+  if (!identity) redirect("/login?next=/admin/reviews");
+  if (!(await getEffectiveAdminPermission(identity, "jobs.manage"))) redirect("/dashboard?error=Job%20review%20permission%20is%20required.");
+  const jobId=String(formData.get("job_id") ?? "");
+  const decision=String(formData.get("decision") ?? "");
+  if(!jobId || !["approved","rejected"].includes(decision))
+    redirect("/admin/reviews?error=Invalid%20review%20request.");
+
+  const supabase=await createClient();
+  const {data:current,error:loadError}=await supabase.from("jobs")
+    .select("id,sector").eq("id",jobId).eq("verification_status","pending").eq("is_published",false).maybeSingle();
+  if(loadError || !current)redirect("/admin/reviews?error=Pending%20job%20not%20found.");
+
+  let updates: Record<string,unknown>={verification_status:decision,is_published:decision==="approved"};
+  if(decision==="approved"){
+    const sector=String(formData.get("review_sector")??"").trim();
+    const qualification=String(formData.get("review_qualification")??"").trim();
+    const experience=String(formData.get("review_experience")??"").trim();
+    if(qualification.length>200 || sector.length>150)redirect("/admin/reviews?error=Job%20data%20too%20long.");
+    if(experience && (!/^\d+$/.test(experience)||!Number.isSafeInteger(Number(experience))))
+      redirect("/admin/reviews?error=Invalid%20experience.");
+    if(sector){
+      const {data:approvedSector,error:sectorError}=await supabase.from("master_data_items")
+        .select("id").eq("category","job_sector").eq("is_active",true).ilike("label",sector).limit(1);
+      if(sectorError || !approvedSector?.length)redirect("/admin/reviews?error=Approve%20the%20new%20sector%20in%20Data%20Studio%20before%20publishing.");
+    }
+    updates={...updates,sector:sector||null,minimum_qualification:qualification||null,minimum_experience:experience?Number(experience):null};
   }
-  const jobId = String(formData.get("job_id") ?? "");
-  const decision = String(formData.get("decision") ?? "");
-  if (!jobId || !["approved", "rejected"].includes(decision)) {
-    redirect("/admin/reviews?error=Invalid%20job%20review%20request.");
-  }
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("jobs")
-    .update({
-      verification_status: decision,
-      is_published: decision === "approved",
-    })
-    .eq("id", jobId);
-  if (error) redirect(`/admin/reviews?error=${encodeURIComponent(error.message)}`);
+  const {data:saved,error}=await supabase.from("jobs").update(updates)
+    .eq("id",jobId).eq("verification_status","pending").eq("is_published",false).select("id").maybeSingle();
+  if(error)redirect("/admin/reviews?error="+encodeURIComponent(error.message));
+  if(!saved)redirect("/admin/reviews?error=Job%20already%20reviewed%20or%20unavailable.");
   await supabase.from("audit_logs").insert({
-    actor_id: identity.userId,
-    action: `job.${decision}`,
-    entity_type: "job",
-    entity_id: jobId,
+    actor_id:identity.userId,action:"job."+decision,entity_type:"job",entity_id:jobId,
+    metadata:{sector_corrected:decision==="approved" && current.sector!==updates.sector},
   });
-  revalidatePath("/admin");
-  revalidatePath("/admin/reviews");
-  revalidatePath("/jobs");
-  redirect(`/admin/reviews?message=${encodeURIComponent(`Job ${decision}.`)}`);
+  revalidatePath("/admin");revalidatePath("/admin/reviews");revalidatePath("/jobs");
+  redirect("/admin/reviews?message="+encodeURIComponent("Job "+decision+"."));
 }
 
 export async function reviewProductRegulatoryAction(formData: FormData) {
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
-  if (!identity.roles.some(canReviewProfiles)) {
+  if (!(await getEffectiveAdminPermission(identity, "regulatory.review"))) {
     redirect("/dashboard?error=Verification%20access%20is%20required.");
   }
   const productId = String(formData.get("product_id") ?? "");

@@ -328,3 +328,324 @@ test("master closure migration can build canonical public jobs before release cl
   assert.match(sql, /coalesce\(c\.canonical_name, cp\.trade_name, cp\.company_name/);
   assert.doesNotMatch(sql, /coalesce\(c\.company_name, cp\.trade_name/);
 });
+
+
+test("job coverage matching honors province-wide, selected districts, cities and optional tehsil", async () => {
+  // Exercise the actual production matching module rather than a duplicate implementation.
+  const ts = await import("typescript");
+  const vm = await import("node:vm");
+  const compiled = ts.default.transpileModule(read("lib/job-location.ts"), {
+    compilerOptions: {
+      module: ts.default.ModuleKind.CommonJS,
+      esModuleInterop: true,
+      resolveJsonModule: true,
+      target: ts.default.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const exported = { exports: {} };
+  const geo = JSON.parse(read("public/data/pakistan-administrative-hierarchy.json"));
+  vm.runInNewContext(compiled, {
+    module: exported,
+    exports: exported.exports,
+    require: (name) => {
+      if (name === "../public/data/pakistan-administrative-hierarchy.json") return geo;
+      throw new Error("Unexpected module import: " + name);
+    },
+  });
+  const {matchesJobLocation} = exported.exports;
+  const base = {
+    city: null, district: null, province: "Punjab",
+    coverage: {scope:"province",province:"Punjab",display_text:"All Punjab"},
+    coverage_areas:[],
+  };
+  assert.equal(matchesJobLocation(base, "Faisalabad"), true);
+  assert.equal(matchesJobLocation(base, "Lahore"), true);
+  assert.equal(matchesJobLocation(base, "Sindh"), false);
+  assert.equal(matchesJobLocation(base, "Karachi"), false);
+
+  const districts = {
+    ...base,
+    coverage: {scope:"multiple",province:"Punjab",display_text:"Faisalabad and Toba Tek Singh"},
+    coverage_areas:[
+      {district:"Faisalabad",city:null,label:"Faisalabad",province:"Punjab"},
+      {district:"Toba Tek Singh",city:null,label:"Toba Tek Singh",province:"Punjab"},
+    ],
+  };
+  assert.equal(matchesJobLocation(districts, "Faisalabad"), true);
+  assert.equal(matchesJobLocation(districts, "Toba Tek Singh"), true);
+  assert.equal(matchesJobLocation(districts, "Faisalabad City"), true);
+  assert.equal(matchesJobLocation(districts, "Lahore"), false);
+  assert.equal(matchesJobLocation(districts, "Punjab"), true);
+
+  const cityOnly = {
+    ...base,
+    coverage: {scope:"city",province:"Punjab",display_text:"Lahore"},
+    coverage_areas:[{district:null,city:"Lahore",label:"Lahore",province:"Punjab"}],
+  };
+  assert.equal(matchesJobLocation(cityOnly, "Lahore"), true);
+  assert.equal(matchesJobLocation(cityOnly, "Faisalabad"), false);
+  assert.equal(matchesJobLocation({...cityOnly,coverage:{scope:"flexible",province:null,display_text:"TBA"}}, "Lahore"), false);
+  assert.equal(matchesJobLocation({...base,coverage:{scope:"nationwide",province:null,display_text:"Pakistan"}}, "Karachi"), true);
+
+  // The reference hierarchy includes Khanpur in KP, Punjab and Sindh, and
+  // Kingri in Balochistan and Sindh. A first-match-only map loses valid jobs.
+  for (const province of ["Khyber Pakhtunkhwa", "Punjab", "Sindh"]) {
+    const provinceJob = {
+      ...base, province,
+      coverage: {scope:"province",province,display_text:`All ${province}`},
+    };
+    assert.equal(matchesJobLocation(provinceJob, "Khanpur"), true, province);
+  }
+  for (const province of ["Balochistan", "Sindh"]) {
+    const provinceJob = {
+      ...base, province,
+      coverage: {scope:"province",province,display_text:`All ${province}`},
+    };
+    assert.equal(matchesJobLocation(provinceJob, "Kingri"), true, province);
+  }
+  assert.equal(matchesJobLocation({
+    ...base,
+    coverage: {scope:"multiple",province:"Punjab",display_text:"Rahim Yar Khan"},
+    coverage_areas: [{district:"Rahim Yar Khan",city:null,label:"Rahim Yar Khan",province:"Punjab"}],
+  }, "Khanpur"), true);
+  assert.equal(matchesJobLocation({
+    ...base, province:"Balochistan",
+    coverage: {scope:"province",province:"Balochistan",display_text:"All Balochistan"},
+  }, "Khanpur"), false);
+});
+
+
+test("staff and employer job forms share optional multi-location territory data", () => {
+  const admin = read("app/admin/create/page.tsx");
+  const company = read("app/dashboard/company/page.tsx");
+  const fields = read("app/admin/create/JobTerritoryFields.tsx");
+  const adminAction = read("app/admin/create/actions.ts");
+  const companyAction = read("app/dashboard/company/actions.ts");
+  const publicJobs = read("app/jobs/page.tsx");
+  const locationLogic = read("lib/job-location.ts");
+
+  assert.match(admin, /<JobTerritoryFields/);
+  assert.match(company, /<JobTerritoryFields/);
+  assert.doesNotMatch(company, /<PakistanLocationFields fieldPrefix="job_"/);
+  assert.match(fields, /coverage_districts/);
+  assert.match(fields, /coverage_cities/);
+  assert.match(fields, /region_name/);
+  assert.match(fields, /Add tehsil \/ taluka/);
+  assert.match(fields, /Advertised location text \(optional\)/);
+
+  for (const action of [adminAction,companyAction]) {
+    assert.match(action, /from\("job_coverage"\)\.insert/);
+    assert.match(action, /from\("job_coverage_areas"\)\.insert/);
+    assert.match(action, /minimum_experience:[^\n]*null/);
+    assert.match(action, /verification_status:"pending",is_published:false/);
+  }
+  assert.match(companyAction, /requireWorkspace\("jobs\.manage"\)/);
+  assert.match(company, /coverage_display/);
+  assert.match(publicJobs, /matchesJobLocation/);
+  assert.match(locationLogic, /scope==="nationwide"/);
+});
+
+
+test("job submission is pending with a full receipt and admin review links",()=>{
+  const admin=read("app/admin/create/page.tsx");
+  const company=read("app/dashboard/company/page.tsx");
+  const receipt=read("app/components/JobSubmissionReceipt.tsx");
+  const adminActions=read("app/admin/create/actions.ts");
+  const companyActions=read("app/dashboard/company/actions.ts");
+  const review=read("app/admin/reviews/page.tsx");
+  const dashboard=read("app/admin/page.tsx");
+  for(const page of [admin,company])assert.match(page,/<JobSubmissionReceipt/);
+  assert.match(receipt,/role="dialog"/);
+  assert.match(receipt,/Status:<\/strong> Pending approval/);
+  assert.match(receipt,/Minimum qualification/);
+  assert.match(review,/id=\{"job-"\+job\.id\}/);
+  assert.match(dashboard,/href="\/admin\/reviews#jobs-review"/);
+  for(const action of [adminActions,companyActions]){
+    assert.match(action,/proposeJobMasterTerms\(/);
+    assert.match(action,/emailJobReviewNotice\(/);
+    assert.match(action,/is_published:false/);
+  }
+});
+
+test("approved master options include Other suggestions but are not auto-published",()=>{
+  const field=read("app/components/JobMasterChoice.tsx");
+  const approvals=read("app/admin/data/actions.ts");
+  const studio=read("app/admin/data/page.tsx");
+  const suggestions=read("lib/job-review-helpers.ts");
+  const migration=read("supabase/migrations/20261023065621_job_master_suggestions_review_outbox_20261023.sql");
+  assert.match(field,/Other \/ Add new option/);
+  assert.match(field,/job_qualification/);
+  assert.match(approvals,/requireAdminPermission\("master_data\.manage"/);
+  assert.match(studio,/suggestions-to-review/);
+  assert.match(suggestions,/status:"pending"/);
+  assert.match(migration,/create table if not exists public\.master_data_suggestions/);
+  assert.match(migration,/lower\(trim\(label\)\)='punjab'/);
+  assert.match(migration,/trg_queue_pending_job_review/);
+  assert.doesNotMatch(migration,/drop table|truncate table/i);
+});
+
+
+test("CV applications require an owned saved CV or a builder snapshot",()=>{
+ const apply=read("app/jobs/actions.ts");
+ const page=read("app/jobs/[slug]/page.tsx");
+ const career=read("app/dashboard/career/page.tsx");
+ const cvAction=read("app/dashboard/career/actions.ts");
+ const employer=read("app/dashboard/company/page.tsx");
+ const privateRoute=read("app/api/career/documents/[id]/route.ts");
+ assert.match(page,/name="cv_choice"/);
+ assert.match(page,/Create or edit CV/);
+ assert.match(apply,/professional_user_id",identity.userId/);
+ assert.match(apply,/career_cv_profiles/);
+ assert.match(apply,/cv_snapshot: snapshot/);
+ assert.match(career,/uploadCareerCvAction/);
+ assert.match(cvAction,/career-documents/);
+ assert.match(employer,/cv_document_id/);
+ assert.match(privateRoute,/createSignedUrl/);
+});
+
+test("job advertisement is an approved-only image, never the private support file",()=>{
+ const admin=read("app/admin/create/page.tsx");
+ const company=read("app/dashboard/company/page.tsx");
+ const helper=read("lib/job-advert-image.ts");
+ const route=read("app/api/jobs/[id]/advertisement/route.ts");
+ const detail=read("app/jobs/[slug]/page.tsx");
+ assert.match(admin,/name="job_ad_image"/);
+ assert.match(company,/name="job_ad_image"/);
+ assert.match(helper,/record-documents/);
+ assert.match(route,/job.verification_status!=="approved"/);
+ assert.match(route,/createSignedUrl/);
+ assert.match(detail,/Original approved job advertisement image/);
+});
+
+test("homepage job slider never displays mock expired or unapproved-sector jobs",()=>{
+ const page=read("app/page.tsx");
+ const slider=read("app/components/SectorJobSlider.tsx");
+ const css=read("app/globals.css");
+ assert.doesNotMatch(page,/jobs.map\(\(j\)/);
+ assert.match(page,/approvedSectors.has/);
+ assert.match(page,/job.deadline>=today/);
+ assert.match(page,/<SectorJobSlider jobs=\{currentJobs\}/);
+ assert.match(slider,/aria-pressed/);
+ assert.match(css,/current-jobs-track/);
+ assert.match(css,/@media \(max-width:640px\)/);
+});
+
+
+test("applicant eligibility guidance reflects role, profile review and existing applications",()=>{
+ const page=read("app/jobs/[slug]/page.tsx");
+ const actions=read("app/jobs/actions.ts");
+ assert.match(page,/Job seeker account required/);
+ assert.match(page,/Create job seeker account|Register a job seeker account/);
+ assert.match(page,/Profile awaiting approval/);
+ assert.match(page,/Profile needs corrections/);
+ assert.match(page,/href="\/dashboard\/professional"/);
+ assert.match(page,/Application already submitted/);
+ assert.match(page,/profileApproved && !hasApplied && hasCv/);
+ assert.match(page,/name="cv_choice"/);
+ assert.match(actions,/This account cannot apply/);
+});
+
+test("all CV uploads and job applications require an authenticated verified account email",()=>{
+ const upload=read("app/dashboard/career/actions.ts");
+ const uploadForm=read("app/dashboard/career/page.tsx");
+ const apply=read("app/jobs/actions.ts");
+ const detail=read("app/jobs/[slug]/page.tsx");
+ const verify=read("lib/career-email-verification.ts");
+ const company=read("app/dashboard/company/page.tsx");
+ assert.match(upload,/matchingVerifiedAccountEmail/);
+ assert.match(apply,/matchingVerifiedAccountEmail/);
+ assert.match(uploadForm,/name="confirm_email"/);
+ assert.match(detail,/name="confirm_email"/);
+ assert.doesNotMatch(detail,/GuestJobApply/);
+ assert.doesNotMatch(company,/guestApplicationRows/);
+ assert.match(verify,/auth\.getUser\(\)/);
+ assert.match(verify,/email_confirmed_at/);
+ assert.match(verify,/user\.id!==expectedUserId/);
+ assert.match(verify,/submitted===user\.email\.trim\(\)\.toLowerCase\(\)/);
+ const guarded=read("supabase/migrations/20261023105536_guest_cv_login_only_lockdown.sql");
+ assert.match(guarded,/revoke all on public\.guest_job_applications/);
+ assert.match(guarded,/drop policy if exists guest_submitted_employer_read/);
+});
+
+test("CSV import removes incomplete jobs after region-area failures", async () => {
+  // Execute the actual production rollback helper with fake persistence calls.
+  const ts = await import("typescript");
+  const vm = await import("node:vm");
+  const compiled = ts.default.transpileModule(read("lib/job-import-cleanup.ts"), {
+    compilerOptions: {
+      module: ts.default.ModuleKind.CommonJS,
+      target: ts.default.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const sandboxModule = {exports: {}};
+  vm.runInNewContext(compiled, {module: sandboxModule, exports: sandboxModule.exports, Error});
+  const {persistImportedJobDetails} = sandboxModule.exports;
+
+  const deleted = [];
+  await assert.rejects(
+    persistImportedJobDetails("job-1", async () => {
+      throw new Error("company_region_areas insert failed");
+    }, async (id) => {
+      deleted.push(id);
+      return true;
+    }),
+    /company_region_areas insert failed.*incomplete pending job was removed/i,
+  );
+  assert.deepEqual(deleted, ["job-1"]);
+
+  await assert.rejects(
+    persistImportedJobDetails("job-2", async () => {
+      throw new Error("job_coverage_areas insert failed");
+    }, async () => false),
+    /job_coverage_areas insert failed.*manual review required/i,
+  );
+  await assert.rejects(
+    persistImportedJobDetails("job-3", async () => {
+      throw new Error("company_regions lookup failed");
+    }, async () => {
+      throw new Error("RLS denied cleanup");
+    }),
+    /company_regions lookup failed.*manual review required/i,
+  );
+
+  const saved = await persistImportedJobDetails("job-4", async () => ({id: "job-4"}), async () => {
+    throw new Error("Cleanup must not run after success");
+  });
+  assert.equal(saved.id, "job-4");
+
+  const bulk = read("app/admin/create/bulk-actions.ts");
+  assert.match(bulk, /persistImportedJobDetails\(job\.id/);
+  assert.match(bulk, /if\(readError\) throw readError/);
+  assert.match(bulk, /if\(regionAreaError\) throw regionAreaError/);
+  assert.match(bulk, /\.delete\(\)\.eq\("id",jobId\)\.select\("id"\)\.maybeSingle\(\)/);
+});
+
+test("Phase 2 dashboard links to actionable administration, reports and records", () => {
+  const overview = read("app/admin/page.tsx");
+  const reviews = read("app/admin/reviews/page.tsx");
+  const nav = read("app/admin/components/AdminNav.tsx");
+  const report = read("app/admin/reports/page.tsx");
+  const exportRoute = read("app/admin/reports/export/route.ts");
+  const company = read("app/dashboard/company/page.tsx");
+  const account = read("app/dashboard/page.tsx");
+  assert.match(overview, /getEffectiveAdminPermissions/);
+  assert.match(overview, /Pending profiles/);
+  assert.match(overview, /New registrations/);
+  assert.match(overview, /admin\/reviews#profile-account-/);
+  assert.match(overview, /newRegistrations24h/);
+  assert.match(overview, /24\*60\*60\*1000/);
+  assert.match(reviews, /id=\{\`profile-\$\{row\.record_source/);
+  assert.match(reviews, /id=\{\`credential-\$\{row\.record_source/);
+  assert.match(reviews, /id=\{\`product-\$\{product.id\}/);
+  assert.match(nav, /getEffectiveAdminPermissions/);
+  assert.match(nav, /Printable reports/);
+  assert.match(report, /PrintReportButton/);
+  assert.match(exportRoute, /getEffectiveAdminPermission\(identity,"audit.view"\)/);
+  assert.match(exportRoute, /no-store/);
+  assert.match(exportRoute, /csvCell/);
+  assert.match(company, /company-applications/);
+  assert.match(account, /vc-customer-hub/);
+  for(const file of ["app/admin/jobs/page.tsx","app/admin/jobs/[id]/page.tsx","app/admin/applications/page.tsx","app/admin/clinic-affiliations/page.tsx","app/admin/reports/page.tsx"]){
+    assert.ok(read(file).length>300, file+" is missing");
+  }
+});

@@ -12,7 +12,7 @@ import {
   reviewProductRegulatoryAction,
 } from "../actions";
 import { getCurrentIdentity } from "@/lib/auth";
-import { hasAdminPermission } from "@/lib/admin";
+import { getEffectiveAdminPermissions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -44,7 +44,7 @@ type PendingJob = {
   city: string | null;
   employment_type: string;
   minimum_qualification: string | null;
-  minimum_experience: number;
+  minimum_experience: number | null;
   deadline: string | null;
 };
 type PendingRegulatory = {
@@ -63,11 +63,12 @@ export default async function AdminPage({
   if (!isSupabaseConfigured()) redirect("/dashboard");
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin");
+  const effectivePermissions = await getEffectiveAdminPermissions(identity);
   if (
-    !hasAdminPermission(identity, "profiles.review") &&
-    !hasAdminPermission(identity, "products.manage") &&
-    !hasAdminPermission(identity, "jobs.manage") &&
-    !hasAdminPermission(identity, "regulatory.review")
+    !effectivePermissions.has("profiles.review") &&
+    !effectivePermissions.has("products.manage") &&
+    !effectivePermissions.has("jobs.manage") &&
+    !effectivePermissions.has("regulatory.review")
   )
     redirect("/dashboard?error=Admin%20access%20is%20required.");
 
@@ -159,6 +160,11 @@ export default async function AdminPage({
   );
   const productRows = (products ?? []) as PendingProduct[];
   const jobRows = (jobs ?? []) as PendingJob[];
+  const {data:availableJobSectors}=await supabase.from("master_data_items")
+    .select("label").eq("category","job_sector").eq("is_active",true).order("label");
+  const {data:jobCoverageRows}=jobRows.length ? await supabase.from("job_coverage")
+    .select("job_id,display_text").in("job_id",jobRows.map(j=>j.id)) : {data:[]};
+  const jobLocations=new Map((jobCoverageRows ?? []).map(v=>[v.job_id,v.display_text]));
   const { data: regulatoryData } = await supabase
     .from("product_regulatory")
     .select("product_id, registration_number, registration_status, applicability")
@@ -288,7 +294,7 @@ export default async function AdminPage({
               <span>Jobs</span>
             </article>
           </div>
-          <div className="admin-review-list">
+          <div id="pending-profiles" className="admin-review-list vc-review-target">
             {pending.length === 0 && (
               <div className="empty-state">
                 <h2>No profiles are waiting for review.</h2>
@@ -303,7 +309,7 @@ export default async function AdminPage({
               const documentEntityType = row.record_source === "managed_people" ? "person" : row.record_source === "companies" ? "company" : row.record_source === "clinics" ? "clinic" : row.record_source === "laboratories" ? "laboratory" : null;
               const documents = documentEntityType ? documentMap.get(`${documentEntityType}:${String(row.entity_id || row.user_id)}`) ?? [] : [];
               return (
-                <article key={`${type}-${row.user_id}`}>
+                <article key={`${type}-${row.user_id}`} id={`profile-${row.record_source ?? "account"}-${String(row.entity_id || row.user_id)}`} className="vc-review-target">
                   <div className="review-header">
                     <div>
                       <span className="module-tag">{type}</span>
@@ -418,7 +424,7 @@ export default async function AdminPage({
             })}
           </div>
           <div className="section-heading admin-product-heading">
-            <span className="section-kicker">VETERINARY CREDENTIAL REVIEW</span>
+            <span id="credential-checks" className="section-kicker vc-review-target">VETERINARY CREDENTIAL REVIEW</span>
             <h2>PVMC verification is separate from profile approval.</h2>
             <p>Registration numbers remain private. Only the verified status is published.</p>
           </div>
@@ -430,7 +436,7 @@ export default async function AdminPage({
               const profile = profileMap.get(row.user_id);
               const documents = row.record_source === "managed_people" ? documentMap.get(`person:${String(row.entity_id || row.user_id)}`) ?? [] : [];
               return (
-                <article key={`credential-${row.user_id}`}>
+                <article key={`credential-${row.user_id}`} id={`credential-${row.record_source ?? "account"}-${String(row.entity_id || row.user_id)}`} className="vc-review-target">
                   <div className="review-header"><div><span className="module-tag">PVMC</span><h2>{String(row.full_name || profile?.full_name || "Veterinarian")}</h2><p>{profile?.email} · {profile?.city || row.city || "City not provided"}</p></div><span className="status-pill">Pending</span></div>
                   <dl className="review-details"><div><dt>Private PVMC number</dt><dd>{String(row.pvmc_number || "Not provided")}</dd></div><div><dt>Qualification</dt><dd>{String(row.qualifications || "Not provided")}</dd></div><div><dt>Specialization</dt><dd>{String(row.specialization || "Not provided")}</dd></div></dl>
                   {documents.length > 0 && <div className="review-documents"><b>Credential evidence</b>{documents.map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.original_name}</a> : <span key={document.storage_path}>{document.original_name}</span>)}</div>}
@@ -446,7 +452,7 @@ export default async function AdminPage({
             })}
           </div>
           <div className="section-heading admin-product-heading">
-            <span className="section-kicker">PRODUCT MODERATION</span>
+            <span id="pending-products" className="section-kicker vc-review-target">PRODUCT MODERATION</span>
             <h2>Marketplace submissions.</h2>
             <p>Approve complete company listings before they become public.</p>
           </div>
@@ -458,7 +464,7 @@ export default async function AdminPage({
               </div>
             )}
             {productRows.map((product) => (
-              <article key={product.id}>
+              <article key={product.id} id={`product-${product.id}`} className="vc-review-target">
                 <div className="review-header">
                   <div>
                     <span className="module-tag">{product.category}</span>
@@ -500,7 +506,7 @@ export default async function AdminPage({
         
                    </div>
 
-          <div className="section-heading admin-product-heading">
+          <div className="section-heading admin-product-heading" id="jobs-review">
             <span className="section-kicker">JOB MODERATION</span>
             <h2>Employer opportunities.</h2>
             <p>Approve complete, credible job information before it becomes public.</p>
@@ -515,14 +521,14 @@ export default async function AdminPage({
             )}
 
             {jobRows.map((job) => (
-              <article key={job.id}>
+              <article key={job.id} id={"job-"+job.id}>
                 <div className="review-header">
                   <div>
                     <span className="module-tag">{job.sector || "JOB"}</span>
                     <h2>{job.title}</h2>
                     <p>
                       {companyNameFor(job.company_id, job.company_user_id)} ·{" "}
-                      {job.city || "Pakistan"}
+                      {jobLocations.get(job.id) || job.city || "Location not specified"}
                     </p>
                   </div>
                   <span className="status-pill">Pending</span>
@@ -539,7 +545,7 @@ export default async function AdminPage({
                   </div>
                   <div>
                     <dt>Experience</dt>
-                    <dd>{job.minimum_experience} years</dd>
+                    <dd>{job.minimum_experience===null?"Not specified":job.minimum_experience+" years"}</dd>
                   </div>
                   <div>
                     <dt>Deadline</dt>
@@ -552,6 +558,21 @@ export default async function AdminPage({
 
                 <form action={reviewJobAction}>
                   <input type="hidden" name="job_id" value={job.id} />
+                  <div className="form-grid">
+                    <div><label htmlFor={"review_sector_"+job.id}>Correct Job Sector before publishing</label>
+                      <select id={"review_sector_"+job.id} name="review_sector" defaultValue={job.sector && (availableJobSectors??[]).some(x=>x.label===job.sector)?job.sector:""}>
+                        <option value="">Not specified</option>
+                        {(availableJobSectors??[]).map(x=><option key={x.label} value={x.label}>{x.label}</option>)}
+                      </select>
+                      {job.sector && !(availableJobSectors??[]).some(x=>x.label===job.sector) && <small>Original sector &ldquo;{job.sector}&rdquo; is not an approved job sector. Select a valid one or leave unspecified.</small>}
+                    </div>
+                    <div><label htmlFor={"review_qualification_"+job.id}>Qualification (verify against advertisement)</label>
+                      <input id={"review_qualification_"+job.id} name="review_qualification" defaultValue={job.minimum_qualification??""} placeholder="Not specified"/>
+                    </div>
+                    <div><label htmlFor={"review_experience_"+job.id}>Experience years (leave blank if not given)</label>
+                      <input type="number" min="0" id={"review_experience_"+job.id} name="review_experience" defaultValue={job.minimum_experience??""}/>
+                    </div>
+                  </div>
 
                   <div className="review-actions">
                     <FormSubmitButton

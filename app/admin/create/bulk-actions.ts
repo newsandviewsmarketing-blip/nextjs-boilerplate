@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { parseTabularUpload } from "@/lib/tabular-import";
+import { persistImportedJobDetails } from "@/lib/job-import-cleanup";
 
 type Kind = "person" | "company" | "clinic" | "laboratory" | "product" | "job";
 type Row = Record<string, string>;
@@ -121,14 +122,105 @@ export async function bulkImportAction(formData: FormData) {
         });
         if (error) throw error;
       } else if (kind === "job") {
-        const title = value(row,"title"); if (!title) throw new Error("title is required");
+        const title = value(row,"title");
+        if (!title) throw new Error("title is required");
         const companyKey = (value(row,"company_id") || value(row,"company_name")).toLowerCase();
-        const companyId = companyMap.get(companyKey); if (!companyId) throw new Error("company_id or company_name does not match a canonical company");
-        const { error } = await supabase.from("jobs").insert({
-          company_user_id: null, company_id: companyId, slug: uniqueSlug(title), title, description: value(row,"description") || title, sector: nullable(row,"sector"), province: nullable(row,"province"), district: nullable(row,"district"), tehsil: nullable(row,"tehsil"), city: nullable(row,"city"),
-          address: nullable(row,"address"), employment_type: value(row,"employment_type") || "Full-time", minimum_qualification: nullable(row,"minimum_qualification"), minimum_experience: numberValue(row,"minimum_experience"), deadline: nullable(row,"deadline"), verification_status: "pending", is_published: false,
+        const companyId = companyMap.get(companyKey);
+        if (!companyId) throw new Error("company_id or company_name does not match a canonical company");
+        const selectedScope = value(row,"coverage_scope") ||
+          (value(row,"city") ? "city" : value(row,"district") ? "district" : value(row,"province") ? "province" : "flexible");
+        const allowed = ["nationwide","province","region","territory","area","district","city","multiple","flexible"];
+        if (!allowed.includes(selectedScope)) throw new Error("Invalid coverage_scope");
+        const province = ["nationwide","flexible"].includes(selectedScope) ? null : nullable(row,"province");
+        if (!["nationwide","flexible"].includes(selectedScope) && !province) throw new Error("Province is required");
+        const regionScope = ["region","territory","area"].includes(selectedScope);
+        const regionName = regionScope ? value(row,"region_name") : "";
+        if (regionScope && !regionName) throw new Error("region_name is required");
+
+        const districtNames = [...new Set([
+          ...value(row,"coverage_districts").split(","),
+          ...(selectedScope === "district" ? value(row,"covered_areas").split(",") : []),
+          value(row,"district"),
+        ].map(x=>x.trim()).filter(Boolean))];
+        const cityNames = [...new Set([
+          ...value(row,"coverage_cities").split(","),
+          ...(selectedScope !== "district" ? value(row,"covered_areas").split(",") : []),
+          value(row,"city"),
+        ].map(x=>x.trim()).filter(Boolean))];
+        if (selectedScope==="district" && districtNames.length===0) throw new Error("At least one district is required");
+        if (selectedScope==="city" && cityNames.length===0) throw new Error("At least one city is required");
+        const scope=selectedScope==="province" && (districtNames.length+cityNames.length)>0 ? "multiple" : selectedScope;
+        const expValue=value(row,"minimum_experience");
+        if(expValue && (!/^\d+$/.test(expValue) || !Number.isSafeInteger(Number(expValue)))) {
+          throw new Error("minimum_experience must be a nonnegative whole number");
+        }
+        const locationText=selectedScope === "nationwide" ? "Across Pakistan" :
+          selectedScope === "flexible" ? "Location not specified" :
+          value(row,"coverage_display") || value(row,"location_text") ||
+            [regionName, province, ...districtNames, ...cityNames].filter(Boolean).join(", ");
+        let regionId: string | null = null;
+        if(regionScope){
+          const {data: existing, error:lookupError} = await supabase.from("company_regions").select("id,region_type,province")
+            .eq("company_id",companyId).eq("name",regionName).maybeSingle();
+          if(lookupError) throw lookupError;
+          if(existing) {
+            if(existing.region_type!==selectedScope || existing.province!==province) {
+              throw new Error("Existing company region has different type or province");
+            }
+            regionId=existing.id;
+          } else {
+            const {data: created,error:regionError}=await supabase.from("company_regions")
+              .insert({company_id:companyId,name:regionName,region_type:selectedScope,province,created_by:identity.userId})
+              .select("id").single();
+            if(regionError || !created) throw new Error(regionError?.message || "Region insert failed");
+            regionId=created.id;
+          }
+        }
+        const {data:job,error}=await supabase.from("jobs").insert({
+          company_user_id:null,company_id:companyId,slug:uniqueSlug(title),title,
+          description:value(row,"description")||title,sector:nullable(row,"sector"),
+          province,district:districtNames.length===1?districtNames[0]:null,
+          city:cityNames.length===1?cityNames[0]:null,
+          tehsil:nullable(row,"tehsil"),address:nullable(row,"address"),
+          employment_type:value(row,"employment_type")||"Not specified",
+          minimum_qualification:nullable(row,"minimum_qualification"),
+          minimum_experience:expValue ? Number(expValue) : null,
+          deadline:nullable(row,"deadline"),verification_status:"pending",is_published:false,
+        }).select("id").single();
+        if(error||!job) throw new Error(error?.message || "Job insert failed");
+        await persistImportedJobDetails(job.id, async () => {
+          const {error:coverageError}=await supabase.from("job_coverage").insert({
+            job_id:job.id,scope,province,region_id:regionId,display_text:locationText,
+          });
+          if(coverageError) throw new Error("Could not save job coverage: "+coverageError.message);
+          const areaRows=[
+            ...districtNames.map(label=>({job_id:job.id,area_level:"district",province,district:label,city:null,label})),
+            ...cityNames.map(label=>({job_id:job.id,area_level:"city",province,district:null,city:label,label})),
+          ];
+          if(areaRows.length){
+            const {error:areaError}=await supabase.from("job_coverage_areas").insert(areaRows);
+            if(areaError) throw new Error("Could not save covered areas: "+areaError.message);
+            if(regionId){
+              const {data:existingRegionAreas,error:readError}=await supabase.from("company_region_areas")
+                .select("area_level,label").eq("region_id",regionId);
+              if(readError) throw readError;
+              const known=new Set((existingRegionAreas||[]).map(x=>x.area_level+":"+x.label.toLowerCase()));
+              const missing=areaRows.filter(x=>!known.has(x.area_level+":"+x.label.toLowerCase()));
+              if(missing.length){
+                const {error:regionAreaError}=await supabase.from("company_region_areas").insert(
+                  missing.map(x=>({region_id:regionId,area_level:x.area_level,province,
+                    district:x.district,city:x.city,label:x.label}))
+                );
+                if(regionAreaError) throw regionAreaError;
+              }
+            }
+          }
+        }, async (jobId) => {
+          // Verify the deletion result; an RLS-denied delete can otherwise look successful.
+          const {data: deleted, error: cleanupError} = await supabase.from("jobs")
+            .delete().eq("id",jobId).select("id").maybeSingle();
+          return !cleanupError && deleted?.id === jobId;
         });
-        if (error) throw error;
       }
       created += 1;
     } catch (error) {

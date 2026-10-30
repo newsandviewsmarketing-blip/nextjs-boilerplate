@@ -1,5 +1,8 @@
 "use server";
 
+import {proposeJobMasterTerms,emailJobReviewNotice} from "@/lib/job-review-helpers";
+import {jobAdvertFile,saveJobAdvertImage} from "@/lib/job-advert-image";
+
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -411,51 +414,114 @@ export async function updateInquiryStatusAction(formData: FormData) {
 }
 
 export async function createJobAction(formData: FormData) {
-  const { supabase, workspace } = await requireWorkspace("jobs.manage");
-
+  const {supabase,workspace,identity} = await requireWorkspace("jobs.manage");
   ensureApprovedCompany(workspace.company_verification_status);
 
-  const title = requireText(formData, "title", "Job title");
-  const description = requireText(
-    formData,
-    "job_description",
-    "Job description",
-  );
-  const employmentType = requireText(
-    formData,
-    "employment_type",
-    "Employment type",
-  );
-
-  const deadline = value(formData, "deadline") || null;
-  const minimumExperience = integerValue(formData, "minimum_experience");
-
-  const { error } = await supabase.from("jobs").insert({
-    company_id: workspace.company_id,
-    company_user_id: workspace.legacy_company_user_id,
-    slug: uniqueSlug(title),
-    title,
-    description,
-    sector: value(formData, "job_sector") || null,
-    city: value(formData, "job_city") || null,
-    province: value(formData, "job_province") || null,
-    district: value(formData, "job_district") || null,
-    tehsil: value(formData, "job_tehsil") || null,
-    employment_type: employmentType,
-    minimum_qualification: value(formData, "minimum_qualification") || null,
-    minimum_experience: minimumExperience,
-    deadline,
-    verification_status: "pending",
-    is_published: false,
-  });
-
-  if (error) {
-    redirect(message("error", error.message));
+  let advert:File|null=null;
+  try{advert=jobAdvertFile(formData);}
+  catch(e){redirect(message("error",e instanceof Error?e.message:"Invalid advertisement image."));}
+  const title = requireText(formData,"title","Job title");
+  const description = requireText(formData,"job_description","Job description");
+  const requestedScope = value(formData,"coverage_scope");
+  const scopes = ["nationwide","province","region","territory","area","district","city","multiple","flexible"];
+  if (!scopes.includes(requestedScope)) redirect(message("error","Select a valid job location scope."));
+  const needsProvince = !["nationwide","flexible"].includes(requestedScope);
+  const province = needsProvince ? value(formData,"province") : "";
+  if (needsProvince && !province) redirect(message("error","Province or territory is required."));
+  const districts = needsProvince ? [...new Set(listValue(formData,"coverage_districts"))] : [];
+  const cities = needsProvince ? [...new Set(listValue(formData,"coverage_cities"))] : [];
+  const tehsil = needsProvince ? value(formData,"tehsil") : "";
+  if(requestedScope==="district"&&!districts.length) redirect(message("error","Select at least one district."));
+  if(requestedScope==="city"&&!cities.length) redirect(message("error","Select at least one city."));
+  const isSalesScope = ["region","territory","area"].includes(requestedScope);
+  const regionName = isSalesScope ? value(formData,"region_name") : "";
+  if(isSalesScope && !regionName) redirect(message("error","Enter the company region or territory name."));
+  const scope = requestedScope === "province" && (districts.length>0 || cities.length>0) ? "multiple" : requestedScope;
+  const label = requestedScope === "nationwide" ? "Across Pakistan" :
+    requestedScope === "flexible" ? "Location not specified" :
+    value(formData,"coverage_display") || [regionName,province,...districts,...cities].filter(Boolean).join(", ");
+  const rawExperience=value(formData,"minimum_experience");
+  if(rawExperience && (!/^\d+$/.test(rawExperience) || !Number.isSafeInteger(Number(rawExperience)))) {
+    redirect(message("error","Experience must be a nonnegative whole number."));
   }
+  const companyId=workspace.company_id;
+  let regionId:string|null=null;
+  if(isSalesScope) {
+    const {data: existing,error:findError}=await supabase.from("company_regions")
+      .select("id,region_type,province").eq("company_id",companyId).eq("name",regionName).maybeSingle();
+    if(findError) redirect(message("error",findError.message));
+    if(existing) {
+      if(existing.region_type!==requestedScope || existing.province!==province)
+        redirect(message("error","A different region with that name already exists for this employer."));
+      regionId=existing.id;
+    } else {
+      const {data: created,error:regionError}=await supabase.from("company_regions")
+        .insert({company_id:companyId,name:regionName,region_type:requestedScope,
+          province,created_by:identity.userId}).select("id").single();
+      if(regionError || !created) redirect(message("error",regionError?.message || "Could not save sales region."));
+      regionId=created.id;
+    }
+  }
+  const {data: job,error}=await supabase.from("jobs").insert({
+    company_id:companyId,company_user_id:workspace.legacy_company_user_id,
+    slug:uniqueSlug(title),title,description,
+    sector:value(formData,"job_sector") || null,
+    province:province || null,
+    district:districts.length===1?districts[0]:null,
+    city:cities.length===1?cities[0]:null,
+    tehsil:tehsil || null,
+    employment_type:value(formData,"employment_type") || "Not specified",
+    minimum_qualification:value(formData,"minimum_qualification") || null,
+    minimum_experience:rawExperience ? Number(rawExperience) : null,
+    deadline:value(formData,"deadline") || null,
+    verification_status:"pending",is_published:false,
+  }).select("id").single();
+  if(error || !job) redirect(message("error",error?.message || "Could not submit job."));
+  const jobId:string=job.id;
+  const removeIncomplete = async (reason:string):Promise<never> => {
+    const {error:rollbackError}=await supabase.from("jobs").delete().eq("id",jobId).eq("company_id",companyId);
+    redirect(message("error",rollbackError ? reason+" Draft cleanup also failed." : reason+" Incomplete draft removed."));
+  };
+  const {error:coverageError}=await supabase.from("job_coverage").insert({
+    job_id:jobId,scope,province:province || null,region_id:regionId,display_text:label
+  });
+  if(coverageError) await removeIncomplete("Could not save location coverage: "+coverageError.message);
 
+  const areas=[
+    ...districts.map(name=>({job_id:jobId,area_level:"district",province,district:name,city:null,label:name})),
+    ...cities.map(name=>({job_id:jobId,area_level:"city",province,district:null,city:name,label:name})),
+  ];
+  if(areas.length) {
+    const {error:areaError}=await supabase.from("job_coverage_areas").insert(areas);
+    if(areaError) await removeIncomplete("Could not save locations: "+areaError.message);
+    if(regionId) {
+      const {data:current,error:readError}=await supabase.from("company_region_areas")
+        .select("area_level,label").eq("region_id",regionId);
+      if(readError) await removeIncomplete("Could not read sales region areas.");
+      const known=new Set((current ?? []).map(x=>x.area_level+":"+x.label.toLowerCase()));
+      const missing=areas.filter(x=>!known.has(x.area_level+":"+x.label.toLowerCase()));
+      if(missing.length) {
+        const {error:regionAreaError}=await supabase.from("company_region_areas").insert(
+          missing.map(x=>({region_id:regionId,area_level:x.area_level,province,
+            district:x.district,city:x.city,label:x.label}))
+        );
+        if(regionAreaError) await removeIncomplete("Could not save region mapping: "+regionAreaError.message);
+      }
+    }
+  }
+  try{await saveJobAdvertImage(supabase,jobId,identity.userId,advert);}
+  catch(e){redirect(message("error","Job draft saved without advertisement: "+(e instanceof Error?e.message:"Upload error")));}
+  await proposeJobMasterTerms({
+    jobId,userId:identity.userId,sector:value(formData,"job_sector"),
+    qualification:value(formData,"minimum_qualification"),cities,districts,tehsil,province
+  });
+  await emailJobReviewNotice(jobId,title,workspace.canonical_name);
   revalidatePath(COMPANY_PATH);
+  revalidatePath("/admin");
+  revalidatePath("/admin/reviews");
+  revalidatePath("/admin/data");
   revalidatePath("/jobs");
-  redirect(message("message", "Job submitted for review."));
+  redirect(COMPANY_PATH+"?submitted="+encodeURIComponent(jobId));
 }
 
 export async function deletePendingJobAction(formData: FormData) {

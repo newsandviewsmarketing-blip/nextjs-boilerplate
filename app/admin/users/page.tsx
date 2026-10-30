@@ -2,11 +2,10 @@ import Link from "next/link";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
-import FormSubmitButton from "../../components/FormSubmitButton";
 import AdminNav from "../components/AdminNav";
-import { requireAdminPermission, staffRoleOptions, staffRoleLabel } from "@/lib/admin";
+import { isSuspiciousProfileName } from "@/lib/profile-name";
+import { requireAdminPermission, staffRoleOptions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
-import { updateStaffRolesAction, updateUserStatusAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -158,7 +157,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                     const vet = vetMap.get(user.id);
                     return (
                       <tr key={user.id}>
-                        <td><b>{user.full_name || "Unnamed account"}</b><small>{user.email}</small></td>
+                        <td><Link href={`/admin/users/${user.id}`} className="vc-dossier-link" target="_blank" rel="noopener noreferrer"><b>{isSuspiciousProfileName(user.full_name||"") ? `Flagged account · ${user.id.slice(0,8)}` : (user.full_name || "Unnamed account").slice(0,90)}</b></Link><small>{user.email}</small></td>
                         <td>{user.primary_role.replaceAll("_", " ")}</td>
                         <td>{user.province || "—"}</td>
                         <td>{user.district || "—"}</td>
@@ -190,46 +189,11 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
               ))}
             </div>
 
-            <div className="admin-data-list user-admin-list">
-              {rows.map((user) => {
-                const assignedRoles = roleMap.get(user.id) ?? [];
-                return (
-                  <article key={user.id}>
-                    <div className="admin-data-main">
-                      <div className="admin-data-title"><span className="module-tag">{user.primary_role.replaceAll("_", " ")}</span><h2>{user.full_name || "Unnamed account"}</h2></div>
-                      <p>{user.email} · {user.tehsil || user.city || "Location not provided"}</p>
-                      <div className="status-cluster">
-                        <span className={`status-pill status-${user.account_status}`}>{user.account_status}</span>
-                        {assignedRoles.filter((role) => staffRoleOptions.some((item) => item.value === role)).map((role) => <span className="status-pill" key={role}>{staffRoleLabel(role)}</span>)}
-                      </div>
-                    </div>
-                    <div className="user-admin-forms">
-                      <form className="staff-role-form" action={updateStaffRolesAction}>
-                        <input type="hidden" name="user_id" value={user.id} />
-                        <fieldset>
-                          <legend>Staff roles</legend>
-                          {staffRoleOptions.map((role) => (
-                            <label className="checkbox-line" key={role.value}>
-                              <input type="checkbox" name="staff_roles" value={role.value} defaultChecked={assignedRoles.includes(role.value)} />
-                              {role.label}
-                            </label>
-                          ))}
-                        </fieldset>
-                        <FormSubmitButton className="button button-secondary" pendingLabel="Saving roles...">Save roles</FormSubmitButton>
-                      </form>
-                      <form className="inline-status-form" action={updateUserStatusAction}>
-                        <input type="hidden" name="user_id" value={user.id} />
-                        <select name="account_status" defaultValue={user.account_status} aria-label={`Account status for ${user.full_name || user.email}`}>
-                          <option value="active">Active</option>
-                          <option value="suspended">Suspended</option>
-                        </select>
-                        <button className="button button-secondary" type="submit">Update account</button>
-                      </form>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+            <section className="vc-admin-panel" aria-labelledby="dossier-navigation-heading">
+              <div className="section-heading"><h2 id="dossier-navigation-heading">One account, one management dossier</h2>
+                <p>Select a name in the directory table to open that account in a separate tab. Editing, review, suspension, staff roles, activity records and linked documents are managed on its own page rather than repeated here.</p>
+              </div>
+            </section>
           </div>
         </div>
       </section>

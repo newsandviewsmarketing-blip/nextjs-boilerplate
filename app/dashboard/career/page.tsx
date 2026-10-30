@@ -4,6 +4,7 @@ import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { uploadCareerCvAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ type ApplicationRow = {
   status: string;
   cover_note: string | null;
   applied_at: string;
+  cv_source?: string|null;
+  cv_document_id?:string|null;
 };
 
 type SavedRow = { job_id: string; created_at: string };
@@ -29,7 +32,8 @@ type JobRow = {
   company_user_id: string | null;
 };
 
-export default async function CareerWorkspacePage() {
+export default async function CareerWorkspacePage({searchParams}:{searchParams:Promise<{error?:string;message?:string}>}) {
+  const alerts=await searchParams;
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/dashboard/career");
 
@@ -41,10 +45,10 @@ export default async function CareerWorkspacePage() {
   }
 
   const supabase = await createClient();
-  const [applicationResult, savedResult, matchResult] = await Promise.all([
+  const [applicationResult, savedResult, matchResult, cvDocumentsResult, cvProfileResult] = await Promise.all([
     supabase
       .from("job_applications")
-      .select("id, job_id, status, cover_note, applied_at")
+      .select("id, job_id, status, cover_note, applied_at, cv_source, cv_document_id")
       .eq("candidate_user_id", identity.userId)
       .order("applied_at", { ascending: false }),
     supabase
@@ -58,6 +62,11 @@ export default async function CareerWorkspacePage() {
       .eq("candidate_user_id", identity.userId)
       .order("match_score", { ascending: false })
       .limit(12),
+    supabase.from("career_documents").select("id,created_at,is_current")
+      .eq("professional_user_id",identity.userId).eq("document_type","cv")
+      .order("created_at",{ascending:false}).limit(25),
+    supabase.from("career_cv_profiles").select("full_name,headline")
+      .eq("user_id",identity.userId).maybeSingle(),
   ]);
 
   const applicationRows = (applicationResult.data ?? []) as ApplicationRow[];
@@ -101,7 +110,38 @@ export default async function CareerWorkspacePage() {
           {(applicationResult.error || savedResult.error || matchResult.error) && (
             <div className="form-message form-message-error">{applicationResult.error?.message || savedResult.error?.message || matchResult.error?.message}</div>
           )}
-          <div className="admin-summary">
+          {alerts.error&&<p className="form-message form-message-error">{alerts.error}</p>}
+          {alerts.message&&<p className="form-message form-message-success">{alerts.message}</p>}
+          <section className="backend-form-card career-cv-library" id="my-cvs">
+            <div className="section-heading compact-heading">
+              <span className="section-kicker">MY PRIVATE CV LIBRARY</span>
+              <h2>Saved CVs and CV Builder</h2>
+              <p>Upload your CV once. Choose it for each job application; it is not published on your public profile.</p>
+            </div>
+            <div className="career-cv-grid">
+              <form action={uploadCareerCvAction} className="profile-form" encType="multipart/form-data">
+                <label htmlFor="cv-file-upload">Upload CV (PDF, DOC, DOCX, JPG or PNG, maximum 5 MB)</label>
+                <input id="cv-file-upload" type="file" name="cv_file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required/>
+                <label htmlFor="cv-account-email">Confirm your verified account email *</label>
+                <input id="cv-account-email" type="email" name="confirm_email" autoComplete="email" required maxLength={254} placeholder={identity.email||"Account email"}/>
+                <p className="form-help">Email must match the verified address of your signed-in VetConnect account.</p>
+                <button className="button button-primary" type="submit">Save CV privately</button>
+              </form>
+              <div>
+                <h3>Saved CVs</h3>
+                {(cvDocumentsResult.data??[]).length===0?<p>No CV files saved yet.</p>:
+                  <ul className="career-cv-list">{(cvDocumentsResult.data??[]).map(cv=><li key={cv.id}>
+                    <a href={"/api/career/documents/"+cv.id} target="_blank" rel="noopener noreferrer">
+                      CV · {new Date(cv.created_at).toLocaleDateString("en-PK")}{cv.is_current?" (Current)":""}
+                    </a>
+                  </li>)}</ul>}
+                <h3>VetConnect CV Builder</h3>
+                <p>{cvProfileResult.data?.full_name?"Saved: "+cvProfileResult.data.full_name:"No profile CV created yet."}</p>
+                <Link className="button button-secondary" href="/dashboard/career/cv">Create / Edit CV</Link>
+              </div>
+            </div>
+          </section>
+                    <div className="admin-summary">
             <article><b>{applicationRows.length}</b><span>Total applications</span></article>
             <article><b>{applicationRows.filter((row) => row.status === "shortlisted").length}</b><span>Shortlisted</span></article>
             <article><b>{applicationRows.filter((row) => row.status === "interview").length}</b><span>Interview stage</span></article>
@@ -118,7 +158,8 @@ export default async function CareerWorkspacePage() {
                 <div className="admin-data-list">
                   {applicationRows.map((application) => {
                     const job = jobMap.get(application.job_id);
-                    return <article key={application.id}><div className="admin-data-main"><div className="admin-data-title"><span className="module-tag">{job?.sector || "Veterinary career"}</span><h2>{job?.title || "Job application"}</h2></div><p>{[job?.city, job?.province, job?.employment_type].filter(Boolean).join(" · ") || "VetConnect job"}</p><div className="status-cluster"><span className={`status-pill status-${application.status}`}>{application.status.replaceAll("_", " ")}</span><span className="status-pill">Applied {new Date(application.applied_at).toLocaleDateString("en-PK")}</span></div></div>{job?.slug && <Link className="button button-secondary" href={`/jobs/${job.slug}`}>View job</Link>}</article>;
+                    return <article key={application.id}><div className="admin-data-main"><div className="admin-data-title"><span className="module-tag">{job?.sector || "Veterinary career"}</span><h2>{job?.title || "Job application"}</h2></div><p>{[job?.city, job?.province, job?.employment_type].filter(Boolean).join(" · ") || "VetConnect job"}</p><div className="status-cluster"><span className={`status-pill status-${application.status}`}>{application.status.replaceAll("_", " ")}</span><span className="status-pill">Applied {new Date(application.applied_at).toLocaleDateString("en-PK")}</span>
+                        <span className="status-pill">{application.cv_source==="saved_cv"?"Saved CV attached":application.cv_source==="profile_cv"?"VetConnect CV attached":"Legacy application"}</span></div></div>{job?.slug && <Link className="button button-secondary" href={`/jobs/${job.slug}`}>View job</Link>}</article>;
                   })}
                 </div>
               )}

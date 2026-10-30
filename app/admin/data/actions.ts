@@ -39,3 +39,48 @@ export async function toggleMasterDataAction(formData: FormData) {
   revalidatePath("/admin/data");
   redirect("/admin/data?message=Master%20data%20status%20updated.");
 }
+
+
+export async function reviewMasterSuggestionAction(formData: FormData) {
+  const identity = await requireAdminPermission("master_data.manage", "/admin/data");
+  const id=String(formData.get("suggestion_id") ?? "");
+  const decision=String(formData.get("decision") ?? "");
+  if(!id || !["approved","rejected"].includes(decision)) {
+    redirect("/admin/data?error=Invalid%20master%20data%20decision.");
+  }
+  const supabase=await createClient();
+  const {data:suggestion,error:loadError}=await supabase.from("master_data_suggestions")
+    .select("id,category,label,context_province,status")
+    .eq("id",id).eq("status","pending").maybeSingle();
+  if(loadError||!suggestion)redirect("/admin/data?error=Pending%20suggestion%20not%20found.");
+  if(decision==="approved") {
+    const {data:current,error:readError}=await supabase.from("master_data_items")
+      .select("id,label,metadata").eq("category",suggestion.category);
+    if(readError)redirect("/admin/data?error="+encodeURIComponent(readError.message));
+    const exists=(current ?? []).some(item=>
+      item.label.trim().toLowerCase()===suggestion.label.trim().toLowerCase()
+      && (!suggestion.context_province ||
+        !(item.metadata as Record<string,unknown>|null)?.province ||
+        String((item.metadata as Record<string,unknown>).province).toLowerCase()===suggestion.context_province.toLowerCase()));
+    if(!exists) {
+      const {error:addError}=await supabase.from("master_data_items").insert({
+        category:suggestion.category,label:suggestion.label,code:null,
+        slug:slugify(suggestion.label),
+        metadata:suggestion.context_province?{province:suggestion.context_province}:{},
+        created_by:identity.userId,updated_by:identity.userId,is_active:true,
+      });
+      if(addError)redirect("/admin/data?error="+encodeURIComponent(addError.message));
+    }
+  }
+  const {data:updated,error:updateError}=await supabase.from("master_data_suggestions")
+    .update({status:decision,reviewed_by:identity.userId,reviewed_at:new Date().toISOString()})
+    .eq("id",id).eq("status","pending").select("id").maybeSingle();
+  if(updateError||!updated) redirect("/admin/data?error=Suggestion%20review%20could%20not%20be%20saved.");
+  await supabase.from("audit_logs").insert({
+    actor_id:identity.userId,action:"master_data.suggestion."+decision,
+    entity_type:"master_data_suggestion",entity_id:id,
+    metadata:{category:suggestion.category,label:suggestion.label,province:suggestion.context_province},
+  });
+  revalidatePath("/admin/data");revalidatePath("/admin");
+  redirect("/admin/data?message="+encodeURIComponent("Suggestion "+decision+"."));
+}

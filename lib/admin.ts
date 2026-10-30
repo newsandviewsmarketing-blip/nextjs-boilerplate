@@ -68,19 +68,37 @@ export function hasAdminPermission(identity: CurrentIdentity, permission: AdminP
   return hasAdminPermissionForRoles(identity.roles, permission);
 }
 
+// A database lookup failure must never silently reinstate a revoked permission.
 export async function getEffectiveAdminPermission(identity: CurrentIdentity, permission: AdminPermission) {
-  const roleAllowed = hasAdminPermission(identity, permission);
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("admin_user_permissions")
-    .select("granted_permissions, revoked_permissions")
-    .eq("user_id", identity.userId)
-    .maybeSingle();
-  const granted = (data?.granted_permissions ?? []) as string[];
-  const revoked = (data?.revoked_permissions ?? []) as string[];
-  if (revoked.includes(permission)) return false;
-  if (granted.includes(permission)) return true;
-  return roleAllowed;
+  try {
+    const allowed = await getEffectiveAdminPermissions(identity);
+    return allowed.has(permission);
+  } catch {
+    return false;
+  }
+}
+
+// Snapshot role grants plus per-user overrides once for each admin page.
+// Default-deny when overrides cannot be loaded, rather than guessing from roles.
+export async function getEffectiveAdminPermissions(identity: CurrentIdentity): Promise<Set<AdminPermission>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("admin_user_permissions")
+      .select("granted_permissions, revoked_permissions")
+      .eq("user_id", identity.userId)
+      .maybeSingle();
+    if (error) return new Set<AdminPermission>();
+    const grants = new Set<string>(Array.isArray(data?.granted_permissions) ? data.granted_permissions : []);
+    const revocations = new Set<string>(Array.isArray(data?.revoked_permissions) ? data.revoked_permissions : []);
+    const allPermissions: AdminPermission[] = ["admin.view", ...permissionOptions.map((entry) => entry.value)];
+    return new Set(allPermissions.filter((permission) =>
+      !revocations.has(permission) &&
+      (grants.has(permission) || hasAdminPermissionForRoles(identity.roles, permission))
+    ));
+  } catch {
+    return new Set<AdminPermission>();
+  }
 }
 
 export async function requireAdminPermission(permission: AdminPermission, returnTo: string) {
