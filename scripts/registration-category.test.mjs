@@ -120,3 +120,12 @@ test("Allied professional registration accepts the category qualification select
    }
    assert.ok(read("app/register/page.tsx").includes("Registration and verification fee: PKR 0"));
  });
+
+test("First registration migration declares the role variable and review status before policies need them", () => {
+ const sql=read("supabase/migrations/20261027120000_private_registration_evidence.sql");
+ assert.doesNotMatch(sql,/\bcurrent_role\b/);
+ assert.match(sql,/account_role_value text/);
+ assert.match(sql,/review_status text not null default 'pending'/);
+ assert.match(sql,/grant select, insert, delete on public.registration_evidence to authenticated/);
+ assert.match(read("app/register/complete/actions.ts"),/saveRegistrationProfileDraftAction/);
+});

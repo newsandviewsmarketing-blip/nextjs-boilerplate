@@ -1,3 +1,4 @@
+import { saveRegistrationProfileDraftAction } from "./actions";
 import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -9,7 +10,7 @@ import { registrationEvidenceRequirements } from "@/lib/registration-evidence";
 export default async function CompleteRegistrationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -39,6 +40,16 @@ export default async function CompleteRegistrationPage({
               <p>Upload your CNIC and the documents required for your selected category. Files are saved privately as you upload them. Nothing becomes public until an administrator approves your application.</p>
             </div>
             <FormMessage error={params.error || (profileError || existing.error || gateError ? "Private registration storage is not ready. Please contact VetConnect support." : undefined)} />
+            {["veterinarian", "candidate", "professional"].includes(role) && <form action={saveRegistrationProfileDraftAction} className="backend-form-card">
+              <h2>Saved professional experience</h2>
+              <p>Review or update these details before submitting. Use Save draft to keep changes with your verified account.</p>
+              {params.message && <p role="status">{params.message}</p>}
+              <div className="form-grid">
+                {[ ["experience_years", "Years of experience"], ["current_designation", "Current designation / role"], ["current_workplace", "Current workplace / institution"] ].map(([name,label]) => <div key={name}><label htmlFor={name}>{label}</label><input id={name} name={name} type={name === "experience_years" ? "number" : "text"} min={name === "experience_years" ? 0 : undefined} max={name === "experience_years" ? 80 : undefined} maxLength={180} defaultValue={String(auth.user?.user_metadata?.[name] ?? "")} /></div>)}
+                <div><label htmlFor="professional_summary">Professional summary</label><textarea id="professional_summary" name="professional_summary" maxLength={250} defaultValue={String(auth.user.user_metadata?.professional_summary ?? "")} /></div>
+              </div>
+              <button type="submit" className="button button-primary">Save professional draft</button>
+            </form>}
             <RegistrationEvidenceForm requirements={requirements} cnic={gate?.cnic_number ?? ""} saved={existing.data ?? []} />
             <p className="form-help">Your CNIC and credential files are held for VetConnect identity and category verification. Do not submit another person’s documents.</p>
             <LinkBack />

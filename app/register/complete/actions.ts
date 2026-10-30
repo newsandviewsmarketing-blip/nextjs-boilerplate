@@ -80,3 +80,23 @@ export async function completeRegistrationAction() {
   await notifyRegistrationSubmitted({ email: user.email ?? "", name: String(user.user_metadata?.full_name ?? user.user_metadata?.organization_name ?? user.email ?? "New registrant"), category: String(profile?.primary_role ?? "member"), userId: user.id });
   redirect("/register/status");
 }
+
+export async function saveRegistrationProfileDraftAction(formData: FormData) {
+  const { supabase, user, role } = await currentRegistration();
+  if (!["veterinarian", "candidate", "professional"].includes(role)) throw new Error("This category does not use a professional experience draft.");
+  const draft: Record<string, string> = {};
+  for (const key of ["current_designation", "current_workplace", "professional_summary", "experience_years"]) {
+    const value = String(formData.get(key) ?? "").trim();
+    const limit = key === "professional_summary" ? 250 : 180;
+    if (value.length > limit || /[<>\u0000-\u001f]/.test(value)) throw new Error("Please check your professional details.");
+    draft[key] = value;
+  }
+  if (draft.experience_years && (!/^\d{1,2}$/.test(draft.experience_years) || Number(draft.experience_years) > 80)) throw new Error("Experience must be a whole number from 0 to 80.");
+  const metadata = { ...user.user_metadata, ...draft };
+  const issue = await persistRegisteredCategoryDetails(supabase, user.id, metadata);
+  if (issue) throw new Error(issue);
+  const { error } = await supabase.auth.updateUser({ data: draft });
+  if (error) throw new Error("Your private profile was saved but account synchronization failed. Please retry before submitting.");
+  revalidatePath("/register/complete");
+  redirect("/register/complete?message=Professional%20draft%20saved.");
+}

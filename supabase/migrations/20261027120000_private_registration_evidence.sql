@@ -75,7 +75,8 @@ create table if not exists public.registration_completion_gate (
   registration_intent text not null default '' check (registration_intent in ('','clinic')),
   student_track text not null default '' check (student_track in ('','dvm_student','postgraduate_student','phd_student','job_seeker')),
   created_at timestamptz not null default now(),
-  completed_at timestamptz
+  completed_at timestamptz,
+  review_status text not null default 'pending' check (review_status in ('pending','approved','rejected'))
 );
 
 alter table public.registration_completion_gate enable row level security;
@@ -132,6 +133,11 @@ from auth.users
 where raw_user_meta_data ->> 'registration_details_pending' = 'true'
 on conflict (user_id) do nothing;
 
+grant select, insert, delete on public.registration_evidence to authenticated;
+grant select on public.registration_completion_gate to authenticated;
+revoke all on function public.validate_registration_evidence_object() from public;
+revoke all on function public.mark_registration_completion_pending() from public;
+
 create or replace function public.complete_registration_submission()
 returns void
 language plpgsql
@@ -148,7 +154,7 @@ begin
     raise exception 'Authentication required';
   end if;
 
-  select primary_role into current_role
+  select primary_role into account_role_value
   from public.profiles
   where id = current_user_id;
 
@@ -172,12 +178,12 @@ begin
     raise exception 'CNIC front and back are required';
   end if;
 
-  if current_role = 'veterinarian' then
+  if account_role_value = 'veterinarian' then
     if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='degree_certificate')
       or not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='pvmc_registration') then
       raise exception 'Veterinary degree and PVMC evidence are required';
     end if;
-  elsif current_role = 'candidate' then
+  elsif account_role_value = 'candidate' then
     if gate_student_track = 'job_seeker' then
       if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='qualification_certificate') then
         raise exception 'Qualification evidence is required';
@@ -187,11 +193,11 @@ begin
         raise exception 'Student enrollment evidence is required';
       end if;
     end if;
-  elsif current_role = 'professional' then
+  elsif account_role_value = 'professional' then
     if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='qualification_certificate') then
       raise exception 'Professional qualification evidence is required';
     end if;
-  elsif current_role = 'company' then
+  elsif account_role_value = 'company' then
     if gate_intent = 'clinic' then
       if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='clinic_registration')
         or not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='pvmc_registration') then
@@ -200,7 +206,7 @@ begin
     elsif not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='business_registration') then
       raise exception 'Company registration evidence is required';
     end if;
-  elsif current_role = 'laboratory' then
+  elsif account_role_value = 'laboratory' then
     if not exists (select 1 from public.registration_evidence where user_id=current_user_id and document_type='laboratory_registration') then
       raise exception 'Laboratory registration evidence is required';
     end if;
