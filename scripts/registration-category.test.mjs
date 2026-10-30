@@ -24,7 +24,7 @@ test("Category-sensitive required fields validated before both OTP and signup",(
  assert.equal((auth.match(/registrationExtraFields\(formData,role/g)||[]).length,2);
  assert.match(gate,/Registered veterinarians must provide/);
  assert.match(gate,/Select at least one valid practice area/);
- assert.ok(gate.includes("Job seekers must provide their highest qualification and awarding institution."));
+ assert.ok(gate.includes("Job seekers must provide their awarding institution."));
  assert.match(auth,/persistRegisteredCategoryDetails/);
  assert.match(confirm,/persistRegisteredCategoryDetails/);
  assert.match(persist,/professional_credentials/);
@@ -52,7 +52,7 @@ test("Member profile keeps multiple practice areas and requires licence number",
 test("Veterinarian degree and institution survive OTP metadata persistence",()=>{
  const gate=read("lib/registration-categories.ts");
  const persist=read("lib/registration-persistence.ts");
- assert.ok(gate.includes("data.qualifications=qual"));
+ assert.ok(gate.includes("data[key]=selected;"));
  assert.ok(gate.includes('data.institution=field(form,"institution")'));
  assert.ok(persist.includes("credentialLabel=institution?qualification"));
 });
@@ -96,4 +96,15 @@ test("Pending registration details stay private and reviewed company accounts ge
  assert.ok(workflow.includes("insert into public.company_members"));
  assert.ok(workflow.includes("insert into public.companies"));
  assert.ok(admin.includes("registration_profile_details"));
+});
+
+// Regression: QualificationField submits highest_qualification_choice, not a legacy highest_qualification input.
+test("Allied professional registration accepts the category qualification selector",()=>{
+ const fields=read("app/register/RegistrationDetails.tsx");
+ const gate=read("lib/registration-categories.ts");
+ assert.match(fields,/name=\{name \+ "_choice"\}/);
+ assert.match(fields,/name="highest_qualification"/);
+ assert.match(gate,/qualification\("highest_qualification",ACADEMIC_QUALIFICATIONS\)/);
+ assert.doesNotMatch(gate,/!field\(form,"highest_qualification"\)/);
+ assert.match(gate,/!field\(form,"institution"\)\|\|!field\(form,"specialization_other"\)/);
 });
