@@ -325,12 +325,18 @@ export default async function CompanyDashboardPage({
             </div>
           )}
 
-          <div className="admin-summary company-summary">
+          <nav className="vc-customer-shortcuts" aria-label="Company workspace sections">
+  {canManageCompany && <a href="#company-details">Company profile</a>}
+  {canManageProducts && <a href="#company-products">Products & inquiries</a>}
+  {canManageJobs && <a href="#company-jobs">Job postings</a>}
+  {canManageApplicants && <a href="#company-applications">Applications</a>}
+  {canManageMembers && <a href="#company-team">Team access</a>}
+</nav>
+<div className="admin-summary company-summary vc-company-metrics">
             {canManageProducts && (
               <>
                 <article>
-                  <b>{productRows.length}</b>
-                  <span>Total products</span>
+                  <a className="vc-metric-link" href="#company-products"><b>{productRows.length}</b><span>Total products</span></a>
                 </article>
                 <article>
                   <b>
@@ -343,27 +349,24 @@ export default async function CompanyDashboardPage({
                   <span>Approved products</span>
                 </article>
                 <article>
-                  <b>{inquiryRows.length}</b>
-                  <span>Information requests</span>
+                  <a className="vc-metric-link" href="#company-products"><b>{inquiryRows.length}</b><span>Information requests</span></a>
                 </article>
               </>
             )}
             {canManageJobs && (
               <article>
-                <b>{jobRows.length}</b>
-                <span>Job posts</span>
+                <a className="vc-metric-link" href="#company-jobs"><b>{jobRows.length}</b><span>Job posts</span></a>
               </article>
             )}
             {canManageApplicants && (
               <article>
-                <b>{applicationRows.length}</b>
-                <span>Recent applications</span>
+                <a className="vc-metric-link" href="#company-applications"><b>{applicationRows.length}</b><span>Recent applications</span></a>
               </article>
             )}
           </div>
 
           {canManageCompany && (
-            <form className="backend-form-card" action={updateCompanyProfileAction}>
+            <form id="company-details" className="backend-form-card vc-review-target" action={updateCompanyProfileAction}>
               <div className="section-heading">
                 <span className="section-kicker">COMPANY PROFILE</span>
                 <h2>Edit company information.</h2>
@@ -510,7 +513,7 @@ export default async function CompanyDashboardPage({
 
               <div className="backend-form-card product-management">
                 <div className="section-heading">
-                  <span className="section-kicker">MY PRODUCTS</span>
+                  <span id="company-products" className="section-kicker vc-review-target">MY PRODUCTS</span>
                   <h2>Approval status.</h2>
                 </div>
                 {productRows.length === 0 ? (
@@ -572,7 +575,7 @@ export default async function CompanyDashboardPage({
               </form>
 
               <div className="backend-form-card product-management">
-                <div className="section-heading"><span className="section-kicker">MY JOBS</span><h2>Recruitment status.</h2></div>
+                <div className="section-heading"><span id="company-jobs" className="section-kicker vc-review-target">MY JOBS</span><h2>Recruitment status.</h2></div>
                 {jobRows.length === 0 ? (
                   <div className="empty-state"><p>No jobs submitted yet.</p></div>
                 ) : (
@@ -642,7 +645,7 @@ export default async function CompanyDashboardPage({
           {canManageApplicants && (
             <div className="backend-form-card product-management">
               <div className="section-heading">
-                <span className="section-kicker">APPLICANTS</span>
+                <span id="company-applications" className="section-kicker vc-review-target">APPLICANTS</span>
                 <h2>Recent applications.</h2>
                 <p>
                   Applicant visibility is enforced by the canonical
@@ -684,7 +687,7 @@ export default async function CompanyDashboardPage({
           {canManageMembers && (
             <div className="backend-form-card">
               <div className="section-heading">
-                <span className="section-kicker">TEAM ACCESS</span>
+                <span id="company-team" className="section-kicker vc-review-target">TEAM ACCESS</span>
                 <h2>Company member management is enabled.</h2>
                 <p>
                   The database already protects member invitations and permission

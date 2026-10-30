@@ -8,8 +8,9 @@ import { formField, isUuid } from "@/lib/product-input";
 
 const staffRoles = staffRoleOptions.map((item) => item.value);
 
-function result(kind: "error" | "message", text: string) {
-  return `/admin/users?${kind}=${encodeURIComponent(text)}`;
+function result(kind: "error" | "message", text: string, userId?: string, returnTo?: string) {
+  const base = userId && returnTo === `/admin/users/${userId}` ? returnTo : "/admin/users";
+  return `${base}?${kind}=${encodeURIComponent(text)}`;
 }
 
 export async function updateStaffRolesAction(formData: FormData) {
@@ -75,7 +76,8 @@ export async function updateStaffRolesAction(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/admin/users");
-  redirect(result("message", `Staff roles updated for ${profile.full_name || profile.email}.`));
+  revalidatePath(`/admin/users/${userId}`);
+  redirect(result("message", `Staff roles updated for ${profile.full_name || profile.email}.`, userId, formField(formData, "return_to")));
 }
 
 export async function updateUserStatusAction(formData: FormData) {
@@ -84,6 +86,9 @@ export async function updateUserStatusAction(formData: FormData) {
   const status = formField(formData, "account_status");
   if (!isUuid(userId) || !["active", "suspended"].includes(status)) {
     redirect(result("error", "Invalid account status request."));
+  }
+  if (status === "suspended" && formField(formData, "confirmation") !== "SUSPEND") {
+    redirect(result("error", "Type SUSPEND to confirm this account restriction.", userId, formField(formData, "return_to")));
   }
   if (userId === identity.userId && status === "suspended") {
     redirect(result("error", "You cannot suspend your own administrator account."));
@@ -106,7 +111,8 @@ export async function updateUserStatusAction(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/admin/users");
-  redirect(result("message", `${profile.full_name || profile.email} is now ${status}.`));
+  revalidatePath(`/admin/users/${userId}`);
+  redirect(result("message", `Account status changed to ${status}.`, userId, formField(formData, "return_to")));
 }
 
 export async function updateUserPermissionsAction(formData: FormData) {
@@ -129,5 +135,6 @@ export async function updateUserPermissionsAction(formData: FormData) {
   if (error) redirect(result("error", error.message));
   await supabase.from("audit_logs").insert({ actor_id: identity.userId, action: "user.admin_permissions_updated", entity_type: "user", entity_id: userId, metadata: { granted_permissions: granted, revoked_permissions: revoked } });
   revalidatePath("/admin/users");
-  redirect(result("message", "Individual administrator permissions updated."));
+  revalidatePath(`/admin/users/${userId}`);
+  redirect(result("message", "Individual administrator permissions updated.", userId, formField(formData, "return_to")));
 }
