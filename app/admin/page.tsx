@@ -3,6 +3,7 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AdminNav from "./components/AdminNav";
 import { isSuspiciousProfileName } from "@/lib/profile-name";
+import {credentialDataFlags} from "@/lib/veterinary-verification";
 import { requireAdminPermission, getEffectiveAdminPermissions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -54,6 +55,10 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
     requireCount("pvmcPending","veterinarian_profiles","user_id",[["pvmc_verification_status","pending"],["verification_status","approved"]]);
     requireCount("managedPvmcPending","managed_people","id",[["pvmc_verification_status","pending"],["verification_status","approved"],["profile_kind","veterinarian"]]);
   }
+  const vetCredentialAudit=credentialAllowed?await supabase.from("veterinarian_profiles")
+    .select("qualifications,pvmc_number,pvmc_verification_status")
+    .eq("pvmc_verification_status","approved").limit(1000):null;
+  const recheckCount=vetCredentialAudit?.error?null:vetCredentialAudit?.data?.filter(row=>credentialDataFlags(row).length>0).length??null;
   if(usersAllowed){
     requireCount("accounts","profiles","id");
     requireCount("customers","profiles","id",[["primary_role","user"]]);
@@ -100,7 +105,8 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   add(jobsAllowed,"Jobs & HR",value("jobs"),"/admin/jobs","Vacancy records");
   add(jobsAllowed,"Job applications",value("applications"),"/admin/applications","Applications recorded");
   add(profilesAllowed,"Pending profiles",total("vetsPending","professionalsPending","companyPending","labsPending","managedPending","clinicsPending","companiesPending"),"/admin/reviews#pending-profiles","Approval queue",true);
-  add(credentialAllowed,"PVMC checks",total("pvmcPending","managedPvmcPending"),"/admin/reviews#credential-checks","Independent verification",true);
+  add(credentialAllowed,"PVMC checks",total("pvmcPending","managedPvmcPending"),"/admin/reviews#credential-checks","Unverified submissions",true);
+  add(credentialAllowed,"PVMC data rechecks",recheckCount,"/admin/credential-recheck","Approved status with missing evidence",true);
   add(productsAllowed,"Pending products",value("productsPending"),"/admin/reviews#pending-products","Publication review",true);
   add(jobsAllowed,"Pending jobs",value("jobsPending"),"/admin/reviews#jobs-review","Employer submissions",true);
   add(usersAllowed,"Pending clinic affiliations",value("clinicAffiliations"),"/admin/clinic-affiliations","Membership requests",true);

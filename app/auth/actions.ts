@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
 import { profileNameProblem } from "@/lib/profile-name";
+import {registrationExtraFields} from "@/lib/registration-categories";
+import { persistRegisteredCategoryDetails } from "@/lib/registration-persistence";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -131,7 +133,6 @@ export async function loginAction(formData: FormData) {
   );
 
   revalidatePath("/", "layout");
-
   redirect(next);
 }
 
@@ -292,6 +293,9 @@ export async function requestRegistrationOtpAction(
     );
   }
 
+  const extras=registrationExtraFields(formData,role,isClinicRegistration?"clinic":"");
+  if(extras.error)redirect(withMessage(registrationPath,"error",extras.error));
+
   const supabase = await createClient();
 
   const { error } =
@@ -305,6 +309,8 @@ export async function requestRegistrationOtpAction(
           city,
           phone,
           pvmc_number: pvmcNumber,
+          ...extras.data,
+          registration_details_pending: true,
           organization_name:
             organizationName,
           registration_intent:
@@ -481,6 +487,15 @@ export async function verifyEmailOtpAction(
     "/login",
   );
 
+  if(mode==="register"){
+    const {data:current}=await supabase.auth.getUser();
+    if(current.user?.user_metadata?.registration_details_pending===true){
+      const issue=await persistRegisteredCategoryDetails(supabase,current.user.id,current.user.user_metadata);
+      if(issue) redirect(`/register/complete?error=${encodeURIComponent(issue)}`);
+      redirect("/register/complete");
+    }
+  }
+
   revalidatePath("/", "layout");
 
   redirect(next);
@@ -616,6 +631,9 @@ export async function registerAction(
     );
   }
 
+  const extras=registrationExtraFields(formData,role,isClinicRegistration?"clinic":"");
+  if(extras.error)redirect(withMessage(registrationPath,"error",extras.error));
+
   const headerStore =
     await headers();
 
@@ -640,6 +658,8 @@ export async function registerAction(
           city,
           phone,
           pvmc_number: pvmcNumber,
+          ...extras.data,
+          registration_details_pending: true,
           organization_name:
             organizationName,
           registration_intent:
@@ -664,7 +684,7 @@ export async function registerAction(
     redirect(
       withMessage(
         `/login?next=${encodeURIComponent(
-          registrationNext,
+          "/register/complete",
         )}`,
         "message",
         "Account created. Check your email to confirm your address, then sign in.",
@@ -677,9 +697,15 @@ export async function registerAction(
     "/login",
   );
 
+  const {data:registered}=await supabase.auth.getUser();
+  if(registered.user?.user_metadata?.registration_details_pending===true){
+    const issue=await persistRegisteredCategoryDetails(supabase,registered.user.id,registered.user.user_metadata);
+    if(issue) redirect(`/register/complete?error=${encodeURIComponent(issue)}`);
+  }
+
   revalidatePath("/", "layout");
 
-  redirect(registrationNext);
+  redirect("/register/complete");
 }
 
 
