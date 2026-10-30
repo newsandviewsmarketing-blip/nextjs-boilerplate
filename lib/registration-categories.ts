@@ -96,7 +96,7 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
       return {error:"Select at least one valid professional category.",data:{}};
     if(!sectors.length||sectors.length>12||sectors.some(x=>!(PRACTICE_AREAS as readonly string[]).includes(x)))
       return {error:"Select at least one valid industry sector.",data:{}};
-    if(!field(form,"highest_qualification")||!field(form,"institution")||!field(form,"specialization_other"))
+    if(!field(form,"institution")||!field(form,"specialization_other"))
       return {error:"Enter your qualification, awarding institution and area of expertise.",data:{}};
     data.professional_types=categories;
     data.professional_type=categories[0];
