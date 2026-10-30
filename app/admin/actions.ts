@@ -28,6 +28,17 @@ export async function reviewProfileAction(formData: FormData) {
   }
 
   const supabase = await createClient();
+  if (recordSource === "account" && profileType && userId) {
+    const { data: registrationGate, error: registrationGateError } = await supabase
+      .from("registration_completion_gate")
+      .select("review_status,completed_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (registrationGateError) redirect("/admin/reviews?error=Registration%20gate%20could%20not%20be%20verified.");
+    if (registrationGate && registrationGate.review_status !== "approved") {
+      redirect("/admin/reviews?error=Use%20the%20registration%20evidence%20queue%20before%20approving%20this%20account.");
+    }
+  }
   const reviewedAt = decision === "approved" ? new Date().toISOString() : null;
   let error: { message: string } | null = null;
 
@@ -391,4 +402,51 @@ export async function reviewProductRegulatoryAction(formData: FormData) {
   revalidatePath("/admin/reviews");
   revalidatePath("/marketplace");
   redirect(`/admin/reviews?message=${encodeURIComponent(`Regulatory review marked ${decision.replaceAll("_", " ")}.`)}`);
+}
+
+
+export async function reviewRegistrationSubmissionAction(formData: FormData) {
+  const identity = await getCurrentIdentity();
+  if (!identity) redirect("/login?next=/admin/reviews");
+  if (!(await getEffectiveAdminPermission(identity, "profiles.review"))) redirect("/dashboard?error=Admin%20access%20is%20required.");
+  const userId=String(formData.get("user_id")??"");
+  const decision=String(formData.get("decision")??"");
+  const reason=String(formData.get("reason")??"").trim();
+  if(!userId||!["approved","rejected"].includes(decision)) redirect("/admin/reviews?error=Invalid%20registration%20review.");
+  if(decision==="rejected"&&!reason) redirect("/admin/reviews?error=A%20review%20note%20is%20required.");
+  const supabase=await createClient();
+  const [{data:profile},{data:gate},{data:docs}] = await Promise.all([
+    supabase.from("profiles").select("primary_role,full_name,email").eq("id",userId).maybeSingle(),
+    supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status,cnic_number").eq("user_id",userId).maybeSingle(),
+    supabase.from("registration_evidence").select("document_type,storage_path,content_type,verification_status").eq("user_id",userId).eq("verification_status","pending").order("created_at",{ascending:false}),
+  ]);
+  if(!profile||!gate||gate.review_status!=="pending") redirect("/admin/reviews?error=This%20registration%20is%20not%20waiting%20for%20review.");
+  let publicImageUrl: string|null=null;
+  let publicPath: string|null=null;
+  if(decision==="approved") {
+    const imageType=["company","laboratory"].includes(profile.primary_role)?"company_logo":"profile_photo";
+    const image=docs?.find(row=>row.document_type===imageType);
+    if(!image) redirect("/admin/reviews?error=Required%20photo%20or%20logo%20is%20missing.");
+    const {data:blob,error:downloadError}=await supabase.storage.from("registration-evidence").download(image.storage_path);
+    if(downloadError||!blob) redirect("/admin/reviews?error=The%20submitted%20photo%20or%20logo%20could%20not%20be%20read.");
+    const extension=image.content_type==="image/png"?"png":image.content_type==="image/webp"?"webp":"jpg";
+    publicPath=identity.userId+"/registration-"+userId+"-"+crypto.randomUUID()+"."+extension;
+    const {error:uploadError}=await supabase.storage.from("profile-media").upload(publicPath,blob,{contentType:image.content_type,upsert:false});
+    if(uploadError) redirect("/admin/reviews?error="+encodeURIComponent("Approved image could not be published: "+uploadError.message));
+    publicImageUrl=supabase.storage.from("profile-media").getPublicUrl(publicPath).data.publicUrl;
+  }
+  const {error}=await supabase.rpc("review_registration_submission",{
+    p_user_id:userId,p_decision:decision,p_reason:reason||null,p_reviewer_id:identity.userId,p_public_image_url:publicImageUrl,
+  });
+  if(error){
+    if(publicPath) await supabase.storage.from("profile-media").remove([publicPath]);
+    redirect("/admin/reviews?error="+encodeURIComponent(error.message));
+  }
+  await supabase.from("audit_logs").insert({actor_id:identity.userId,action:"registration."+decision,entity_type:"registration",entity_id:userId,metadata:{note:reason||null,category:profile.primary_role}});
+  const email=String(profile.email??"");
+  const {notifyRegistrationDecision}=await import("@/lib/registration-notifications");
+  await notifyRegistrationDecision({email,name:String(profile.full_name??email),category:profile.primary_role,userId,decision:decision as "approved"|"rejected",reason});
+  revalidatePath("/admin/reviews"); revalidatePath("/dashboard"); revalidatePath("/register/status");
+  revalidatePath("/vets"); revalidatePath("/professionals"); revalidatePath("/companies"); revalidatePath("/labs");
+  redirect("/admin/reviews?message="+encodeURIComponent("Registration "+decision+"."));
 }

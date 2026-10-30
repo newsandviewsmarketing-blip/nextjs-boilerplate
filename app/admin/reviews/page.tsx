@@ -10,6 +10,7 @@ import {
   reviewVeterinarianCredentialAction,
   reviewJobAction,
   reviewProductRegulatoryAction,
+  reviewRegistrationSubmissionAction,
 } from "../actions";
 import { getCurrentIdentity } from "@/lib/auth";
 import { getEffectiveAdminPermissions } from "@/lib/admin";
@@ -73,6 +74,24 @@ export default async function AdminPage({
     redirect("/dashboard?error=Admin%20access%20is%20required.");
 
   const supabase = await createClient();
+  const canReviewProfiles = effectivePermissions.has("profiles.review");
+  const { data: registrationRows } = canReviewProfiles
+    ? await supabase.from("registration_completion_gate").select("user_id,registration_intent,student_track,cnic_number,submitted_at,review_status").eq("review_status","pending").order("submitted_at")
+    : { data: [] };
+  const registrationIds=(registrationRows??[]).map(row=>row.user_id);
+  const [{data:registrationProfiles},{data:registrationEvidence},{data:registrationDetailRows}] = registrationIds.length ? await Promise.all([
+    supabase.from("profiles").select("id,full_name,email,primary_role").in("id",registrationIds),
+    supabase.from("registration_evidence").select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at").in("user_id",registrationIds).eq("verification_status","pending").order("created_at",{ascending:false}),
+    supabase.from("registration_profile_details").select("user_id,category_details").in("user_id",registrationIds),
+  ]) : [{data:[]},{data:[]},{data:[]}];
+  const registrationEvidenceWithUrls=await Promise.all((registrationEvidence??[]).map(async doc=>{
+    const {data}=await supabase.storage.from("registration-evidence").createSignedUrl(doc.storage_path,900);
+    return {...doc,signed_url:data?.signedUrl??null};
+  }));
+  const registrationProfileMap=new Map((registrationProfiles??[]).map(p=>[p.id,p]));
+  const registrationDetailMap=new Map((registrationDetailRows??[]).map(row=>[row.user_id,row.category_details as Record<string,unknown>]));
+  const registrationDocsMap=new Map<string,typeof registrationEvidenceWithUrls>();
+  for(const doc of registrationEvidenceWithUrls){const list=registrationDocsMap.get(doc.user_id)??[];list.push(doc);registrationDocsMap.set(doc.user_id,list);}
   const [{ data: vets }, { data: credentialVets }, { data: companies }, { data: professionals }, { data: laboratories }, { data: products }, { data: jobs }] = await Promise.all([
     supabase
       .from("veterinarian_profiles")
@@ -144,7 +163,7 @@ export default async function AdminPage({
     ...((clinics ?? []) as Array<Record<string, unknown> & { id: string }>).map((row) => ({
       ...row, user_id: row.id, entity_id: row.id, profile_type: "clinic" as const, record_source: "clinics",
     })),
-  ];
+  ].filter(row => row.record_source !== "account" || !registrationIds.includes(row.user_id));
   const ids = [...new Set([
     ...pending.filter((row) => row.record_source === "account").map((row) => row.user_id),
     ...credentialRows.filter((row) => row.record_source === "account").map((row) => row.user_id),
@@ -253,6 +272,32 @@ export default async function AdminPage({
     <div className="admin-control-content">
       <FormMessage {...params} />
 
+      {effectivePermissions.has("profiles.review") && <section className="admin-review-section">
+        <div className="section-heading"><span className="section-kicker">REGISTRATION REVIEW</span><h2>New account applications</h2><p>Private identity and qualification files are visible only to authorized reviewers. Approval is required before the account profile becomes public.</p></div>
+        {(registrationRows??[]).length===0 ? <p className="form-help">No registrations are waiting for review.</p> : (registrationRows??[]).map(row=>{
+          const profile=registrationProfileMap.get(row.user_id);
+          const docs=registrationDocsMap.get(row.user_id)??[];
+          const submittedDetails=registrationDetailMap.get(row.user_id)??{};
+          const detailEntries=Object.entries(submittedDetails).filter(([,value])=>typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0);
+          return <article className="admin-review-card" key={row.user_id}>
+            <h3>{profile?.full_name??profile?.email??"Registrant"} — {profile?.primary_role??"member"}</h3>
+            <p>{profile?.email} · Submitted {row.submitted_at?new Date(row.submitted_at).toLocaleString():""}</p>
+            <p>CNIC: {row.cnic_number??"Not recorded"} · Track: {row.registration_intent||row.student_track||"standard"}</p>
+            {detailEntries.length>0&&<dl className="review-details">
+              {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
+            </dl>}
+            <ul>{docs.map((doc,i)=><li key={doc.document_type+"-"+i}>{doc.document_type}: {doc.signed_url?<a href={doc.signed_url} target="_blank" rel="noreferrer">{doc.original_filename}</a>:doc.original_filename}</li>)}</ul>
+            <form action={reviewRegistrationSubmissionAction}>
+              <input type="hidden" name="user_id" value={row.user_id}/>
+              <label>Reviewer note <textarea name="reason" maxLength={1000} placeholder="Required if returning this application for changes"/></label>
+              <div className="review-actions">
+                <FormSubmitButton className="button button-primary" pendingLabel="Approving…" name="decision" value="approved">Approve registration</FormSubmitButton>
+                <FormSubmitButton className="button button-secondary" pendingLabel="Returning…" name="decision" value="rejected">Return for changes</FormSubmitButton>
+              </div>
+            </form>
+          </article>;
+        })}
+      </section>}
       <div className="admin-summary">
 
             
