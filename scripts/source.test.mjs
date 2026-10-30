@@ -352,7 +352,18 @@ test("job coverage matching honors province-wide, selected districts, cities and
       throw new Error("Unexpected module import: " + name);
     },
   });
-  const {matchesJobLocation} = exported.exports;
+  const {matchesJobLocation, locationSearchOptions} = exported.exports;
+  // The public dropdown must expose every tehsil that the matching helper accepts.
+  // Check the actual reference hierarchy, not a hand-maintained subset.
+  const choices = locationSearchOptions();
+  const tehsils = geo.data.flatMap(province =>
+    province.district.flatMap(district => district.tehsil.map(tehsil => tehsil.name.en)));
+  for (const name of tehsils) {
+    assert.ok(choices.includes(name), `Public job location filter omits tehsil: ${name}`);
+  }
+  assert.ok(choices.includes("Kingri"));
+  assert.ok(choices.includes("Khanpur"));
+  assert.equal(new Set(choices).size, choices.length, "Location dropdown should not duplicate names");
   const base = {
     city: null, district: null, province: "Punjab",
     coverage: {scope:"province",province:"Punjab",display_text:"All Punjab"},
@@ -386,6 +397,32 @@ test("job coverage matching honors province-wide, selected districts, cities and
   assert.equal(matchesJobLocation(cityOnly, "Faisalabad"), false);
   assert.equal(matchesJobLocation({...cityOnly,coverage:{scope:"flexible",province:null,display_text:"TBA"}}, "Lahore"), false);
   assert.equal(matchesJobLocation({...base,coverage:{scope:"nationwide",province:null,display_text:"Pakistan"}}, "Karachi"), true);
+
+  // The reference hierarchy includes Khanpur in KP, Punjab and Sindh, and
+  // Kingri in Balochistan and Sindh. A first-match-only map loses valid jobs.
+  for (const province of ["Khyber Pakhtunkhwa", "Punjab", "Sindh"]) {
+    const provinceJob = {
+      ...base, province,
+      coverage: {scope:"province",province,display_text:`All ${province}`},
+    };
+    assert.equal(matchesJobLocation(provinceJob, "Khanpur"), true, province);
+  }
+  for (const province of ["Balochistan", "Sindh"]) {
+    const provinceJob = {
+      ...base, province,
+      coverage: {scope:"province",province,display_text:`All ${province}`},
+    };
+    assert.equal(matchesJobLocation(provinceJob, "Kingri"), true, province);
+  }
+  assert.equal(matchesJobLocation({
+    ...base,
+    coverage: {scope:"multiple",province:"Punjab",display_text:"Rahim Yar Khan"},
+    coverage_areas: [{district:"Rahim Yar Khan",city:null,label:"Rahim Yar Khan",province:"Punjab"}],
+  }, "Khanpur"), true);
+  assert.equal(matchesJobLocation({
+    ...base, province:"Balochistan",
+    coverage: {scope:"province",province:"Balochistan",display_text:"All Balochistan"},
+  }, "Khanpur"), false);
 });
 
 
@@ -416,6 +453,7 @@ test("staff and employer job forms share optional multi-location territory data"
   assert.match(companyAction, /requireWorkspace\("jobs\.manage"\)/);
   assert.match(company, /coverage_display/);
   assert.match(publicJobs, /matchesJobLocation/);
+  assert.match(publicJobs, /locationSearchOptions\(\)/);
   assert.match(locationLogic, /scope==="nationwide"/);
 });
 
