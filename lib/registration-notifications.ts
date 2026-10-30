@@ -2,9 +2,10 @@ type NotificationInput = { email: string; name: string; category: string; userId
 const base = () => (process.env.VETCONNECT_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://vetconnect.com.pk").replace(/\/$/, "");
 export async function notifyRegistrationSubmitted(input: NotificationInput) {
   const key = process.env.RESEND_API_KEY, to = process.env.VETCONNECT_ADMIN_EMAIL, from = process.env.VETCONNECT_NOTIFICATION_FROM;
-  if (!key || !to || !from) { console.warn("Registration notice not sent: email configuration is incomplete."); return; }
+  if (!key || !from) { console.warn("Registration notice not sent: email configuration is incomplete."); return; }
   const url = base() + "/admin/reviews";
-  await send(key, from, to, "New VetConnect registration awaiting review", `A new ${input.category} registration from ${input.name} (${input.email}) is waiting for review. Review securely: ${url}. No identity documents are attached.`);
+  if (to) await send(key, from, to, "New VetConnect registration awaiting review", `A new ${input.category} registration from ${input.name} (${input.email}) is waiting for review. Review securely: ${url}. No identity documents are attached.`);
+  if (input.email) await send(key, from, input.email, "Your VetConnect application is saved", `Hello ${input.name}, your ${input.category} application has been submitted for review. Registration and verification are free of cost (PKR 0). Sign in with this verified email to view your application: ${base()}/register/status. Your identity documents remain private and are not attached to this email.`);
 }
 export async function notifyRegistrationDecision(input: NotificationInput) {
   const key = process.env.RESEND_API_KEY, from = process.env.VETCONNECT_NOTIFICATION_FROM;

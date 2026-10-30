@@ -108,3 +108,24 @@ test("Allied professional registration accepts the category qualification select
  assert.doesNotMatch(gate,/!field\(form,"highest_qualification"\)/);
  assert.match(gate,/!field\(form,"institution"\)\|\|!field\(form,"specialization_other"\)/);
 });
+
+ test("Experience is validated and retained privately through registration", () => {
+   const fields=read("app/register/RegistrationDetails.tsx");
+   const gate=read("lib/registration-categories.ts");
+   const persistence=read("lib/registration-persistence.ts");
+   for (const name of ["experience_years","current_designation","current_workplace","professional_summary"]) {
+     assert.ok(fields.includes('name="'+name+'"'));
+     assert.ok(gate.includes(name));
+     assert.ok(persistence.includes('"'+name+'"'));
+   }
+   assert.ok(read("app/register/page.tsx").includes("Registration and verification fee: PKR 0"));
+ });
+
+test("First registration migration declares the role variable and review status before policies need them", () => {
+ const sql=read("supabase/migrations/20261027120000_private_registration_evidence.sql");
+ assert.doesNotMatch(sql,/\bcurrent_role\b/);
+ assert.match(sql,/account_role_value text/);
+ assert.match(sql,/review_status text not null default 'pending'/);
+ assert.match(sql,/grant select, insert, delete on public.registration_evidence to authenticated/);
+ assert.match(read("app/register/complete/actions.ts"),/saveRegistrationProfileDraftAction/);
+});

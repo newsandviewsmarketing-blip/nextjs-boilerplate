@@ -15,6 +15,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   if(statusError||!record)return "Registration account could not be loaded.";
   const role=record.primary_role;
   const allowedKeys=[
+    "experience_years","current_designation","current_workplace","professional_summary",
     "pvmc_number","qualifications","institution","practice_areas","specializations","specialization_other",
     "student_track","highest_qualification","study_program","student_college_registration_number",
     "pvmc_student_reference","academic_year","career_interest","professional_type","professional_types",

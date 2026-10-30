@@ -214,7 +214,7 @@ begin
       cnic_number = gate_row.cnic_number
   where e.id in (
     select latest.id from (
-      select distinct on (document_type) id, document_type, created_at
+      select distinct on (document_type) id, document_type, created_at, verification_status
       from public.registration_evidence
       where user_id = current_user_id
       order by document_type, created_at desc
@@ -334,7 +334,7 @@ begin
       reviewed_by = p_reviewer_id
   where e.id in (
     select latest.id from (
-      select distinct on (document_type) id, document_type, created_at
+      select distinct on (document_type) id, document_type, created_at, verification_status
       from public.registration_evidence
       where user_id = p_user_id
       order by document_type, created_at desc
@@ -345,7 +345,7 @@ begin
 
   if account_role_value = 'veterinarian' then
     update public.veterinarian_profiles set
-      verification_status = p_decision,
+      verification_status = p_decision::public.approval_status,
       rejection_reason = case when p_decision='rejected' then p_reason else null end,
       image_url = case when p_decision='approved' then p_public_image_url else image_url end,
       verified_at = case when p_decision='approved' then now() else null end,
@@ -353,7 +353,7 @@ begin
     where user_id = p_user_id;
   elsif account_role_value in ('professional','candidate') then
     update public.professional_profiles set
-      verification_status = p_decision,
+      verification_status = p_decision::public.approval_status,
       rejection_reason = case when p_decision='rejected' then p_reason else null end,
       profile_visibility = case when p_decision='approved' then 'public'::public.profile_visibility else 'owner_only'::public.profile_visibility end,
       image_url = case when p_decision='approved' then p_public_image_url else image_url end,
@@ -383,7 +383,7 @@ begin
         when gate_row.registration_intent='clinic' then coalesce(nullif(category_details->>'facility_type',''), description)
         else 'Registered VetConnect employer / company onboarding'
       end,
-      verification_status = p_decision,
+      verification_status = p_decision::public.approval_status,
       rejection_reason = case when p_decision='rejected' then p_reason else null end,
       logo_url = case when p_decision='approved' then p_public_image_url else logo_url end,
       verified_at = case when p_decision='approved' then now() else null end,
@@ -462,7 +462,7 @@ begin
 
     update public.companies c set
       logo_url = case when p_decision='approved' then p_public_image_url else c.logo_url end,
-      verification_status = p_decision,
+      verification_status = p_decision::public.approval_status,
       is_published = p_decision='approved',
       verified_at = case when p_decision='approved' then now() else null end,
       verified_by = case when p_decision='approved' then p_reviewer_id else null end
@@ -471,7 +471,7 @@ begin
 
     if gate_row.registration_intent = 'clinic' then
       update public.clinics set
-        verification_status = p_decision,
+        verification_status = p_decision::public.approval_status,
         rejection_reason = case when p_decision='rejected' then p_reason else null end,
         is_published = p_decision='approved',
         logo_url = case when p_decision='approved' then p_public_image_url else logo_url end,
@@ -484,7 +484,7 @@ begin
     end if;
   elsif account_role_value = 'laboratory' then
     update public.laboratories set
-      verification_status = p_decision,
+      verification_status = p_decision::public.approval_status,
       rejection_reason = case when p_decision='rejected' then p_reason else null end,
       is_published = p_decision='approved',
       logo_url = case when p_decision='approved' then p_public_image_url else logo_url end,

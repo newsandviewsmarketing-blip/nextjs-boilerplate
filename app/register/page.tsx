@@ -5,6 +5,7 @@ import FormMessage from "../components/FormMessage";
 import FormSubmitButton from "../components/FormSubmitButton";
 import { requestRegistrationOtpAction } from "../auth/actions";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
+import RegistrationPathwaySelect from "./RegistrationPathwaySelect";
 import RegistrationDetails, { PakistanCityField } from "./RegistrationDetails";
 
 const roles = [
@@ -132,6 +133,8 @@ export default async function RegisterPage({
               <p>Only fields relevant to your category are shown. Choose another card above to change your registration pathway. After email confirmation, upload your CNIC and the documents required for this category to complete registration.</p>
             </div>
             <FormMessage error={params.error} message={params.message}/>
+            <RegistrationPathwaySelect value={clinicIntent ? "clinic" : selectedRole}/>
+            <p className="form-help"><strong>Registration and verification fee: PKR 0. Free of cost.</strong> No payment is required. After email verification, sign in with the same email to resume your saved application.</p>
             <input type="hidden" name="role" value={selectedRole}/>
             {clinicIntent&&<input type="hidden" name="registration_intent" value="clinic"/>}
             <div className="form-grid">
@@ -139,7 +142,7 @@ export default async function RegisterPage({
               <div><label htmlFor="email">Email address *</label><input id="email" name="email" type="email" autoComplete="email" required maxLength={254}/></div>
               <div><label htmlFor="phone">Phone number</label><input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={35}/></div>
               <PakistanCityField id="city" name="city" label="City / town *" required/>
-              <RegistrationDetails role={selectedRole} clinic={clinicIntent}/>
+              <RegistrationDetails role={selectedRole} clinic={clinicIntent} key={clinicIntent ? "clinic" : selectedRole}/>
             </div>
             <p className="form-help">Email confirmation is the first step. Your registration remains incomplete until you upload your CNIC and category-specific identity, degree, licence, or business evidence. Files are collected in a private verification area and are not shown on public profiles.</p>
             <FormSubmitButton pendingLabel="Sending code...">Send registration code</FormSubmitButton>

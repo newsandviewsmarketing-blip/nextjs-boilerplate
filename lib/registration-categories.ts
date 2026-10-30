@@ -50,6 +50,13 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     data[key]=selected;
     return true;
   };
+  if (["veterinarian", "candidate", "professional"].includes(role)) {
+    for (const key of ["current_designation", "current_workplace", "professional_summary"])
+      if (!capture(key, key === "professional_summary" ? 250 : 180)) return {error:"Invalid professional experience information.",data:{}};
+    const years = field(form,"experience_years");
+    if (years && (!/^\d{1,2}$/.test(years) || Number(years) > 80)) return {error:"Experience must be a whole number from 0 to 80 years.",data:{}};
+    if (years) data.experience_years = years;
+  }
   const city=field(form,"city");
   if(!isPakistanLocation(city))return {error:"Choose your city or town from the Pakistan locations list.",data:{}};
   data.city=city;

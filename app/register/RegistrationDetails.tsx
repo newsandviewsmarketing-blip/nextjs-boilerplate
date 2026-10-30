@@ -102,9 +102,19 @@ function ClinicCityField() {
   </div>;
 }
 
+function ExperienceFields() {
+  return <>
+    <div><label htmlFor="experience-years">Years of professional experience</label><input id="experience-years" name="experience_years" type="number" min="0" max="80" step="1" /></div>
+    <div><label htmlFor="current-designation">Current designation / role</label><input id="current-designation" name="current_designation" maxLength={180} /></div>
+    <div><label htmlFor="workplace">Current workplace / institution</label><input id="workplace" name="current_workplace" maxLength={180} /></div>
+    <div className="form-span-2"><label htmlFor="professional-summary">Professional experience / profile summary</label><textarea id="professional-summary" name="professional_summary" maxLength={250} rows={3} /></div>
+  </>;
+}
+
 export default function RegistrationDetails({ role, clinic = false }: { role: string; clinic?: boolean }) {
   const [track, setTrack] = useState("");
   if (role === "veterinarian") return <>
+    <ExperienceFields />
     <QualificationField id="vet-degree" name="qualifications" label="Veterinary qualification *" options={VETERINARY_QUALIFICATIONS} />
     <div><label htmlFor="vet-institution">Awarding university / institution *</label><input id="vet-institution" name="institution" maxLength={180} required /></div>
     <div><label htmlFor="vet-pvmc">PVMC registration number *</label><input id="vet-pvmc" name="pvmc_number" maxLength={70} autoComplete="off" required /><small>Your profile remains private until the submitted number and documents are reviewed.</small></div>
@@ -114,6 +124,7 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <p className="form-help form-span-2">Practice rights are not granted until the administrator verifies your qualification and PVMC status.</p>
   </>;
   if (role === "candidate") return <>
+    <ExperienceFields />
     <div><label htmlFor="student-track">Career status *</label><select name="student_track" id="student-track" required value={track} onChange={event => setTrack(event.target.value)}><option value="" disabled>Select status</option><option value="dvm_student">DVM student</option><option value="postgraduate_student">Postgraduate student (MPhil / MSc)</option><option value="phd_student">PhD student</option><option value="job_seeker">Graduate / job seeker</option></select></div>
     {track === "job_seeker" ? <>
       <QualificationField id="job-qualification" name="highest_qualification" label="Highest qualification *" options={ACADEMIC_QUALIFICATIONS} />
@@ -129,6 +140,7 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <p className="form-help form-span-2">Students submit current institutional evidence. Graduates and job seekers submit their highest qualification. Neither pathway authorizes veterinary practice.</p>
   </>;
   if (role === "professional") return <>
+    <ExperienceFields />
     <details className="form-span-2 service-selector-fieldset">
       <summary>Professional categories * <span>(choose all that apply)</span></summary>
       <div className="service-checkbox-grid">{PROFESSIONAL_CATEGORIES.map((x, i) => <label className="checkbox-line" key={x}><input type="checkbox" name="professional_types" value={x} id={"allied-role-" + i} />{x}</label>)}</div>
