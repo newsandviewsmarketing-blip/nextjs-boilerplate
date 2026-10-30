@@ -153,7 +153,7 @@ async function loadClinic(
   const { data } = await supabase
     .from("public_clinics")
     .select(
-      "id, slug, clinic_name, facility_type, description, city, province, district, tehsil, logo_url, cover_image_url, address, public_phone, public_email, website, working_hours, emergency_service, services, species, profile_verified",
+      "id, slug, clinic_name, facility_type, description, city, province, district, tehsil, logo_url, cover_image_url, address, public_phone, public_email, website, working_hours, emergency_service, services, species, profile_verified, other_cities",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -403,6 +403,7 @@ export default async function ClinicDetailPage({
                     .join(", ") ||
                   "Pakistan"}
               </b>
+              {clinic.other_cities?.length ? <small>Additional service cities: {clinic.other_cities.join(", ")}</small> : null}
             </article>
 
             <article>

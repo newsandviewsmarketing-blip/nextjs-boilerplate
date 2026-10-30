@@ -2,6 +2,7 @@ import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
+import {PRACTICE_AREAS,SPECIALIZATIONS} from "@/lib/registration-categories";
 import MasterDataInput from "../../components/MasterDataInput";
 import JobMasterChoice from "../../components/JobMasterChoice";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
@@ -16,7 +17,7 @@ import { bulkImportAction } from "./bulk-actions";
 
 export const dynamic = "force-dynamic";
 type Kind = "person"|"company"|"clinic"|"laboratory"|"product"|"job";
-type Params = { type?: Kind; error?: string; message?: string; submitted?: string };
+type Params = { profile?: "veterinarian"|"professional"|"student"; type?: Kind; error?: string; message?: string; submitted?: string };
 
 const tabs: Array<[Kind,string]> = [["person","Professional / Vet"],["company","Company"],["clinic","Clinic / Hospital"],["laboratory","Laboratory"],["product","Product"],["job","Job"]];
 
@@ -24,6 +25,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
   const params = await searchParams;
   const identity = await requireAdminPermission("admin.view", "/admin/create");
   const kind: Kind = tabs.some(([value]) => value === params.type) ? (params.type as Kind) : "person";
+  const profileMode=params.profile==="professional"?"professional":params.profile==="student"?"student":"veterinarian";
   const supabase = await createClient();
   const { data: companies } = await supabase.from("companies").select("id, canonical_name, verification_status").eq("record_status","active").order("canonical_name");
   const {data: submitted} = kind==="job" && params.submitted
@@ -52,14 +54,26 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
 
       <div className="management-links assisted-entry-tabs">{tabs.map(([value,label]) => <a className={`button ${kind===value?"button-primary":"button-secondary"}`} href={`/admin/create?type=${value}`} key={value}>{label}</a>)}</div>
 
-      {kind === "person" && <PersistentForm className="profile-form" action={createManagedPersonAction} storageKey="vetconnect-admin-create-person" clearSaved={Boolean(params.message)}>
-        <div><label>Profile type</label><select name="profile_kind" required><option value="veterinarian">Veterinarian</option><option value="professional">Allied / Other Professional</option></select></div>
+      {kind === "person" && <><nav className="vc-customer-shortcuts" aria-label="Choose assisted profile type"><a href="/admin/create?type=person&profile=veterinarian">Registered Veterinarian</a><a href="/admin/create?type=person&profile=student">Student / Trainee</a><a href="/admin/create?type=person&profile=professional">Allied Professional</a></nav><PersistentForm className="profile-form" action={createManagedPersonAction} storageKey={"vetconnect-admin-create-person-"+profileMode} clearSaved={Boolean(params.message)}>
+        <input type="hidden" name="profile_kind" value={profileMode==="veterinarian"?"veterinarian":"professional"}/>
+        <input type="hidden" name="assisted_profile_mode" value={profileMode}/>
         <div><label>Full name</label><input name="full_name" required /></div>
         <div><label>Contact email (optional)</label><input name="contact_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div>
-        <div><label>Qualifications</label><input name="qualifications" placeholder="DVM, MPhil, PhD" /></div><div><label>PVMC number (if veterinarian)</label><input name="pvmc_number" /></div>
-        <MasterDataInput category="veterinary_sector" name="veterinary_sector" label="Veterinary sector" />
-        <div><label>Specialization</label><input name="specialization" placeholder="Select/enter specialization" /></div>
-        <div><label>Professional type</label><input name="professional_type" placeholder="Veterinarian / Nutritionist / Farm Manager" /></div><div><label>Headline</label><input name="headline" /></div>
+        {profileMode==="veterinarian"?<>
+          <div><label>Veterinary qualification *</label><select name="qualifications" required defaultValue=""><option value="" disabled>Choose qualification</option><option>DVM</option><option>BVSc</option></select></div>
+          <div><label>PVMC practitioner registration number *</label><input name="pvmc_number" required maxLength={70}/></div>
+          <fieldset className="form-span-2 service-selector-fieldset"><legend>Practice areas: choose several *</legend><div className="service-checkbox-grid">{PRACTICE_AREAS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="practice_areas" value={x}/>{x}</label>)}</div></fieldset>
+          <fieldset className="form-span-2 service-selector-fieldset"><legend>Specializations: choose several</legend><div className="service-checkbox-grid">{SPECIALIZATIONS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="specializations" value={x}/>{x}</label>)}</div></fieldset>
+        </>:profileMode==="student"?<>
+          <input type="hidden" name="professional_type" value="Veterinary Student / Trainee"/>
+          <div><label>Study program *</label><select name="study_program" required><option>DVM</option><option>MPhil</option><option>PhD</option><option>Other</option></select></div>
+          <div><label>University / college *</label><input name="organization_name" required/></div>
+          <div><label>College / university registration number</label><input name="student_college_registration_number" maxLength={75}/></div>
+          <div><label>PVMC student reference (if issued)</label><input name="pvmc_student_reference" maxLength={75}/></div>
+          <div><label>Year / semester</label><input name="academic_year"/></div>
+        </>:<div><label>Academic qualification</label><input name="qualifications" placeholder="BSc, MSc, MPhil, PhD"/></div>}
+        <div><label>Additional specialization / expertise</label><input name="specialization_other" maxLength={120}/></div>
+        {profileMode==="professional"&&<div><label>Professional type *</label><input name="professional_type" placeholder="Nutritionist / Farm Manager / Researcher" required/></div>}<div><label>Headline</label><input name="headline" /></div>
         <div><label>Current position</label><input name="current_position" /></div><div><label>Organization</label><input name="organization_name" /></div>
         <div><label>Years experience</label><input name="years_experience" type="number" min="0" defaultValue="0" /></div><div><label>Image URL (optional fallback)</label><input name="image_url" type="url" /></div>
         <div><label>Upload profile photo</label><input name="profile_image" type="file" accept="image/jpeg,image/png,image/webp" /><p className="form-help">JPG, PNG or WebP, maximum 5 MB.</p></div>
@@ -70,10 +84,10 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <PakistanLocationFields />
         <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
         <div className="form-span-2"><label>Public summary</label><textarea name="public_summary" rows={4} /></div>
-        <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now" /> Publish approved allied professional immediately (requires review permission)</label>
+        {profileMode==="professional"&&<label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now" /> Publish approved allied professional immediately (requires review permission)</label>}
         <p className="form-help form-span-2">Veterinarian records always enter review. A PVMC number or document alone does not verify registration or publish the profile.</p>
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create assisted profile</FormSubmitButton>
-      </PersistentForm>}
+      </PersistentForm></>}
 
       {kind === "company" && <PersistentForm className="profile-form" action={createCompanyAction} storageKey="vetconnect-admin-create-company" clearSaved={Boolean(params.message)}>
         <div><label>Company name</label><input name="canonical_name" required /></div><MasterDataInput category="business_type" name="business_type" label="Business type" />

@@ -5,12 +5,13 @@ import FormMessage from "../components/FormMessage";
 import FormSubmitButton from "../components/FormSubmitButton";
 import { requestRegistrationOtpAction } from "../auth/actions";
 import { isAllowedSelfRegistrationRole } from "@/lib/auth";
+import RegistrationDetails, { PakistanCityField } from "./RegistrationDetails";
 
 const roles = [
   [
     "veterinarian",
-    "Veterinary Professional",
-    "Qualifications, PVMC details, expertise and verification.",
+    "Registered Veterinarian (DVM / PVMC)",
+    "Choose only if you hold a DVM or recognized veterinary qualification. Practice verification requires a valid PVMC record.",
   ],
   [
     "company",
@@ -19,13 +20,13 @@ const roles = [
   ],
   [
     "candidate",
-    "Student / Job Seeker",
-    "Career profile, CV, jobs, internships and learning.",
+    "Veterinary Student / Job Seeker",
+    "Students and trainees are not shown as licensed veterinary practitioners; use this pathway for career development.",
   ],
   [
     "professional",
-    "Industry Professional",
-    "Structured profile for nutrition, laboratory, research, academia, farm and technical roles.",
+    "Livestock / Allied Industry Professional",
+    "Nutrition, dairy, livestock, farm management, laboratory, research and technical professionals. This is not a veterinary practice licence.",
   ],
   [
     "laboratory",
@@ -57,7 +58,7 @@ export default async function RegisterPage({
     ? "company"
     : params.role && isAllowedSelfRegistrationRole(params.role)
       ? params.role
-      : "veterinarian";
+      : "";
 
   return (
     <main>
@@ -120,151 +121,33 @@ export default async function RegisterPage({
             </article>
           </div>
 
-          <form
+          {selectedRole ? <form
             id="registration"
-            className="backend-form-card"
+            className="backend-form-card vc-register-specific"
             action={requestRegistrationOtpAction}
           >
             <div className="section-heading">
-              <span className="section-kicker">ACCOUNT DETAILS</span>
-
-              <h2>
-                {clinicIntent
-                  ? "Clinic / Veterinary Hospital Registration"
-                  : "Registration form"}
-              </h2>
+              <span className="section-kicker">SELECTED REGISTRATION PATHWAY</span>
+              <h2>{clinicIntent ? "Clinic / Veterinary Hospital" : roles.find(item=>item[0]===selectedRole)?.[1]} registration</h2>
+              <p>Only fields relevant to your category are shown. Choose another card above to change your registration pathway. After email confirmation, upload your CNIC and the documents required for this category to complete registration.</p>
             </div>
-
-            <FormMessage error={params.error} message={params.message} />
-
+            <FormMessage error={params.error} message={params.message}/>
+            <input type="hidden" name="role" value={selectedRole}/>
+            {clinicIntent&&<input type="hidden" name="registration_intent" value="clinic"/>}
             <div className="form-grid">
-              {clinicIntent ? (
-                <>
-                  <input type="hidden" name="role" value="company" />
-
-                  <input
-                    type="hidden"
-                    name="registration_intent"
-                    value="clinic"
-                  />
-
-                  <div>
-                    <label htmlFor="registration_pathway">
-                      Registration pathway
-                    </label>
-
-                    <input
-                      id="registration_pathway"
-                      value="Clinic / Veterinary Hospital"
-                      readOnly
-                    />
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label htmlFor="role">Account type</label>
-
-                  <select
-                    id="role"
-                    name="role"
-                    defaultValue={selectedRole}
-                    required
-                  >
-                    {roles.map((role) => (
-                      <option key={role[0]} value={role[0]}>
-                        {role[1]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="full_name">
-                  {clinicIntent
-                    ? "Clinic owner / authorized person"
-                    : "Full name / authorized person"}
-                </label>
-
-                <input
-                  id="full_name"
-                  name="full_name"
-                  autoComplete="name"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="email">Email address</label>
-
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="phone">Phone number</label>
-
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="city">City</label>
-
-                <input
-                  id="city"
-                  name="city"
-                  autoComplete="address-level2"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="organization_name">
-                  {clinicIntent
-                    ? "Clinic / hospital name"
-                    : "Company / organization name"}
-                </label>
-
-                <input
-                  id="organization_name"
-                  name="organization_name"
-                  required={clinicIntent}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="pvmc_number">
-                  {clinicIntent
-                    ? "Responsible veterinarian PVMC registration number"
-                    : "PVMC registration number"}
-                </label>
-
-                <input
-                  id="pvmc_number"
-                  name="pvmc_number"
-                />
-              </div>
+              <div><label htmlFor="full_name">{clinicIntent?"Clinic owner / authorized representative *":"Full name *"}</label><input id="full_name" name="full_name" autoComplete="name" required maxLength={120}/></div>
+              <div><label htmlFor="email">Email address *</label><input id="email" name="email" type="email" autoComplete="email" required maxLength={254}/></div>
+              <div><label htmlFor="phone">Phone number</label><input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={35}/></div>
+              <PakistanCityField id="city" name="city" label="City / town *" required/>
+              <RegistrationDetails role={selectedRole} clinic={clinicIntent}/>
             </div>
-
-            <p className="form-help">
-              {clinicIntent
-                ? "This step creates the secure account for the clinic or veterinary hospital. After email verification, complete the facility profile in the Clinic Workspace. Public listing remains subject to VetConnect review and responsible-veterinarian/PVMC verification where applicable."
-                : "Veterinarian, professional, laboratory and company accounts remain pending until VetConnect reviews the submitted profile. A six-digit code will be sent to your email to complete registration."}
-            </p>
-
-            <FormSubmitButton pendingLabel="Sending code...">
-              Send registration code
-            </FormSubmitButton>
-          </form>
+            <p className="form-help">Email confirmation is the first step. Your registration remains incomplete until you upload your CNIC and category-specific identity, degree, licence, or business evidence. Files are collected in a private verification area and are not shown on public profiles.</p>
+            <FormSubmitButton pendingLabel="Sending code...">Send registration code</FormSubmitButton>
+          </form> : <section id="registration" className="backend-form-card vc-register-choice" aria-labelledby="select-path-heading">
+            <span className="section-kicker">FIRST STEP</span>
+            <h2 id="select-path-heading">Select your registration category above</h2>
+            <p>Veterinarians, veterinary students, allied professionals, employers, clinics, laboratories and customers have different registration fields. No category is chosen automatically.</p>
+          </section>}
 
           <p className="center-note">
             Already registered? <Link href="/login">Sign in</Link>
