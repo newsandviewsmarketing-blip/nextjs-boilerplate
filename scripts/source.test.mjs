@@ -386,6 +386,32 @@ test("job coverage matching honors province-wide, selected districts, cities and
   assert.equal(matchesJobLocation(cityOnly, "Faisalabad"), false);
   assert.equal(matchesJobLocation({...cityOnly,coverage:{scope:"flexible",province:null,display_text:"TBA"}}, "Lahore"), false);
   assert.equal(matchesJobLocation({...base,coverage:{scope:"nationwide",province:null,display_text:"Pakistan"}}, "Karachi"), true);
+
+  // The reference hierarchy includes Khanpur in KP, Punjab and Sindh, and
+  // Kingri in Balochistan and Sindh. A first-match-only map loses valid jobs.
+  for (const province of ["Khyber Pakhtunkhwa", "Punjab", "Sindh"]) {
+    const provinceJob = {
+      ...base, province,
+      coverage: {scope:"province",province,display_text:`All ${province}`},
+    };
+    assert.equal(matchesJobLocation(provinceJob, "Khanpur"), true, province);
+  }
+  for (const province of ["Balochistan", "Sindh"]) {
+    const provinceJob = {
+      ...base, province,
+      coverage: {scope:"province",province,display_text:`All ${province}`},
+    };
+    assert.equal(matchesJobLocation(provinceJob, "Kingri"), true, province);
+  }
+  assert.equal(matchesJobLocation({
+    ...base,
+    coverage: {scope:"multiple",province:"Punjab",display_text:"Rahim Yar Khan"},
+    coverage_areas: [{district:"Rahim Yar Khan",city:null,label:"Rahim Yar Khan",province:"Punjab"}],
+  }, "Khanpur"), true);
+  assert.equal(matchesJobLocation({
+    ...base, province:"Balochistan",
+    coverage: {scope:"province",province:"Balochistan",display_text:"All Balochistan"},
+  }, "Khanpur"), false);
 });
 
 
@@ -592,4 +618,34 @@ test("CSV import removes incomplete jobs after region-area failures", async () =
   assert.match(bulk, /if\(readError\) throw readError/);
   assert.match(bulk, /if\(regionAreaError\) throw regionAreaError/);
   assert.match(bulk, /\.delete\(\)\.eq\("id",jobId\)\.select\("id"\)\.maybeSingle\(\)/);
+});
+
+test("Phase 2 dashboard links to actionable administration, reports and records", () => {
+  const overview = read("app/admin/page.tsx");
+  const reviews = read("app/admin/reviews/page.tsx");
+  const nav = read("app/admin/components/AdminNav.tsx");
+  const report = read("app/admin/reports/page.tsx");
+  const exportRoute = read("app/admin/reports/export/route.ts");
+  const company = read("app/dashboard/company/page.tsx");
+  const account = read("app/dashboard/page.tsx");
+  assert.match(overview, /getEffectiveAdminPermissions/);
+  assert.match(overview, /Pending profiles/);
+  assert.match(overview, /New registrations/);
+  assert.match(overview, /admin\/reviews#profile-account-/);
+  assert.match(overview, /newRegistrations24h/);
+  assert.match(overview, /24\*60\*60\*1000/);
+  assert.match(reviews, /id=\{\`profile-\$\{row\.record_source/);
+  assert.match(reviews, /id=\{\`credential-\$\{row\.record_source/);
+  assert.match(reviews, /id=\{\`product-\$\{product.id\}/);
+  assert.match(nav, /getEffectiveAdminPermissions/);
+  assert.match(nav, /Printable reports/);
+  assert.match(report, /PrintReportButton/);
+  assert.match(exportRoute, /getEffectiveAdminPermission\(identity,"audit.view"\)/);
+  assert.match(exportRoute, /no-store/);
+  assert.match(exportRoute, /csvCell/);
+  assert.match(company, /company-applications/);
+  assert.match(account, /vc-customer-hub/);
+  for(const file of ["app/admin/jobs/page.tsx","app/admin/jobs/[id]/page.tsx","app/admin/applications/page.tsx","app/admin/clinic-affiliations/page.tsx","app/admin/reports/page.tsx"]){
+    assert.ok(read(file).length>300, file+" is missing");
+  }
 });
