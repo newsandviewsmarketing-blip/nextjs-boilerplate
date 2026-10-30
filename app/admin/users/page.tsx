@@ -4,6 +4,7 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import AdminNav from "../components/AdminNav";
 import { isSuspiciousProfileName } from "@/lib/profile-name";
+import { credentialDataFlags } from "@/lib/veterinary-verification";
 import { requireAdminPermission, staffRoleOptions } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,6 +29,8 @@ type VetRow = {
   veterinary_sector: string | null;
   specialization: string | null;
   verification_status: string | null;
+  pvmc_verification_status: string | null;
+  qualifications: string | null;
 };
 
 type Params = {
@@ -55,7 +58,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
     supabase.from("user_roles").select("user_id, role"),
     supabase
       .from("veterinarian_profiles")
-      .select("user_id, pvmc_number, veterinary_sector, specialization, verification_status"),
+      .select("user_id, pvmc_number, veterinary_sector, specialization, verification_status, pvmc_verification_status, qualifications"),
   ]);
 
   const roleMap = new Map<string, string[]>();
@@ -118,7 +121,8 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             <div className="admin-summary">
               <article><b>{allRows.length}</b><span>Total registered users</span></article>
               <article><b>{allRows.filter((row) => row.primary_role === "veterinarian").length}</b><span>Veterinarians</span></article>
-              <article><b>{((vets ?? []) as VetRow[]).filter((row) => row.verification_status === "approved").length}</b><span>Approved veterinarians</span></article>
+              <article><b>{((vets ?? []) as VetRow[]).filter((row) => row.verification_status === "approved").length}</b><span>Profile approvals (not PVMC licence)</span></article>
+              <article><Link href="/admin/credential-recheck"><b>{((vets ?? []) as VetRow[]).filter(row => credentialDataFlags(row).length>0).length}</b><span>PVMC data rechecks ↗</span></Link></article>
               <article><b>{rows.length}</b><span>Current filtered results</span></article>
             </div>
 
@@ -164,7 +168,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                         <td>{user.tehsil || user.city || "—"}</td>
                         <td>{vet?.pvmc_number || "—"}</td>
                         <td>{vet ? <><b>{vet.veterinary_sector || "—"}</b><small>{vet.specialization || ""}</small></> : "—"}</td>
-                        <td>{vet?.verification_status || "—"}</td>
+                        <td>{vet?.verification_status || "—"}{vet && credentialDataFlags(vet).length>0&&<small className="vc-credential-warning">Credential recheck required</small>}</td>
                         <td>{user.account_status}</td>
                       </tr>
                     );

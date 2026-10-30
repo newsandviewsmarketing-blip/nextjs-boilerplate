@@ -10,7 +10,8 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
   const review=(["profiles.review","regulatory.review","products.manage","jobs.manage"] as const).some(allowed);
   const assist=(["profiles.create","companies.create","clinics.manage","laboratories.manage","products.create","jobs.create"] as const).some(allowed);
   const groups:{title:string;items:Entry[]}[]=[
-    {title:"Overview",items:[{name:"Dashboard",href:"/admin",permission:"admin.view"},{name:"Review history",href:"/admin/review-history",permission:"review.analytics"}]},
+    {title:"Overview",items:[{name:"Dashboard",href:"/admin",permission:"admin.view"},{name:"Review history",href:"/admin/review-history",permission:"review.analytics"},
+      {name:"PVMC data rechecks",href:"/admin/credential-recheck",permission:"regulatory.review"}]},
     {title:"People & organizations",items:[
       {name:"Veterinarians",href:"/admin/users?role=veterinarian",permission:"users.manage"},
       {name:"Professionals",href:"/admin/users?role=professional",permission:"users.manage"},

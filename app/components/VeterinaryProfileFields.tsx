@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {PRACTICE_AREAS,SPECIALIZATIONS} from "@/lib/registration-categories";
 
 const specializationMap: Record<string, string[]> = {
   Poultry: [
@@ -118,7 +119,7 @@ export default function VeterinaryProfileFields({
   defaultServices?: string[];
 }) {
   const [sector, setSector] = useState(defaultSector);
-  const [specialization, setSpecialization] = useState(defaultSpecialization);
+  const [specialization, setSpecialization] = useState(defaultSpecialization.split(",")[0].trim());
   const specializations = useMemo(
     () => specializationMap[sector] ?? [],
     [sector],
@@ -163,6 +164,18 @@ export default function VeterinaryProfileFields({
           ))}
         </select>
       </div>
+      <fieldset className="form-span-2 service-selector-fieldset">
+        <legend>Additional practice areas (choose several)</legend>
+        <div className="service-checkbox-grid">{PRACTICE_AREAS.map(item=><label className="checkbox-line" key={item}>
+          <input type="checkbox" name="practice_areas" value={item} defaultChecked={defaultServices.includes("Practice area: "+item)}/>{item}
+        </label>)}</div>
+        <p className="form-help">Your primary sector above and every additional selected area will be saved; you may work with pets, dairy and poultry simultaneously.</p>
+      </fieldset>
+      <fieldset className="form-span-2 service-selector-fieldset">
+        <legend>Additional specializations</legend><div className="service-checkbox-grid">{SPECIALIZATIONS.map(item=><label className="checkbox-line" key={item}>
+          <input type="checkbox" name="specializations_extra" value={item} defaultChecked={defaultSpecialization.split(",").map(x=>x.trim()).slice(1).includes(item)}/>{item}
+        </label>)}</div>
+      </fieldset>
       <fieldset className="form-span-2 service-selector-fieldset">
         <legend>Services offered</legend>
         <div className="service-checkbox-grid">

@@ -9,9 +9,10 @@ import {getCurrentIdentity} from "@/lib/auth";
 import {getEffectiveAdminPermissions,permissionOptions,staffRoleOptions} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
 import {isSuspiciousProfileName} from "@/lib/profile-name";
+import {credentialDataFlags} from "@/lib/veterinary-verification";
 import {correctUserDossierAction,correctSpecialistDossierAction} from "./actions";
 import {updateUserStatusAction,updateStaffRolesAction,updateUserPermissionsAction} from "../actions";
-import {reviewProfileAction,reviewVeterinarianCredentialAction} from "../../actions";
+import {reviewProfileAction,reviewVeterinarianCredentialAction,reopenVeterinaryCredentialAction} from "../../actions";
 
 export const dynamic="force-dynamic";
 type Props={params:Promise<{id:string}>;searchParams:Promise<{error?:string;message?:string}>};
@@ -63,7 +64,8 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  const roles=(staffRoles.data??[]).map(x=>String(x.role));
  const granted=new Set<string>(Array.isArray(permissions.data?.granted_permissions)?permissions.data.granted_permissions:[]);
  const revoked=new Set<string>(Array.isArray(permissions.data?.revoked_permissions)?permissions.data.revoked_permissions:[]);
- const publicVet=accountStatus==="active"&&v?.verification_status==="approved"&&v?.pvmc_verification_status==="approved";
+ const vetCredentialIssues=v?credentialDataFlags(v as {qualifications?:string|null;pvmc_number?:string|null;pvmc_verification_status?:string|null}):[];
+ const publicVet=accountStatus==="active"&&v?.verification_status==="approved"&&v?.pvmc_verification_status==="approved"&&vetCredentialIssues.length===0;
  const publicPro=accountStatus==="active"&&pr?.verification_status==="approved"&&pr?.profile_visibility==="public";
  const label=isSuspiciousProfileName(String(p.full_name??"")) ? `Flagged account · ${id.slice(0,8)}` : safeName(p.full_name||p.email||"Unnamed account");
  const publicHref=publicVet?"/vets/"+id:publicPro&&pr?.slug?"/professionals/"+pr.slug:null;
@@ -90,6 +92,10 @@ export default async function AdminUserDossier({params,searchParams}:Props){
    <div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
    <div className="admin-control-content vc-admin-main">
    <FormMessage {...notices}/>
+   {vetCredentialIssues.length>0 && <div className="vc-editor-alert" role="alert"><strong>PVMC status requires re-verification.</strong>
+     <p>Previously marked approved, but the stored record is inconsistent: {vetCredentialIssues.join("; ")}. The verification status is not sufficient evidence of a valid practising licence. Review the original documentation and official PVMC register before displaying this account as credential-verified.</p>
+     {canRegulatory&&<Link href="/admin/credential-recheck">Open PVMC data recheck register ↗</Link>}
+    </div>}
    {alertSpam&&<div className="vc-editor-alert" role="alert"><strong>Possible promotional or spam account name.</strong><p>The account name contains a website link or promotional wording. This is not evidence that the link was published as a product or article. Review the account, then suspend it if appropriate. Do not open the untrusted external link.</p></div>}
    <nav className="vc-editor-tabs" aria-label="Record dossier sections">
       <a href="#identity">Submitted details</a><a href="#linked">Linked records</a>
@@ -99,7 +105,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
    <div className="vc-admin-metrics vc-editor-metrics">
      <div className="vc-admin-metric"><span>Account status</span><b>{accountStatus}</b><small>Independent of profile approval</small></div>
      <div className="vc-admin-metric"><span>Veterinarian review</span><b>{String(v?.verification_status??"Not created")}</b><small>Profile verification</small></div>
-     <div className="vc-admin-metric"><span>PVMC credential</span><b>{String(v?.pvmc_verification_status??"N/A")}</b><small>Separate evidence check</small></div>
+     <div className="vc-admin-metric"><span>PVMC credential</span><b>{vetCredentialIssues.length>0?"RECHECK REQUIRED":String(v?.pvmc_verification_status??"N/A")}</b><small>Separate evidence check</small></div>
      <div className="vc-admin-metric"><span>Professional review</span><b>{String(pr?.verification_status??"Not created")}</b><small>Independent profile</small></div>
    </div>
    <section className="vc-admin-panel" id="identity">
@@ -172,6 +178,16 @@ export default async function AdminUserDossier({params,searchParams}:Props){
           <label htmlFor="pvmc-reason">Evidence source / reviewer decision</label><input id="pvmc-reason" name="reason" placeholder="PVMC verification source and decision note"/>
           <div className="vc-editor-buttons"><FormSubmitButton className="button button-primary" name="decision" value="approved" pendingLabel="Saving decision…">Verify credential</FormSubmitButton><button className="button button-secondary" type="submit" name="decision" value="rejected">Reject credential</button></div>
         </form>
+     </div>}
+     {isSuperAdmin&&canRegulatory&&v?.pvmc_verification_status==="approved"&&vetCredentialIssues.length>0&&<div className="vc-editor-action">
+       <h3>Reopen PVMC credential for verification</h3>
+       <p>The stored PVMC-approval flag does not match required evidence. Reopening the credential returns its status to pending; it does not suspend or accuse the account holder. Record the follow-up reason.</p>
+       <form className="vc-editor-decision" action={reopenVeterinaryCredentialAction}>
+         <input type="hidden" name="user_id" value={id}/>
+         <label htmlFor="reopen-pvmc-note">Verification gap and requested documents</label>
+         <textarea id="reopen-pvmc-note" name="reason" minLength={25} maxLength={1500} required placeholder="Example: Original DVM transcript, registration number and active PVMC registry entry required to resolve approved status without evidence."/>
+         <FormSubmitButton className="button button-secondary" pendingLabel="Reopening review…">Reopen PVMC verification</FormSubmitButton>
+       </form>
      </div>}
      {canManage&&<div className="vc-editor-action"><h3>Account access</h3><p>Suspension blocks VetConnect account use. It does not delete data or change previous audit entries.</p>
         {accountStatus==="active"?<form action={updateUserStatusAction} className="vc-editor-decision">
