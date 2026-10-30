@@ -10,7 +10,7 @@ test("Registration selection renders category-specific forms without default vet
  assert.match(src,/RegistrationDetails role=\{selectedRole\}/);
  assert.match(src,/Select your registration category above/);
  for(const path of ["veterinarian","candidate","professional","company","laboratory"])
-  assert.match(fields,new RegExp('role==="'+path+'"'));
+  assert.match(fields,new RegExp('role *=== *"'+path+'"'));
  assert.match(fields,/student_college_registration_number/);
  assert.match(fields,/pvmc_student_reference/);
  assert.match(fields,/practice_areas/);
