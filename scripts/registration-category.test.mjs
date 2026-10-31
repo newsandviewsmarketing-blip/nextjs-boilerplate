@@ -53,7 +53,7 @@ test("Veterinarian degree and institution survive OTP metadata persistence",()=>
  const gate=read("lib/registration-categories.ts");
  const persist=read("lib/registration-persistence.ts");
  assert.ok(gate.includes("data[key]=selected;"));
- assert.ok(gate.includes('data.institution=field(form,"institution")'));
+ assert.ok(gate.includes('institutionFor("institution",String(data.qualifications))'));
  assert.ok(persist.includes("credentialLabel=institution?qualification"));
 });
 test("Clinic onboarding persists a clinic record and reviewer evidence",()=>{
@@ -106,7 +106,7 @@ test("Allied professional registration accepts the category qualification select
  assert.match(fields,/name="highest_qualification"/);
  assert.match(gate,/qualification\("highest_qualification",ACADEMIC_QUALIFICATIONS\)/);
  assert.doesNotMatch(gate,/!field\(form,"highest_qualification"\)/);
- assert.match(gate,/!field\(form,"institution"\)\|\|!field\(form,"specialization_other"\)/);
+ assert.match(gate,/institutionFor\("institution",String\(data.highest_qualification\)\)/);
 });
 
  test("Experience is validated and retained privately through registration", () => {
@@ -141,7 +141,7 @@ async function registrationModules() {
   const compiled=ts.transpileModule(read(path),{compilerOptions:{module:ts.ModuleKind.CommonJS,
    target:ts.ScriptTarget.ES2022,esModuleInterop:true,resolveJsonModule:true}}).outputText;
   runInNewContext(compiled,{module:exported,exports:exported.exports,FormData,console,require:(name)=>{
-   if(name==="../public/data/pakistan-administrative-hierarchy.json")return JSON.parse(read("public/data/pakistan-administrative-hierarchy.json"));
+   if(name.startsWith("../public/data/") && name.endsWith(".json"))return JSON.parse(read(name.replace("../","")));
    if(name.startsWith("@/lib/"))return load(name.replace("@/","" )+".ts");
    throw new Error("Unexpected import: "+name);
   }});
@@ -150,6 +150,7 @@ async function registrationModules() {
  return {validate:load("lib/registration-categories.ts").registrationExtraFields,
   persist:load("lib/registration-persistence.ts").persistRegisteredCategoryDetails,
   mergeDraft:load("lib/registration-persistence.ts").registrationDraftMetadata,
+  institutions:load("lib/registration-institutions.ts"),
   locations:load("lib/pakistan-locations.ts")};
 }
 function registrationForm(overrides={}) {
@@ -157,12 +158,14 @@ function registrationForm(overrides={}) {
  for(const [key,value] of Object.entries({city:"Lahore",province:"Punjab",institution:"UAF",
   highest_qualification_choice:"MPhil",professional_types:"Animal Nutritionist",
   industry_sectors:"Feed / Nutrition",specialization_other:"Animal nutrition",...overrides})) form.set(key,value);
+ if([overrides.qualifications_choice,overrides.study_program_choice,overrides.highest_qualification_choice].includes("DVM"))form.set("institution_choice","uaf");
  return form;
 }
 function addDegree(form,id,degree,institution="UAF") {
  form.append("additional_qualification_index",String(id));
  form.set("additional_qualification_"+id+"_choice",degree);
  form.set("additional_institution_"+id,institution);
+ if(degree==="DVM")form.set("additional_institution_"+id+"_choice",institution==="UVAS"?"uvas-lahore":"uaf");
 }
 
 test("Province and city validator rejects mismatches and accepts every listed pairing",async()=>{
@@ -205,7 +208,7 @@ test("Additional completed DVM triggers PVMC; degrees and institutions retain th
  const result=validate(form,"professional","");
  assert.equal(result.error,undefined);
  assert.deepEqual(Array.from(result.data.additional_qualifications),["MPhil","DVM"]);
- assert.deepEqual(Array.from(result.data.additional_institutions),["UAF","UVAS"]);
+ assert.deepEqual(Array.from(result.data.additional_institutions),["UAF","University of Veterinary and Animal Sciences, Lahore"]);
  form.delete("additional_qualification_index");form.append("additional_qualification_index","0");
  assert.equal(validate(form,"professional","").error,undefined,"Removing a DVM removes its PVMC requirement");
 });
@@ -217,14 +220,14 @@ test("Invalid additional degree submissions cannot bypass bounds or institution 
  assert.match(validate(forged,"professional","").error,/degrees/);
  const tooMany=registrationForm();for(let i=0;i<11;i++)addDegree(tooMany,i,"PhD");
  assert.match(validate(tooMany,"professional","").error,/10/);
- const custom=registrationForm();addDegree(custom,0,"__other__");custom.set("additional_qualification_0_other","Doctor of Veterinary Medicine");
+ const custom=registrationForm();addDegree(custom,0,"__other__");custom.set("additional_qualification_0_other","Doctor of Veterinary Medicine");custom.set("additional_institution_0_choice","uaf");
  assert.match(validate(custom,"professional","").error,/PVMC/);
 });
 test("Veterinarian persistence retains DVM, additional degrees and private details",async()=>{
  const {persist}=await registrationModules();
  let saved,vet;
  const db={from(table){
-  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})})};
+  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})}),update:()=>({eq:async()=>({})})};
   if(table==="registration_profile_details")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})}),upsert:async(row)=>{saved=row;return {};}};
   if(table==="veterinarian_profiles")return {update:(row)=>({eq:async()=>{vet=row;return {};}})};
   throw new Error("Unexpected table: "+table);
@@ -239,7 +242,7 @@ test("Veterinarian persistence retains DVM, additional degrees and private detai
 function veterinarianDraftDb(existingDetails) {
  const writes=[];
  const db={from(table){
-  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})})};
+  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})}),update:()=>({eq:async()=>({})})};
   if(table==="registration_profile_details")return {
    select:()=>({eq:()=>({maybeSingle:async()=>({data:existingDetails?{category_details:existingDetails}:null})})}),
    upsert:async(row)=>{writes.push(row);return {};}
@@ -279,7 +282,7 @@ test("A saved-draft read failure stops persistence before any overwrite",async()
  const {persist}=await registrationModules();
  let write=false;
  const db={from(table){
-  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})})};
+  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})}),update:()=>({eq:async()=>({})})};
   if(table==="registration_profile_details")return {select:()=>({eq:()=>({maybeSingle:async()=>({error:{message:"unavailable"}})})}),
    upsert:async()=>{write=true;return {};}};
   throw new Error("Unexpected write");
@@ -311,4 +314,90 @@ test("Invalid saved geography and unpaired degree arrays cause no writes",async(
   assert.ok(await persist(db,"owner",{...veterinarianMetadata,...extra}));
   assert.equal(writes.length,0);
  }
+});
+
+test("DVM institution reference keeps all 20 PVMC entries and conditional admission notes",async()=>{
+ const {institutions}=await registrationModules();
+ assert.equal(institutions.DVM_INSTITUTIONS.length,20);
+ assert.equal(new Set(institutions.DVM_INSTITUTIONS.map(item=>item.id)).size,20);
+ assert.ok(institutions.DVM_INSTITUTIONS.find(item=>item.id==="uvas-swat"));
+ for(const id of ["poonch","cuvas","must-bhimber"])
+  assert.match(institutions.DVM_INSTITUTIONS.find(item=>item.id===id).reviewNote,/fall 2025/);
+ const form=new FormData();
+ for(const item of institutions.DVM_INSTITUTIONS){
+  form.set("institution_choice",item.id);
+  const result=institutions.registrationInstitution(form,"institution","DVM");
+  assert.equal(result.institution,item.name);
+  assert.equal(result.source,"pvmc:"+item.id);
+ }
+});
+test("DVM requires a listed selection or an explicit Other / International institution",async()=>{
+ const {institutions}=await registrationModules();
+ const form=new FormData();form.set("institution","Misspelled institute");
+ assert.ok(institutions.registrationInstitution(form,"institution","DVM").error);
+ for(const choice of ["__other__","__international__"]){
+  form.set("institution_choice",choice);form.set("institution","Misspelled institute");
+  assert.equal(institutions.registrationInstitution(form,"institution","DVM").institution,"Misspelled institute");
+  form.set("institution","");assert.ok(institutions.registrationInstitution(form,"institution","DVM").error);
+  form.set("institution","International Veterinary University");
+ }
+ form.set("institution_choice","forged-id");assert.ok(institutions.registrationInstitution(form,"institution","DVM").error);
+});
+test("Non-DVM qualifications retain open institutions without imposing the DVM dropdown",async()=>{
+ const {validate,institutions}=await registrationModules();
+ for(const degree of ["MPhil","PhD","Diploma / Certificate","BSc (Hons) Animal Husbandry","BS Poultry Science"]){
+  const form=registrationForm({highest_qualification_choice:degree,institution:"Another university"});
+  assert.equal(institutions.registrationInstitution(form,"institution",degree).institution,"Another university");
+  const result=validate(form,"professional","");
+  assert.equal(result.error,undefined);
+  assert.equal(result.data.institution_source,"open");assert.equal(result.data.pvmc_number,undefined);
+ }
+ assert.equal(institutions.isDvmQualification("D.V.M"),true);
+ assert.equal(institutions.isDvmQualification("MPhil Animal Nutrition"),false);
+});
+test("A DVM applicant can explicitly save a pending-number draft without gaining approval",async()=>{
+ const {validate,persist}=await registrationModules();
+ const form=registrationForm({qualifications_choice:"DVM",pvmc_number_pending:"true",practice_areas:"Dairy / Cattle"});
+ const result=validate(form,"veterinarian","");
+ assert.equal(result.error,undefined);assert.equal(result.data.pvmc_number_pending,"true");
+ const {db,writes}=veterinarianDraftDb();
+ assert.equal(await persist(db,"owner",result.data),null);
+ assert.equal(writes[0].category_details.institution_source,"pvmc:uaf");
+ assert.equal(writes[0].category_details.pvmc_number,"");
+ assert.equal(writes[0].category_details.verification_status,undefined);
+ form.delete("pvmc_number_pending");assert.match(validate(form,"veterinarian","").error,/PVMC/);
+});
+test("Additional DVM institutions normalize alongside open PhD institutions in row order",async()=>{
+ const {validate}=await registrationModules();
+ const form=registrationForm();addDegree(form,0,"DVM");addDegree(form,1,"PhD","Another university");
+ form.set("additional_institution_0_choice","__international__");form.set("additional_institution_0","Foreign Veterinary University");
+ form.set("pvmc_number","12345-P");
+ const result=validate(form,"professional","");
+ assert.equal(result.error,undefined);
+ assert.deepEqual(Array.from(result.data.additional_institutions),["Foreign Veterinary University","Another university"]);
+ assert.deepEqual(Array.from(result.data.additional_institution_sources),["international","open"]);
+});
+
+test("Pending-number veterinarian drafts cannot invoke final submission",async()=>{
+ const ts=(await import("typescript")).default;
+ const {runInNewContext}=await import("node:vm");
+ let rpcCalled=false,persistCalled=false;
+ const draft={pvmc_number_pending:"true",pvmc_number:""};
+ const db={auth:{getUser:async()=>({data:{user:{id:"owner",user_metadata:draft}}})},from(table){
+  const row=table==="profiles"?{primary_role:"veterinarian"}:table==="registration_completion_gate"?
+   {review_status:"pending",completed_at:null,cnic_number:"1234512345671"}:{category_details:draft};
+  return {select:()=>({eq:()=>({maybeSingle:async()=>({data:row})})})};
+ },rpc:async()=>{rpcCalled=true;return {};}};
+ const exported={exports:{}};
+ const code=ts.transpileModule(read("app/register/complete/actions.ts"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ runInNewContext(code,{module:exported,exports:exported.exports,FormData,require:(name)=>{
+  if(name==="next/navigation")return {redirect:(url)=>{throw new Error(url);}};
+  if(name==="next/cache")return {revalidatePath:()=>{}};
+  if(name==="@/lib/supabase/server")return {createClient:async()=>db};
+  if(name==="@/lib/registration-persistence")return {registrationDraftMetadata:(meta,saved)=>({...meta,...saved}),persistRegisteredCategoryDetails:async()=>{persistCalled=true;return null;}};
+  if(name==="@/lib/registration-evidence"||name==="@/lib/registration-notifications")return {};
+  throw new Error("Unexpected import "+name);
+ }});
+ await assert.rejects(()=>exported.exports.completeRegistrationAction(),/Add%20your%20PVMC%20number/);
+ assert.equal(rpcCalled,false);assert.equal(persistCalled,false);
 });

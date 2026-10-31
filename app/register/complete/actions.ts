@@ -70,7 +70,8 @@ export async function saveRegistrationEvidenceDraftAction(formData: FormData) {
 }
 
 export async function completeRegistrationAction() {
-  const { supabase, user, gate } = await currentRegistration();
+  const { supabase, user, gate, role, metadata } = await currentRegistration();
+  if(role==="veterinarian" && !String(metadata.pvmc_number??"").trim()) redirect("/register/complete?error="+encodeURIComponent("Your education draft is saved. Add your PVMC number and evidence before submitting for practitioner verification."));
   if (!isValidPakistaniCnic(gate.cnic_number ?? "")) redirect("/register/complete?error=Please%20enter%20a%20valid%20CNIC%20number.");
   const { data: profile } = await supabase.from("profiles").select("primary_role").eq("id", user.id).maybeSingle();
   const issue = await persistRegisteredCategoryDetails(supabase, user.id, user.user_metadata);
@@ -93,6 +94,13 @@ export async function saveRegistrationProfileDraftAction(formData: FormData) {
     draft[key] = value;
   }
   if (draft.experience_years && (!/^\d{1,2}$/.test(draft.experience_years) || Number(draft.experience_years) > 80)) redirect("/register/complete?error=Experience%20must%20be%20a%20whole%20number%20from%200%20to%2080.");
+  if(role==="veterinarian"){
+    const number=String(formData.get("pvmc_number")??savedMetadata.pvmc_number??"").trim();
+    const pending=formData.get("pvmc_number_pending")==="true";
+    if(number && (number.length>70 || !/^[a-z0-9\s/\\_.-]+$/i.test(number)))redirect("/register/complete?error=Check%20your%20PVMC%20number.");
+    if(!number&&!pending)redirect("/register/complete?error=Enter%20your%20PVMC%20number%20or%20mark%20it%20as%20pending.");
+    draft.pvmc_number=number;draft.pvmc_number_pending=number?"false":"true";
+  }
   const metadata = { ...savedMetadata, ...draft };
   const issue = await persistRegisteredCategoryDetails(supabase, user.id, metadata, {replaceSavedDetails:true});
   if (issue) redirect("/register/complete?error="+encodeURIComponent(issue));

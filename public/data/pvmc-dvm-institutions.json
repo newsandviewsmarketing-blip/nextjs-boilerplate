@@ -1,0 +1,111 @@
+{
+  "sourceUrl": "https://pvmc.gov.pk/Detail/Y2I2YzBjMDItNTRiZS00NzE0LThhODYtMmQyM2U2ZWNkN2U0",
+  "checkedOn": "2026-10-31",
+  "scope": "DVM institution selection only. A listed name is not verification of an applicant or admission batch.",
+  "institutions": [
+    {
+      "id": "uvas-lahore",
+      "name": "University of Veterinary and Animal Sciences, Lahore",
+      "sourceRow": 1
+    },
+    {
+      "id": "uaf",
+      "name": "University of Agriculture, Faisalabad",
+      "sourceRow": 2
+    },
+    {
+      "id": "sau-tandojam",
+      "name": "Sindh Agriculture University, Tandojam",
+      "sourceRow": 3
+    },
+    {
+      "id": "aup-peshawar",
+      "name": "University of Agriculture, Peshawar",
+      "sourceRow": 4
+    },
+    {
+      "id": "gomal",
+      "name": "Gomal University, Dera Ismail Khan",
+      "sourceRow": 5
+    },
+    {
+      "id": "uvas-jhang",
+      "name": "College of Veterinary and Animal Sciences, Jhang (UVAS Lahore)",
+      "sourceRow": 6
+    },
+    {
+      "id": "pmas-rawalpindi",
+      "name": "PMAS Arid Agriculture University, Rawalpindi",
+      "sourceRow": 7
+    },
+    {
+      "id": "luawms",
+      "name": "Lasbela University of Agriculture, Water and Marine Sciences, Uthal",
+      "sourceRow": 8
+    },
+    {
+      "id": "royal-lahore",
+      "name": "Royal College of Veterinary Sciences, Lahore",
+      "sourceRow": 9
+    },
+    {
+      "id": "bzu-multan",
+      "name": "Bahauddin Zakariya University, Multan",
+      "sourceRow": 10
+    },
+    {
+      "id": "iub-bahawalpur",
+      "name": "The Islamia University of Bahawalpur",
+      "sourceRow": 11
+    },
+    {
+      "id": "poonch",
+      "name": "University of Poonch, Rawalakot",
+      "sourceRow": 12,
+      "reviewNote": "The PVMC source lists a restriction on fresh DVM admissions from fall 2025. The relevant admission batch and qualification require individual review."
+    },
+    {
+      "id": "sbbuvas-sakrand",
+      "name": "Shaheed Benazir Bhutto University of Veterinary and Animal Sciences, Sakrand",
+      "sourceRow": 13
+    },
+    {
+      "id": "uvas-narowal",
+      "name": "Khan Bahadar Choudhry Mushtaq Ahmed College of Veterinary and Animal Sciences, Narowal",
+      "sourceRow": 14
+    },
+    {
+      "id": "ziauddin",
+      "name": "Ziauddin University, Karachi",
+      "sourceRow": 15
+    },
+    {
+      "id": "cuvas",
+      "name": "Cholistan University of Veterinary and Animal Sciences, Bahawalpur",
+      "sourceRow": 16,
+      "reviewNote": "The PVMC source lists a restriction on fresh DVM admissions from fall 2025. The relevant admission batch and qualification require individual review."
+    },
+    {
+      "id": "must-bhimber",
+      "name": "Mirpur University of Science and Technology, Bhimber Campus",
+      "sourceRow": 17,
+      "reviewNote": "The PVMC source lists a restriction on fresh DVM admissions from fall 2025. The relevant admission batch and qualification require individual review."
+    },
+    {
+      "id": "awkum",
+      "name": "Abdul Wali Khan University Mardan",
+      "sourceRow": 18
+    },
+    {
+      "id": "multanust",
+      "name": "Multan College of Veterinary Sciences, Multan University of Science and Technology",
+      "sourceRow": 19
+    },
+    {
+      "id": "uvas-swat",
+      "name": "University of Veterinary and Animal Sciences, Swat",
+      "sourceRow": 20,
+      "reviewNote": "The PVMC source lists the DVM program from 3 September 2025. The relevant admission batch and qualification require individual review."
+    }
+  ]
+}

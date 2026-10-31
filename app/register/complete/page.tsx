@@ -51,6 +51,7 @@ export default async function CompleteRegistrationPage({
               {params.message && <p role="status">{params.message}</p>}
               <div className="form-grid">
                 {[ ["experience_years", "Years of experience"], ["current_designation", "Current designation / role"], ["current_workplace", "Current workplace / institution"] ].map(([name,label]) => <div key={name}><label htmlFor={name}>{label}</label><input id={name} name={name} type={name === "experience_years" ? "number" : "text"} min={name === "experience_years" ? 0 : undefined} max={name === "experience_years" ? 80 : undefined} maxLength={180} defaultValue={String(savedMetadata[name] ?? "")} /></div>)}
+                {role==="veterinarian" && <div><label htmlFor="saved-pvmc-number">PVMC practitioner number</label><input id="saved-pvmc-number" name="pvmc_number" maxLength={70} defaultValue={String(savedMetadata.pvmc_number??"")} /><label className="checkbox-line"><input type="checkbox" name="pvmc_number_pending" value="true" defaultChecked={savedMetadata.pvmc_number_pending==="true"} />Number not yet available; keep as draft</label></div>}
                 <div><label htmlFor="professional_summary">Professional summary</label><textarea id="professional_summary" name="professional_summary" maxLength={250} defaultValue={String(savedMetadata.professional_summary ?? "")} /></div>
               </div>
               <button type="submit" className="button button-primary">Save professional draft</button>

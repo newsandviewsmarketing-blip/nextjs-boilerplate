@@ -1,3 +1,4 @@
+import {registrationInstitution} from "@/lib/registration-institutions";
 import { hasDocumentedVeterinaryQualification } from "@/lib/veterinary-verification";
 import { isPakistanLocation, isPakistanLocationInProvince, PAKISTAN_PROVINCES } from "@/lib/pakistan-locations";
 
@@ -22,7 +23,7 @@ export const PROFESSIONAL_CATEGORIES = [
 
 export const VETERINARY_QUALIFICATIONS = ["DVM", "BVSc (PVMC-recognized)"] as const;
 export const ACADEMIC_QUALIFICATIONS = [
-  "DVM", "BVSc (PVMC-recognized)", "BS / BSc", "MSc / MS", "MPhil",
+  "DVM", "BVSc (PVMC-recognized)", "BS / BSc", "BSc (Hons) Animal Husbandry", "BS Poultry Science", "BS Animal Sciences", "MSc / MS", "MPhil",
   "PhD", "Diploma / Certificate", "Intermediate / Higher Secondary"
 ] as const;
 export const STUDENT_PROGRAMS_BY_TRACK = {
@@ -51,6 +52,22 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     data[key]=selected;
     return true;
   };
+  const institutionFor=(key:string,degree:string)=>{
+    const result=registrationInstitution(form,key,degree);
+    if(result.error||!result.institution)return false;
+    data[key]=result.institution;data[key+"_source"]=result.source??"open";
+    return true;
+  };
+  const pvmcDetails=()=>{
+    const pvmc=field(form,"pvmc_number");
+    if(pvmc && pvmc.length<=70 && /^[a-z0-9\s/\\_.-]+$/i.test(pvmc)){
+      data.pvmc_number=pvmc;data.pvmc_number_pending="false";return true;
+    }
+    if(!pvmc && field(form,"pvmc_number_pending")==="true"){
+      data.pvmc_number="";data.pvmc_number_pending="true";return true;
+    }
+    return false;
+  };
   if (["veterinarian", "candidate", "professional"].includes(role)) {
     for (const key of ["current_designation", "current_workplace", "professional_summary"])
       if (!capture(key, key === "professional_summary" ? 250 : 180)) return {error:"Invalid professional experience information.",data:{}};
@@ -70,28 +87,26 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     const indices=form.getAll("additional_qualification_index").map(String);
     if(indices.length>10 || new Set(indices).size!==indices.length || indices.some(index=>!/^\d{1,6}$/.test(index)))
       return {error:"Add up to 10 additional degrees using the degree fields.",data:{}};
-    const degrees:string[]=[], institutions:string[]=[];
+    const degrees:string[]=[], institutions:string[]=[], sources:string[]=[];
     for(const index of indices){
       const key="additional_qualification_"+index;
       if(!qualification(key,ACADEMIC_QUALIFICATIONS))return {error:"Select or specify each additional degree.",data:{}};
-      const institution=field(form,"additional_institution_"+index);
-      if(!institution||!clean(institution))return {error:"Enter the awarding institution for each additional degree.",data:{}};
-      degrees.push(String(data[key]));institutions.push(institution);delete data[key];
+      const institution=registrationInstitution(form,"additional_institution_"+index,String(data[key]));
+      if(institution.error||!institution.institution)return {error:institution.error??"Enter the awarding institution for each additional degree.",data:{}};
+      degrees.push(String(data[key]));institutions.push(institution.institution);sources.push(institution.source??"open");delete data[key];
     }
     data.additional_qualifications=degrees;
     data.additional_institutions=institutions;
+    data.additional_institution_sources=sources;
   }
 
   if(role==="veterinarian") {
-    const pvmc=field(form,"pvmc_number");
-    if(!pvmc || pvmc.length>70 || !/^[a-z0-9\s/\\_.-]+$/i.test(pvmc))
-      return {error:"Registered veterinarians must provide their PVMC practitioner number.",data:{}};
+    if(!pvmcDetails())return {error:"Registered veterinarians must provide their PVMC practitioner number or mark it as not yet available to save a draft.",data:{}};
     if(!qualification("qualifications",VETERINARY_QUALIFICATIONS))return {error:"Select a listed veterinary qualification or specify another qualification for administrator review.",data:{}};
     const qual=String(data.qualifications);
     if(!/^(DVM|BVSc \(PVMC-recognized\)|Other: .{2,})$/i.test(qual))
       return {error:"Select a DVM, PVMC-recognized BVSc or specify another veterinary qualification.",data:{}};
-    if(!required("institution"))return {error:"Enter the awarding university or institution.",data:{}};
-    data.institution=field(form,"institution");
+    if(!institutionFor("institution",String(data.qualifications)))return {error:"Choose your DVM institution, or enter the awarding university for another qualification.",data:{}};
     const areas=values(form,"practice_areas");
     if(!areas.length||areas.length>12||areas.some(x=>!(PRACTICE_AREAS as readonly string[]).includes(x)))return {error:"Select at least one valid practice area.",data:{}};
     const specs=values(form,"specializations");
@@ -99,7 +114,6 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     if(!capture("specialization_other",120))return {error:"Invalid additional specialization.",data:{}};
     data.practice_areas=areas;
     data.specializations=[...specs,...(field(form,"specialization_other")?[field(form,"specialization_other")]:[])];
-    data.pvmc_number=pvmc;
   } else if(role==="candidate"){
     const track=field(form,"student_track");
     if(!["dvm_student","postgraduate_student","phd_student","job_seeker"].includes(track))return {error:"Select your student or job-seeker pathway.",data:{}};
@@ -108,11 +122,11 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
       if(!capture(k,k.includes("number")||k.includes("reference")?75:180))return {error:"A student or career field is invalid.",data:{}};
     if(track==="job_seeker"){
       if(!qualification("highest_qualification",ACADEMIC_QUALIFICATIONS))return {error:"Select your highest qualification or specify it for administrator review.",data:{}};
-      if(!field(form,"institution"))return {error:"Job seekers must provide their awarding institution.",data:{}};
+      if(!institutionFor("institution",String(data.highest_qualification)))return {error:"Job seekers must provide their awarding institution.",data:{}};
     }else{
       const allowed=STUDENT_PROGRAMS_BY_TRACK[track as keyof typeof STUDENT_PROGRAMS_BY_TRACK];
       if(!qualification("study_program",allowed))return {error:"Select a valid study program or specify it for administrator review.",data:{}};
-      if(!field(form,"institution")||!field(form,"student_college_registration_number"))return {error:"Students must provide their institution, program and college registration number.",data:{}};
+      if(!institutionFor("institution",String(data.study_program))||!field(form,"student_college_registration_number"))return {error:"Students must provide their institution, program and college registration number.",data:{}};
     }
   }else if(role==="professional"){
     if(!qualification("highest_qualification",ACADEMIC_QUALIFICATIONS))return {error:"Select your highest qualification or specify it for administrator review.",data:{}};
@@ -124,7 +138,7 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
       return {error:"Select at least one valid professional category.",data:{}};
     if(!sectors.length||sectors.length>12||sectors.some(x=>!(PRACTICE_AREAS as readonly string[]).includes(x)))
       return {error:"Select at least one valid industry sector.",data:{}};
-    if(!field(form,"institution")||!field(form,"specialization_other"))
+    if(!institutionFor("institution",String(data.highest_qualification))||!field(form,"specialization_other"))
       return {error:"Enter your qualification, awarding institution and area of expertise.",data:{}};
     data.professional_types=categories;
     data.professional_type=categories[0];
@@ -149,10 +163,7 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     role==="professional" || (role==="candidate" && data.student_track==="job_seeker") ? String(data.highest_qualification??"") : "";
   const completedDegrees=[completedPrimary,...(Array.isArray(data.additional_qualifications)?data.additional_qualifications:[])];
   if (["candidate","professional"].includes(role) && completedDegrees.some(hasDocumentedVeterinaryQualification)) {
-    const pvmc=field(form,"pvmc_number");
-    if(!pvmc || pvmc.length>70 || !/^[a-z0-9\s/\\_.-]+$/i.test(pvmc))
-      return {error:"A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number. Current students do not need a practitioner number for their ongoing program.",data:{}};
-    data.pvmc_number=pvmc;
+    if(!pvmcDetails())return {error:"A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number, or an explicit pending-number declaration. Current students do not need a practitioner number for their ongoing program.",data:{}};
   }
   return {data};
 }
