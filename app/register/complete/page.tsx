@@ -1,3 +1,5 @@
+import { registrationDraftMetadata } from "@/lib/registration-persistence";
+import { signOutAction } from "../../auth/actions";
 import { saveRegistrationProfileDraftAction } from "./actions";
 import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -28,7 +30,9 @@ export default async function CompleteRegistrationPage({
   if (!profileError && !gateError && gate?.review_status === "approved") redirect("/dashboard");
   if (!profileError && !gateError && gate?.completed_at && gate?.review_status === "pending") redirect("/register/status");
 
-  const registrationReady = Boolean(profile && gate && !profileError && !gateError && !existing.error);
+  const details = await supabase.from("registration_profile_details").select("category_details").eq("user_id",auth.user.id).maybeSingle();
+  const savedMetadata = registrationDraftMetadata(auth.user.user_metadata,details.data?.category_details);
+  const registrationReady = Boolean(profile && gate && !profileError && !gateError && !existing.error && !details.error);
   return (
     <main>
       <SiteHeader />
@@ -46,8 +50,8 @@ export default async function CompleteRegistrationPage({
               <p>Review or update these details before submitting. Use Save draft to keep changes with your verified account.</p>
               {params.message && <p role="status">{params.message}</p>}
               <div className="form-grid">
-                {[ ["experience_years", "Years of experience"], ["current_designation", "Current designation / role"], ["current_workplace", "Current workplace / institution"] ].map(([name,label]) => <div key={name}><label htmlFor={name}>{label}</label><input id={name} name={name} type={name === "experience_years" ? "number" : "text"} min={name === "experience_years" ? 0 : undefined} max={name === "experience_years" ? 80 : undefined} maxLength={180} defaultValue={String(auth.user?.user_metadata?.[name] ?? "")} /></div>)}
-                <div><label htmlFor="professional_summary">Professional summary</label><textarea id="professional_summary" name="professional_summary" maxLength={250} defaultValue={String(auth.user.user_metadata?.professional_summary ?? "")} /></div>
+                {[ ["experience_years", "Years of experience"], ["current_designation", "Current designation / role"], ["current_workplace", "Current workplace / institution"] ].map(([name,label]) => <div key={name}><label htmlFor={name}>{label}</label><input id={name} name={name} type={name === "experience_years" ? "number" : "text"} min={name === "experience_years" ? 0 : undefined} max={name === "experience_years" ? 80 : undefined} maxLength={180} defaultValue={String(savedMetadata[name] ?? "")} /></div>)}
+                <div><label htmlFor="professional_summary">Professional summary</label><textarea id="professional_summary" name="professional_summary" maxLength={250} defaultValue={String(savedMetadata.professional_summary ?? "")} /></div>
               </div>
               <button type="submit" className="button button-primary">Save professional draft</button>
             </form>}
@@ -63,5 +67,5 @@ export default async function CompleteRegistrationPage({
 }
 
 function LinkBack() {
-  return <p className="center-note"><a href="/login">Sign out and return to sign in</a></p>;
+  return <form action={signOutAction} className="center-note"><button type="submit" className="button button-secondary">Sign out</button></form>;
 }
