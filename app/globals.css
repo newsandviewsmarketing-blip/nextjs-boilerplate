@@ -3619,3 +3619,24 @@ textarea:focus {
 @media(max-width:780px){.vc-editor-form,.vc-editor-field-grid{grid-template-columns:1fr}.vc-editor-dossier .vc-admin-banner{padding:22px 0}.vc-editor-dossier .vc-admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){.vc-editor-dossier .vc-admin-metrics{grid-template-columns:1fr}}
 @media print{.vc-editor-tabs,.vc-editor-action,.vc-editor-alert{display:none!important}.vc-editor-dossier .vc-admin-panel{break-inside:avoid}}
+
+/* Each qualification stays paired with its awarding institution. */
+.vc-education { min-width: 0; margin: 10px 0 20px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fffdf9; }
+.vc-education legend { padding: 0 7px; font-weight: 750; color: var(--navy); font-size: 14px; }
+.vc-education > .form-help { margin: 0 0 14px; }
+.vc-education-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; gap: 14px; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
+.vc-education-row--primary { grid-template-columns: repeat(2,minmax(0,1fr)); padding-top: 0; border-top: 0; }
+.vc-education-row > div { min-width: 0; }
+.vc-education-row input, .vc-education-row select { width: 100%; min-width: 0; }
+.vc-institution-field small { display: block; overflow-wrap: anywhere; }
+.vc-institution-field a { color: var(--navy); text-decoration: underline; }
+.vc-degree-remove { align-self: start; margin-top: 23px; min-height: 44px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--navy); cursor: pointer; font: inherit; font-size: 12px; }
+.vc-degree-add { min-height: 44px; margin: 6px 0 2px; }
+.vc-pvmc-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 14px; align-items: center; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.vc-pvmc-row .checkbox-line { min-height: 44px; margin: 20px 0 0; }
+@media (max-width: 640px) {
+  .vc-education { padding: 12px; }
+  .vc-education-row, .vc-education-row--primary, .vc-pvmc-row { grid-template-columns: minmax(0,1fr); gap: 0; }
+  .vc-degree-remove { justify-self: end; margin: 0 0 10px; }
+  .vc-pvmc-row .checkbox-line { margin: 0; }
+}

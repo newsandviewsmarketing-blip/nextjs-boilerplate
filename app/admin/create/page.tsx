@@ -63,7 +63,6 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <div><label>Contact email (optional)</label><input name="contact_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div>
         {profileMode==="veterinarian"?<>
           <AcademicQualifications practitioner id="assisted-vet-degree" name="qualifications" label="Veterinary qualification *" options={VETERINARY_QUALIFICATIONS} />
-          <div><label htmlFor="assisted-vet-institution">Awarding university / institution *</label><input id="assisted-vet-institution" name="institution" required maxLength={180}/></div>
           <fieldset className="form-span-2 service-selector-fieldset"><legend>Practice areas: choose several *</legend><div className="service-checkbox-grid">{PRACTICE_AREAS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="practice_areas" value={x}/>{x}</label>)}</div></fieldset>
           <fieldset className="form-span-2 service-selector-fieldset"><legend>Specializations: choose several</legend><div className="service-checkbox-grid">{SPECIALIZATIONS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="specializations" value={x}/>{x}</label>)}</div></fieldset>
         </>:profileMode==="student"?<>

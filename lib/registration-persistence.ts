@@ -28,7 +28,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   if(role==="professional" || role==="candidate"){
     const primary=role==="professional" || str(meta,"student_track")==="job_seeker" ? str(meta,"highest_qualification") : "";
     const completedDegrees=[primary,...textList(meta,"additional_qualifications",180)];
-    if(completedDegrees.some(hasDocumentedVeterinaryQualification) && !/^[a-z0-9\s/\\_.-]{1,70}$/i.test(str(meta,"pvmc_number",71)))
+    if(completedDegrees.some(hasDocumentedVeterinaryQualification) && str(meta,"pvmc_number_pending")!=="true" && !/^[a-z0-9\s/\\_.-]{1,70}$/i.test(str(meta,"pvmc_number",71)))
       return "A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number.";
   }
   const province=str(meta,"province",120), city=str(meta,"city",120);
@@ -39,7 +39,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     [...degrees,...institutions].some(value=>typeof value!=="string"||!value.trim()||value.length>180||/[<>\u0000-\u001f]/.test(value)))
     return "Please check each additional degree and its awarding institution.";
   const allowedKeys=[
-    "province","city","additional_qualifications","additional_institutions",
+    "province","city","institution_source","additional_qualifications","additional_institutions","additional_institution_sources","pvmc_number_pending",
     "experience_years","current_designation","current_workplace","professional_summary",
     "pvmc_number","qualifications","institution","practice_areas","specializations","specialization_other",
     "student_track","highest_qualification","study_program","student_college_registration_number",
@@ -53,7 +53,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const value=meta[key];
     if(typeof value==="string"&&value.length<=250)categoryDetails[key]=value;
     else if(Array.isArray(value)&&value.length<=30&&value.every(item=>typeof item==="string"&&item.length<=180))
-      categoryDetails[key]=["additional_qualifications","additional_institutions"].includes(key)
+      categoryDetails[key]=["additional_qualifications","additional_institutions","additional_institution_sources"].includes(key)
         ? value.map((item:string)=>item.trim())
         : [...new Set(value.map((item:string)=>item.trim()).filter(Boolean))];
   }
@@ -73,11 +73,11 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const specialOther=str(meta,"specialization_other",120);
     const qualification=str(meta,"qualifications",120);
     const institution=str(meta,"institution",180);
-    if(!pvmc||!areas.length||!qualification||!institution)return "Your veterinary registration is missing a PVMC number, qualification, awarding institution or practice area.";
+    if((!pvmc&&str(meta,"pvmc_number_pending")!=="true")||!areas.length||!qualification||!institution)return "Your veterinary registration is missing a PVMC number, qualification, awarding institution or practice area.";
     const credentialLabel=institution?qualification+" — "+institution:qualification;
     const allQualifications=[credentialLabel,...textList(meta,"additional_qualifications",180)].join(", ");
     const {error}=await supabase.from("veterinarian_profiles").update({
-      pvmc_number:pvmc, qualifications:allQualifications,
+      pvmc_number:pvmc||null, qualifications:allQualifications,
       veterinary_sector:areas[0],specialization:[...specs,...(specialOther?[specialOther]:[])].join(", ")||null,
       services:areas.map(x=>"Practice area: "+x),
     }).eq("user_id",userId);
