@@ -149,6 +149,7 @@ async function registrationModules() {
  };
  return {validate:load("lib/registration-categories.ts").registrationExtraFields,
   persist:load("lib/registration-persistence.ts").persistRegisteredCategoryDetails,
+  mergeDraft:load("lib/registration-persistence.ts").registrationDraftMetadata,
   locations:load("lib/pakistan-locations.ts")};
 }
 function registrationForm(overrides={}) {
@@ -224,7 +225,7 @@ test("Veterinarian persistence retains DVM, additional degrees and private detai
  let saved,vet;
  const db={from(table){
   if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})})};
-  if(table==="registration_profile_details")return {upsert:async(row)=>{saved=row;return {};}};
+  if(table==="registration_profile_details")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})}),upsert:async(row)=>{saved=row;return {};}};
   if(table==="veterinarian_profiles")return {update:(row)=>({eq:async()=>{vet=row;return {};}})};
   throw new Error("Unexpected table: "+table);
  }};
@@ -233,4 +234,81 @@ test("Veterinarian persistence retains DVM, additional degrees and private detai
  assert.equal(issue,null);
  assert.match(vet.qualifications,/DVM.*MPhil.*PhD/);
  assert.deepEqual(Array.from(saved.category_details.additional_institutions),["UAF","UVAS"]);
+});
+
+function veterinarianDraftDb(existingDetails) {
+ const writes=[];
+ const db={from(table){
+  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})})};
+  if(table==="registration_profile_details")return {
+   select:()=>({eq:()=>({maybeSingle:async()=>({data:existingDetails?{category_details:existingDetails}:null})})}),
+   upsert:async(row)=>{writes.push(row);return {};}
+  };
+  if(table==="veterinarian_profiles")return {update:()=>({eq:async()=>({})})};
+  throw new Error("Unexpected table: "+table);
+ }};
+ return {db,writes};
+}
+const veterinarianMetadata={qualifications:"DVM",institution:"UAF",pvmc_number:"12345",practice_areas:["Dairy / Cattle"]};
+
+test("Saved additional degrees preserve repeated institution and degree positions",async()=>{
+ const {persist}=await registrationModules();
+ const {db,writes}=veterinarianDraftDb();
+ assert.equal(await persist(db,"owner",{...veterinarianMetadata,
+  additional_qualifications:["MPhil","PhD","MPhil"],additional_institutions:["UAF","UAF","UVAS"]}),null);
+ assert.deepEqual(Array.from(writes[0].category_details.additional_qualifications),["MPhil","PhD","MPhil"]);
+ assert.deepEqual(Array.from(writes[0].category_details.additional_institutions),["UAF","UAF","UVAS"]);
+});
+test("OTP resume and submission preserve the database draft over stale account metadata",async()=>{
+ const {persist}=await registrationModules();
+ const {db,writes}=veterinarianDraftDb({current_designation:"Updated designation",professional_summary:"Saved summary"});
+ assert.equal(await persist(db,"owner",{...veterinarianMetadata,current_designation:"Old designation"}),null);
+ assert.equal(writes[0].category_details.current_designation,"Updated designation");
+ assert.equal(writes[0].category_details.professional_summary,"Saved summary");
+});
+test("An explicit draft edit can replace saved values without losing other saved category data",async()=>{
+ const {persist,mergeDraft}=await registrationModules();
+ const saved={current_designation:"Saved",additional_qualifications:["PhD"],additional_institutions:["UAF"]};
+ const {db,writes}=veterinarianDraftDb(saved);
+ const meta={...mergeDraft(veterinarianMetadata,saved),current_designation:"Edited"};
+ assert.equal(await persist(db,"owner",meta,{replaceSavedDetails:true}),null);
+ assert.equal(writes[0].category_details.current_designation,"Edited");
+ assert.deepEqual(Array.from(writes[0].category_details.additional_qualifications),["PhD"]);
+});
+test("A saved-draft read failure stops persistence before any overwrite",async()=>{
+ const {persist}=await registrationModules();
+ let write=false;
+ const db={from(table){
+  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})})};
+  if(table==="registration_profile_details")return {select:()=>({eq:()=>({maybeSingle:async()=>({error:{message:"unavailable"}})})}),
+   upsert:async()=>{write=true;return {};}};
+  throw new Error("Unexpected write");
+ }};
+ assert.match(await persist(db,"owner",veterinarianMetadata),/load your saved registration/);
+ assert.equal(write,false);
+});
+test("File preflight rejects unsupported, empty or oversized evidence",async()=>{
+ const ts=(await import("typescript")).default;
+ const {runInNewContext}=await import("node:vm");
+ const exported={exports:{}};
+ runInNewContext(ts.transpileModule(read("lib/registration-evidence.ts"),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,
+  {exports:exported.exports,module:exported});
+ const {isAcceptedEvidenceFile,isValidPakistaniCnic}=exported.exports;
+ assert.equal(isAcceptedEvidenceFile("application/pdf",1024,false),true);
+ assert.equal(isAcceptedEvidenceFile("application/pdf",1024,true),false);
+ assert.equal(isAcceptedEvidenceFile("image/jpeg",6*1024*1024,true),false);
+ assert.equal(isAcceptedEvidenceFile("application/pdf",9*1024*1024,false),false);
+ assert.equal(isAcceptedEvidenceFile("image/png",0,true),false);
+ assert.equal(isAcceptedEvidenceFile("application/javascript",10,false),false);
+ assert.equal(isValidPakistaniCnic(""),false);
+ assert.equal(isValidPakistaniCnic("12345-1234567-1"),true);
+});
+
+test("Invalid saved geography and unpaired degree arrays cause no writes",async()=>{
+ const {persist}=await registrationModules();
+ for(const extra of [{province:"Sindh",city:"Lahore"},{additional_qualifications:["PhD"],additional_institutions:[]}]){
+  const {db,writes}=veterinarianDraftDb();
+  assert.ok(await persist(db,"owner",{...veterinarianMetadata,...extra}));
+  assert.equal(writes.length,0);
+ }
 });

@@ -1,3 +1,4 @@
+import {isPakistanLocationInProvince} from "@/lib/pakistan-locations";
 import {hasDocumentedVeterinaryQualification} from "@/lib/veterinary-verification";
 import {createClient} from "@/lib/supabase/server";
 import {PRACTICE_AREAS,SPECIALIZATIONS,PROFESSIONAL_CATEGORIES} from "@/lib/registration-categories";
@@ -9,18 +10,34 @@ const safeList=(m:Metadata,key:string,options:readonly string[])=>Array.isArray(
  [...new Set(m[key].filter((x:unknown)=>typeof x==="string"&&options.includes(x)))] as string[]:[];
 const textList=(m:Metadata,key:string,max=120)=>Array.isArray(m[key])?
  [...new Set(m[key].filter((x:unknown)=>typeof x==="string").map((x:string)=>x.trim()).filter((x:string)=>x.length>0&&x.length<=max&&!/[<>\u0000-\u001f]/.test(x)))].slice(0,30):[];
-export async function persistRegisteredCategoryDetails(supabase:Db,userId:string,meta:Metadata):Promise<string|null>{
+export function registrationDraftMetadata(metadata:Metadata, saved:unknown):Metadata {
+  return saved && typeof saved==="object" && !Array.isArray(saved)
+    ? {...metadata,...saved as Metadata} : {...metadata};
+}
+export async function persistRegisteredCategoryDetails(supabase:Db,userId:string,meta:Metadata,
+  {replaceSavedDetails=false}:{replaceSavedDetails?:boolean}={}):Promise<string|null>{
   // Called after authenticated OTP/confirmation, for profile content only.
   // Self-editable auth metadata MUST NEVER confer staff permissions or PVMC approval.
   const {data:record,error:statusError}=await supabase.from("profiles").select("primary_role").eq("id",userId).maybeSingle();
   if(statusError||!record)return "Registration account could not be loaded.";
   const role=record.primary_role;
+  const {data:saved,error:savedError}=await supabase.from("registration_profile_details")
+    .select("category_details").eq("user_id",userId).maybeSingle();
+  if(savedError)return "Unable to load your saved registration details. Please try again.";
+  if(!replaceSavedDetails)meta=registrationDraftMetadata(meta,saved?.category_details);
   if(role==="professional" || role==="candidate"){
     const primary=role==="professional" || str(meta,"student_track")==="job_seeker" ? str(meta,"highest_qualification") : "";
     const completedDegrees=[primary,...textList(meta,"additional_qualifications",180)];
     if(completedDegrees.some(hasDocumentedVeterinaryQualification) && !/^[a-z0-9\s/\\_.-]{1,70}$/i.test(str(meta,"pvmc_number",71)))
       return "A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number.";
   }
+  const province=str(meta,"province",120), city=str(meta,"city",120);
+  if(province && city && !isPakistanLocationInProvince(city,province))
+    return "Saved province and city do not match. Contact support to correct your registration.";
+  const degrees=meta.additional_qualifications??[],institutions=meta.additional_institutions??[];
+  if(!Array.isArray(degrees)||!Array.isArray(institutions)||degrees.length>10||degrees.length!==institutions.length||
+    [...degrees,...institutions].some(value=>typeof value!=="string"||!value.trim()||value.length>180||/[<>\u0000-\u001f]/.test(value)))
+    return "Please check each additional degree and its awarding institution.";
   const allowedKeys=[
     "province","city","additional_qualifications","additional_institutions",
     "experience_years","current_designation","current_workplace","professional_summary",
@@ -36,17 +53,16 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const value=meta[key];
     if(typeof value==="string"&&value.length<=250)categoryDetails[key]=value;
     else if(Array.isArray(value)&&value.length<=30&&value.every(item=>typeof item==="string"&&item.length<=180))
-      categoryDetails[key]=[...new Set(value.map((item:string)=>item.trim()).filter(Boolean))];
+      categoryDetails[key]=["additional_qualifications","additional_institutions"].includes(key)
+        ? value.map((item:string)=>item.trim())
+        : [...new Set(value.map((item:string)=>item.trim()).filter(Boolean))];
   }
   const {error:detailsError}=await supabase.from("registration_profile_details").upsert(
     {user_id:userId,category_details:categoryDetails},
     {onConflict:"user_id"}
   );
   if(detailsError)return "Unable to securely save your registration details: "+detailsError.message;
-  const province=str(meta,"province",120), city=str(meta,"city",120);
   if(province && city){
-    const {isPakistanLocationInProvince}=await import("@/lib/pakistan-locations");
-    if(!isPakistanLocationInProvince(city,province))return "Saved province and city do not match. Contact support to correct your registration.";
     const {error}=await supabase.from("profiles").update({province,city}).eq("id",userId);
     if(error)return "Unable to save your province and city: "+error.message;
   }
@@ -153,7 +169,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     // A pending company has no active workspace membership and cannot update canonical company tables.
     if(clinic){
       const clinicName=companyName||str(meta,"full_name",180);
-      const slug=clinicName.toLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)+"-"+userId.slice(0,8);
+      const slug=clinicName.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)+"-"+userId.slice(0,8);
       const {data:existingClinic,error:clinicReadError}=await supabase.from("clinics").select("id").eq("owner_id",userId).limit(1).maybeSingle();
       if(clinicReadError)return "Unable to check the clinic profile: "+clinicReadError.message;
       const primaryCity=str(meta,"city",120);

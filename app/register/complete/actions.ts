@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { persistRegisteredCategoryDetails } from "@/lib/registration-persistence";
+import { persistRegisteredCategoryDetails, registrationDraftMetadata } from "@/lib/registration-persistence";
 import {
   REGISTRATION_EVIDENCE_BUCKET,
   isAcceptedEvidenceFile,
@@ -24,14 +24,15 @@ async function currentRegistration() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) redirect("/login?next=/register/complete");
-  const [{ data: profile }, { data: gate }] = await Promise.all([
+  const [{ data: profile }, { data: gate }, details] = await Promise.all([
     supabase.from("profiles").select("primary_role").eq("id", data.user.id).maybeSingle(),
     supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status,cnic_number,completed_at").eq("user_id", data.user.id).maybeSingle(),
+    supabase.from("registration_profile_details").select("category_details").eq("user_id", data.user.id).maybeSingle(),
   ]);
-  if (!profile?.primary_role || !gate) redirect("/register/complete?error=Registration%20record%20not%20found.");
+  if (!profile?.primary_role || !gate || details.error) redirect("/register/complete?error=Registration%20record%20not%20found.");
   if (gate.review_status === "approved") redirect("/dashboard");
   if (gate.completed_at && gate.review_status === "pending") redirect("/register/status");
-  return { supabase, user: data.user, role: profile.primary_role, gate };
+  return { supabase, user: data.user, role: profile.primary_role, gate, metadata: registrationDraftMetadata(data.user.user_metadata,details.data?.category_details) };
 }
 
 export async function saveRegistrationCnicAction(formData: FormData) {
@@ -82,21 +83,21 @@ export async function completeRegistrationAction() {
 }
 
 export async function saveRegistrationProfileDraftAction(formData: FormData) {
-  const { supabase, user, role } = await currentRegistration();
+  const { supabase, user, role, metadata: savedMetadata } = await currentRegistration();
   if (!["veterinarian", "candidate", "professional"].includes(role)) throw new Error("This category does not use a professional experience draft.");
   const draft: Record<string, string> = {};
   for (const key of ["current_designation", "current_workplace", "professional_summary", "experience_years"]) {
     const value = String(formData.get(key) ?? "").trim();
     const limit = key === "professional_summary" ? 250 : 180;
-    if (value.length > limit || /[<>\u0000-\u001f]/.test(value)) throw new Error("Please check your professional details.");
+    if (value.length > limit || /[<>\u0000-\u001f]/.test(value)) redirect("/register/complete?error=Please%20check%20your%20professional%20details.");
     draft[key] = value;
   }
-  if (draft.experience_years && (!/^\d{1,2}$/.test(draft.experience_years) || Number(draft.experience_years) > 80)) throw new Error("Experience must be a whole number from 0 to 80.");
-  const metadata = { ...user.user_metadata, ...draft };
-  const issue = await persistRegisteredCategoryDetails(supabase, user.id, metadata);
-  if (issue) throw new Error(issue);
+  if (draft.experience_years && (!/^\d{1,2}$/.test(draft.experience_years) || Number(draft.experience_years) > 80)) redirect("/register/complete?error=Experience%20must%20be%20a%20whole%20number%20from%200%20to%2080.");
+  const metadata = { ...savedMetadata, ...draft };
+  const issue = await persistRegisteredCategoryDetails(supabase, user.id, metadata, {replaceSavedDetails:true});
+  if (issue) redirect("/register/complete?error="+encodeURIComponent(issue));
   const { error } = await supabase.auth.updateUser({ data: draft });
-  if (error) throw new Error("Your private profile was saved but account synchronization failed. Please retry before submitting.");
+  if (error) redirect("/register/complete?message="+encodeURIComponent("Professional draft saved. Account synchronization is delayed; your saved details will be used when you return."));
   revalidatePath("/register/complete");
   redirect("/register/complete?message=Professional%20draft%20saved.");
 }
