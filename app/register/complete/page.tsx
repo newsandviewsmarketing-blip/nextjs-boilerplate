@@ -28,6 +28,7 @@ export default async function CompleteRegistrationPage({
   if (!profileError && !gateError && gate?.review_status === "approved") redirect("/dashboard");
   if (!profileError && !gateError && gate?.completed_at && gate?.review_status === "pending") redirect("/register/status");
 
+  const registrationReady = Boolean(profile && gate && !profileError && !gateError && !existing.error);
   return (
     <main>
       <SiteHeader />
@@ -39,8 +40,8 @@ export default async function CompleteRegistrationPage({
               <h1>Complete your registration</h1>
               <p>Upload your CNIC and the documents required for your selected category. Files are saved privately as you upload them. Nothing becomes public until an administrator approves your application.</p>
             </div>
-            <FormMessage error={params.error || (profileError || existing.error || gateError ? "Private registration storage is not ready. Please contact VetConnect support." : undefined)} />
-            {["veterinarian", "candidate", "professional"].includes(role) && <form action={saveRegistrationProfileDraftAction} className="backend-form-card">
+            <FormMessage error={!registrationReady ? "Registration completion is temporarily unavailable. Please contact VetConnect support, then sign in with the same email to continue. Do not upload identity documents until this step is available." : params.error} />
+            {registrationReady && ["veterinarian", "candidate", "professional"].includes(role) && <form action={saveRegistrationProfileDraftAction} className="backend-form-card">
               <h2>Saved professional experience</h2>
               <p>Review or update these details before submitting. Use Save draft to keep changes with your verified account.</p>
               {params.message && <p role="status">{params.message}</p>}
@@ -50,7 +51,7 @@ export default async function CompleteRegistrationPage({
               </div>
               <button type="submit" className="button button-primary">Save professional draft</button>
             </form>}
-            <RegistrationEvidenceForm requirements={requirements} cnic={gate?.cnic_number ?? ""} saved={existing.data ?? []} />
+            {registrationReady && <RegistrationEvidenceForm requirements={requirements} cnic={gate?.cnic_number ?? ""} saved={existing.data ?? []} />}
             <p className="form-help">Your CNIC and credential files are held for VetConnect identity and category verification. Do not submit another person’s documents.</p>
             <LinkBack />
           </div>

@@ -52,9 +52,12 @@ export async function createManagedPersonAction(formData: FormData) {
   if((mode==="veterinarian")!==(profileKind==="veterinarian"))createError("person","Veterinary professional category does not match the form.");
   const practiceAreas=formData.getAll("practice_areas").map(String).filter(x=>(PRACTICE_AREAS as readonly string[]).includes(x));
   const specializations=formData.getAll("specializations").map(String).filter(x=>(SPECIALIZATIONS as readonly string[]).includes(x));
+  let veterinaryQualifications:string|null=null;
   if(mode==="veterinarian"){
     const check=registrationExtraFields(formData,"veterinarian","");
     if(check.error)createError("person",check.error);
+    veterinaryQualifications=[String(check.data.qualifications)+" — "+String(check.data.institution),
+      ...(Array.isArray(check.data.additional_qualifications)?check.data.additional_qualifications:[])].join(", ");
   }
   if(mode==="student"&&!text(formData,"organization_name"))createError("person","University/college is required for students.");
   if(mode==="professional"&&!text(formData,"professional_type"))createError("person","Choose an allied professional role.");
@@ -65,7 +68,7 @@ export async function createManagedPersonAction(formData: FormData) {
   const { data, error } = await supabase.from("managed_people").insert({
     full_name: fullName, slug: uniqueSlug(fullName), profile_kind: profileKind,
     contact_email: optional(formData,"contact_email"), public_phone: optional(formData,"public_phone"),
-    qualifications: optional(formData,"qualifications"), professional_type: optional(formData,"professional_type"),
+    qualifications: veterinaryQualifications ?? optional(formData,"qualifications"), professional_type: optional(formData,"professional_type"),
     headline: optional(formData,"headline"), public_summary: optional(formData,"public_summary"),
     current_position: optional(formData,"current_position"), organization_name: optional(formData,"organization_name"),
     pvmc_number: pvmc, veterinary_sector: sector, specialization: specialization || null,
