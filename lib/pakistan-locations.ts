@@ -42,6 +42,14 @@ export const PAKISTAN_LOCATION_OPTIONS = options.sort((a, b) =>
   a.province.localeCompare(b.province) || a.label.localeCompare(b.label),
 );
 
+export const PAKISTAN_PROVINCES = hierarchy.data.map(item => item.name.en);
+
+export function isPakistanLocationInProvince(city: string, province: string): boolean {
+  return PAKISTAN_LOCATION_OPTIONS.some(option =>
+    option.value.toLowerCase() === city.trim().toLowerCase() && option.province === province,
+  );
+}
+
 const validLocationNames = new Set(
   PAKISTAN_LOCATION_OPTIONS.map(option => option.value.trim().toLowerCase()),
 );

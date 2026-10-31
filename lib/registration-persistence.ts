@@ -1,3 +1,4 @@
+import {hasDocumentedVeterinaryQualification} from "@/lib/veterinary-verification";
 import {createClient} from "@/lib/supabase/server";
 import {PRACTICE_AREAS,SPECIALIZATIONS,PROFESSIONAL_CATEGORIES} from "@/lib/registration-categories";
 
@@ -7,14 +8,21 @@ const str=(m:Metadata,k:string,size=180)=>typeof m[k]==="string"?(m[k] as string
 const safeList=(m:Metadata,key:string,options:readonly string[])=>Array.isArray(m[key])?
  [...new Set(m[key].filter((x:unknown)=>typeof x==="string"&&options.includes(x)))] as string[]:[];
 const textList=(m:Metadata,key:string,max=120)=>Array.isArray(m[key])?
- [...new Set(m[key].filter((x:unknown)=>typeof x==="string").map((x:string)=>x.trim()).filter((x:string)=>x.length>0&&x.length<=max&&!/[<>\\u0000-\\u001f]/.test(x)))].slice(0,30):[];
+ [...new Set(m[key].filter((x:unknown)=>typeof x==="string").map((x:string)=>x.trim()).filter((x:string)=>x.length>0&&x.length<=max&&!/[<>\u0000-\u001f]/.test(x)))].slice(0,30):[];
 export async function persistRegisteredCategoryDetails(supabase:Db,userId:string,meta:Metadata):Promise<string|null>{
   // Called after authenticated OTP/confirmation, for profile content only.
   // Self-editable auth metadata MUST NEVER confer staff permissions or PVMC approval.
   const {data:record,error:statusError}=await supabase.from("profiles").select("primary_role").eq("id",userId).maybeSingle();
   if(statusError||!record)return "Registration account could not be loaded.";
   const role=record.primary_role;
+  if(role==="professional" || role==="candidate"){
+    const primary=role==="professional" || str(meta,"student_track")==="job_seeker" ? str(meta,"highest_qualification") : "";
+    const completedDegrees=[primary,...textList(meta,"additional_qualifications",180)];
+    if(completedDegrees.some(hasDocumentedVeterinaryQualification) && !/^[a-z0-9\s/\\_.-]{1,70}$/i.test(str(meta,"pvmc_number",71)))
+      return "A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number.";
+  }
   const allowedKeys=[
+    "province","city","additional_qualifications","additional_institutions",
     "experience_years","current_designation","current_workplace","professional_summary",
     "pvmc_number","qualifications","institution","practice_areas","specializations","specialization_other",
     "student_track","highest_qualification","study_program","student_college_registration_number",
@@ -35,6 +43,13 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     {onConflict:"user_id"}
   );
   if(detailsError)return "Unable to securely save your registration details: "+detailsError.message;
+  const province=str(meta,"province",120), city=str(meta,"city",120);
+  if(province && city){
+    const {isPakistanLocationInProvince}=await import("@/lib/pakistan-locations");
+    if(!isPakistanLocationInProvince(city,province))return "Saved province and city do not match. Contact support to correct your registration.";
+    const {error}=await supabase.from("profiles").update({province,city}).eq("id",userId);
+    if(error)return "Unable to save your province and city: "+error.message;
+  }
   if(role==="veterinarian"){
     const pvmc=str(meta,"pvmc_number",70);
     const areas=safeList(meta,"practice_areas",PRACTICE_AREAS);
@@ -44,8 +59,9 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     const institution=str(meta,"institution",180);
     if(!pvmc||!areas.length||!qualification||!institution)return "Your veterinary registration is missing a PVMC number, qualification, awarding institution or practice area.";
     const credentialLabel=institution?qualification+" — "+institution:qualification;
+    const allQualifications=[credentialLabel,...textList(meta,"additional_qualifications",180)].join(", ");
     const {error}=await supabase.from("veterinarian_profiles").update({
-      pvmc_number:pvmc, qualifications:credentialLabel,
+      pvmc_number:pvmc, qualifications:allQualifications,
       veterinary_sector:areas[0],specialization:[...specs,...(specialOther?[specialOther]:[])].join(", ")||null,
       services:areas.map(x=>"Practice area: "+x),
     }).eq("user_id",userId);
@@ -89,6 +105,21 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
           is_current:Boolean(student),visibility:"owner_only"
         });
         if(educationInsertError)return "Unable to save the submitted education details: "+educationInsertError.message;
+      }
+    }
+    const additionalDegrees=Array.isArray(meta.additional_qualifications)
+      ? meta.additional_qualifications.map(value=>typeof value==="string"?value.trim():"") : [];
+    const additionalInstitutions=Array.isArray(meta.additional_institutions)?meta.additional_institutions:[];
+    for(const [index,degree] of additionalDegrees.entries()){
+      if(!degree || degree.length>180)continue;
+      const awarding=typeof additionalInstitutions[index]==="string"?String(additionalInstitutions[index]).slice(0,180):"";
+      const {data:existing,error:readError}=await supabase.from("professional_education").select("id")
+        .eq("professional_user_id",userId).eq("degree",degree).eq("institution",awarding);
+      if(readError)return "Could not check additional education: "+readError.message;
+      if(!existing?.length){
+        const {error}=await supabase.from("professional_education").insert({professional_user_id:userId,
+          degree,institution:awarding,is_current:false,visibility:"owner_only"});
+        if(error)return "Unable to save additional education: "+error.message;
       }
     }
     // Student registration numbers are PRIVATE credential records, never public skills or CV text.

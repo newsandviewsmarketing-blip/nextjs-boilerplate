@@ -168,7 +168,8 @@ test("account location uses dependent Pakistan administrative selectors", () => 
   assert.match(locations, /Province \/ Territory/);
   assert.match(locations, /District/);
   assert.match(locations, /Tehsil \/ Taluka/);
-  assert.match(locations, /open-admin-data\/pakistan-administrative-divisions/);
+  assert.match(locations, /public\/data\/pakistan-administrative-hierarchy\.json/);
+  assert.doesNotMatch(locations, /fetch\(/);
   assert.match(migration, /^begin;$/m);
   assert.match(migration, /^commit;$/m);
   assert.doesNotMatch(migration, /\bdrop\s+table\b|\bdrop\s+column\b|\btruncate\b|\bdelete\s+from\b/i);

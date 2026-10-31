@@ -1,4 +1,5 @@
-import { isPakistanLocation } from "@/lib/pakistan-locations";
+import { hasDocumentedVeterinaryQualification } from "@/lib/veterinary-verification";
+import { isPakistanLocation, isPakistanLocationInProvince, PAKISTAN_PROVINCES } from "@/lib/pakistan-locations";
 
 export const PRACTICE_AREAS = [
   "Pets / Companion Animals", "Dairy / Cattle", "Livestock / Small Ruminants",
@@ -42,7 +43,7 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     const selected=field(form,key+"_choice");
     if(selected==="__other__"){
       const other=field(form,key+"_other");
-      if(!other||!clean(other,180))return false;
+      if(!other||!clean(other,173))return false;
       data[key]="Other: "+other;
       return true;
     }
@@ -59,11 +60,31 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
   }
   const city=field(form,"city");
   if(!isPakistanLocation(city))return {error:"Choose your city or town from the Pakistan locations list.",data:{}};
+  const province=field(form,"province");
+  if (!PAKISTAN_PROVINCES.includes(province) || !isPakistanLocationInProvince(city, province))
+    return {error:"Select a province / territory and a city belonging to that province.",data:{}};
   data.city=city;
+  data.province=province;
+
+  if (["veterinarian", "candidate", "professional"].includes(role)) {
+    const indices=form.getAll("additional_qualification_index").map(String);
+    if(indices.length>10 || new Set(indices).size!==indices.length || indices.some(index=>!/^\d{1,6}$/.test(index)))
+      return {error:"Add up to 10 additional degrees using the degree fields.",data:{}};
+    const degrees:string[]=[], institutions:string[]=[];
+    for(const index of indices){
+      const key="additional_qualification_"+index;
+      if(!qualification(key,ACADEMIC_QUALIFICATIONS))return {error:"Select or specify each additional degree.",data:{}};
+      const institution=field(form,"additional_institution_"+index);
+      if(!institution||!clean(institution))return {error:"Enter the awarding institution for each additional degree.",data:{}};
+      degrees.push(String(data[key]));institutions.push(institution);delete data[key];
+    }
+    data.additional_qualifications=degrees;
+    data.additional_institutions=institutions;
+  }
 
   if(role==="veterinarian") {
     const pvmc=field(form,"pvmc_number");
-    if(!pvmc || pvmc.length>70 || !/^[a-z0-9\s/\\-_.]+$/i.test(pvmc))
+    if(!pvmc || pvmc.length>70 || !/^[a-z0-9\s/\\_.-]+$/i.test(pvmc))
       return {error:"Registered veterinarians must provide their PVMC practitioner number.",data:{}};
     if(!qualification("qualifications",VETERINARY_QUALIFICATIONS))return {error:"Select a listed veterinary qualification or specify another qualification for administrator review.",data:{}};
     const qual=String(data.qualifications);
@@ -123,6 +144,15 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
       if(!required(k,250))return {error:"Laboratory name, registration, services and address are required.",data:{}};
   }else if(role==="user"){
     for(const k of ["customer_type","animal_interest"])if(!capture(k,180))return {error:"Invalid customer information.",data:{}};
+  }
+  const completedPrimary=role==="veterinarian" ? String(data.qualifications??"") :
+    role==="professional" || (role==="candidate" && data.student_track==="job_seeker") ? String(data.highest_qualification??"") : "";
+  const completedDegrees=[completedPrimary,...(Array.isArray(data.additional_qualifications)?data.additional_qualifications:[])];
+  if (["candidate","professional"].includes(role) && completedDegrees.some(hasDocumentedVeterinaryQualification)) {
+    const pvmc=field(form,"pvmc_number");
+    if(!pvmc || pvmc.length>70 || !/^[a-z0-9\s/\\_.-]+$/i.test(pvmc))
+      return {error:"A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number. Current students do not need a practitioner number for their ongoing program.",data:{}};
+    data.pvmc_number=pvmc;
   }
   return {data};
 }

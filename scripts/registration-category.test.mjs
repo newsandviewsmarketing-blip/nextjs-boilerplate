@@ -129,3 +129,108 @@ test("First registration migration declares the role variable and review status 
  assert.match(sql,/grant select, insert, delete on public.registration_evidence to authenticated/);
  assert.match(read("app/register/complete/actions.ts"),/saveRegistrationProfileDraftAction/);
 });
+
+// Execute the actual validators, including forged submissions that bypass browser required fields.
+async function registrationModules() {
+ const ts=(await import("typescript")).default;
+ const {runInNewContext}=await import("node:vm");
+ const cache=new Map();
+ const load=(path)=>{
+  if(cache.has(path))return cache.get(path);
+  const exported={exports:{}};cache.set(path,exported.exports);
+  const compiled=ts.transpileModule(read(path),{compilerOptions:{module:ts.ModuleKind.CommonJS,
+   target:ts.ScriptTarget.ES2022,esModuleInterop:true,resolveJsonModule:true}}).outputText;
+  runInNewContext(compiled,{module:exported,exports:exported.exports,FormData,console,require:(name)=>{
+   if(name==="../public/data/pakistan-administrative-hierarchy.json")return JSON.parse(read("public/data/pakistan-administrative-hierarchy.json"));
+   if(name.startsWith("@/lib/"))return load(name.replace("@/","" )+".ts");
+   throw new Error("Unexpected import: "+name);
+  }});
+  return exported.exports;
+ };
+ return {validate:load("lib/registration-categories.ts").registrationExtraFields,
+  persist:load("lib/registration-persistence.ts").persistRegisteredCategoryDetails,
+  locations:load("lib/pakistan-locations.ts")};
+}
+function registrationForm(overrides={}) {
+ const form=new FormData();
+ for(const [key,value] of Object.entries({city:"Lahore",province:"Punjab",institution:"UAF",
+  highest_qualification_choice:"MPhil",professional_types:"Animal Nutritionist",
+  industry_sectors:"Feed / Nutrition",specialization_other:"Animal nutrition",...overrides})) form.set(key,value);
+ return form;
+}
+function addDegree(form,id,degree,institution="UAF") {
+ form.append("additional_qualification_index",String(id));
+ form.set("additional_qualification_"+id+"_choice",degree);
+ form.set("additional_institution_"+id,institution);
+}
+
+test("Province and city validator rejects mismatches and accepts every listed pairing",async()=>{
+ const {validate,locations}=await registrationModules();
+ assert.match(validate(registrationForm({province:"Sindh"}),"professional","").error,/province/i);
+ assert.match(validate(registrationForm({province:""}),"professional","").error,/province/i);
+ assert.equal(validate(registrationForm(),"professional","").error,undefined);
+ for(const item of locations.PAKISTAN_LOCATION_OPTIONS)
+  assert.equal(locations.isPakistanLocationInProvince(item.value,item.province),true,item.label);
+ assert.equal(locations.isPakistanLocationInProvince("Lahore","Sindh"),false);
+});
+test("Completed DVM requires a PVMC number even on the allied or job-seeker pathway",async()=>{
+ const {validate}=await registrationModules();
+ for(const role of ["professional","candidate"]){
+  const form=registrationForm({highest_qualification_choice:"DVM",student_track:"job_seeker"});
+  assert.match(validate(form,role,"").error,/PVMC/);
+  form.set("pvmc_number","12345-P");
+  assert.equal(validate(form,role,"").error,undefined);
+  assert.equal(validate(form,role,"").data.pvmc_number,"12345-P");
+ }
+});
+test("MPhil and PhD without a veterinary degree need no practitioner number",async()=>{
+ const {validate}=await registrationModules();
+ for(const degree of ["MPhil","PhD","BS / BSc"])
+  assert.equal(validate(registrationForm({highest_qualification_choice:degree}),"professional","").error,undefined);
+});
+test("Current DVM and non-veterinary students do not need a PVMC practitioner number",async()=>{
+ const {validate}=await registrationModules();
+ for(const [track,degree] of [["dvm_student","DVM"],["postgraduate_student","MPhil"],["phd_student","PhD"]]){
+  const form=registrationForm({student_track:track,study_program_choice:degree,student_college_registration_number:"UAF-123"});
+  assert.equal(validate(form,"candidate","").error,undefined);
+ }
+});
+test("Additional completed DVM triggers PVMC; degrees and institutions retain their pairing",async()=>{
+ const {validate}=await registrationModules();
+ const form=registrationForm({highest_qualification_choice:"PhD"});
+ addDegree(form,0,"MPhil","UAF");addDegree(form,3,"DVM","UVAS");
+ assert.match(validate(form,"professional","").error,/PVMC/);
+ form.set("pvmc_number","12345");
+ const result=validate(form,"professional","");
+ assert.equal(result.error,undefined);
+ assert.deepEqual(Array.from(result.data.additional_qualifications),["MPhil","DVM"]);
+ assert.deepEqual(Array.from(result.data.additional_institutions),["UAF","UVAS"]);
+ form.delete("additional_qualification_index");form.append("additional_qualification_index","0");
+ assert.equal(validate(form,"professional","").error,undefined,"Removing a DVM removes its PVMC requirement");
+});
+test("Invalid additional degree submissions cannot bypass bounds or institution checks",async()=>{
+ const {validate}=await registrationModules();
+ const missing=registrationForm();addDegree(missing,0,"PhD","");
+ assert.match(validate(missing,"professional","").error,/institution/);
+ const forged=registrationForm();forged.append("additional_qualification_index","../bad");
+ assert.match(validate(forged,"professional","").error,/degrees/);
+ const tooMany=registrationForm();for(let i=0;i<11;i++)addDegree(tooMany,i,"PhD");
+ assert.match(validate(tooMany,"professional","").error,/10/);
+ const custom=registrationForm();addDegree(custom,0,"__other__");custom.set("additional_qualification_0_other","Doctor of Veterinary Medicine");
+ assert.match(validate(custom,"professional","").error,/PVMC/);
+});
+test("Veterinarian persistence retains DVM, additional degrees and private details",async()=>{
+ const {persist}=await registrationModules();
+ let saved,vet;
+ const db={from(table){
+  if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})})};
+  if(table==="registration_profile_details")return {upsert:async(row)=>{saved=row;return {};}};
+  if(table==="veterinarian_profiles")return {update:(row)=>({eq:async()=>{vet=row;return {};}})};
+  throw new Error("Unexpected table: "+table);
+ }};
+ const issue=await persist(db,"owner",{qualifications:"DVM",institution:"UAF",pvmc_number:"12345",
+  practice_areas:["Dairy / Cattle"],additional_qualifications:["MPhil","PhD"],additional_institutions:["UAF","UVAS"]});
+ assert.equal(issue,null);
+ assert.match(vet.qualifications,/DVM.*MPhil.*PhD/);
+ assert.deepEqual(Array.from(saved.category_details.additional_institutions),["UAF","UVAS"]);
+});
