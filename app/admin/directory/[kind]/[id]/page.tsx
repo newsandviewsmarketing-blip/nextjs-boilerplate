@@ -110,6 +110,7 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
             <input type="hidden" name="user_id" value={id}/><input type="hidden" name="entity_id" value={id}/>
             <input type="hidden" name="return_to" value={`/admin/directory/${kind}/${id}`}/>
             <label htmlFor="directory-review-note">Reviewer note / verification or rejection reason</label><input id="directory-review-note" name="reason" placeholder="Record evidence and decision"/>
+            {kind==="clinic"&&<label className="checkbox-line"><input type="checkbox" name="pvmc_checked" />PVMC registry and credential evidence checked; describe the source and status in the review note (minimum 25 characters).</label>}
             <div className="vc-editor-buttons">{!approved&&<FormSubmitButton className="button button-primary" pendingLabel="Approving… " name="decision" value="approved">Approve profile</FormSubmitButton>}
               <button className="button button-secondary" name="decision" value="rejected" type="submit">{approved?"Unpublish / return for correction":"Reject / return"}</button></div>
           </form>
