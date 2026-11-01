@@ -10,7 +10,7 @@ import {notifyEmployerApplication} from "@/lib/guest-job-applications";
 export async function applyToJobAction(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
   const jobId = String(formData.get("job_id") ?? "");
-  const coverNote = String(formData.get("cover_note") ?? "").trim();
+  let coverNote = String(formData.get("cover_note") ?? "").trim();
   const path = `/jobs/${encodeURIComponent(slug)}`;
   const identity = await getCurrentIdentity();
   if (!identity) redirect(`/login?next=${encodeURIComponent(path)}`);
@@ -26,6 +26,11 @@ export async function applyToJobAction(formData: FormData) {
   const supabase = await createClient();
   if(!await matchingVerifiedAccountEmail(supabase,identity.userId,String(formData.get("confirm_email")??"")))
    redirect(path+"?error="+encodeURIComponent("Confirm the verified email of your logged-in VetConnect account before applying."));
+  if(formData.get('use_saved_letter')==='on'){
+    const {data:letter,error:letterError}=await supabase.from('career_cover_letters').select('body_text').eq('user_id',identity.userId).maybeSingle();
+    if(letterError||!letter?.body_text)redirect(path+'?error='+encodeURIComponent('Create and save your cover letter before selecting it.'));
+    coverNote=letter.body_text;
+  }
   const verificationQuery = careerRole === "veterinarian"
     ? supabase.from("veterinarian_profiles").select("verification_status").eq("user_id", identity.userId).maybeSingle()
     : supabase.from("professional_profiles").select("verification_status").eq("user_id", identity.userId).maybeSingle();

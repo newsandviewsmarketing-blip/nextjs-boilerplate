@@ -20,6 +20,7 @@ export default async function RegistrationStatusPage() {
     {rejected&&gate.review_note&&<div className="form-message form-message-error"><strong>Administrator note</strong><p>{gate.review_note}</p></div>}
     {gate.submitted_at&&<p className="form-help">Last submitted {new Date(gate.submitted_at).toLocaleString()}.</p>}
     {rejected?<a className="button button-primary button-full" href="/register/complete">Update documents and resubmit</a>:<p className="form-help">We will email you when the review is complete. You can safely sign out and return later with this email account.</p>}
+    <p><a className="button button-primary" href="/career">Prepare your CV and job preferences while you wait</a></p>
     <p className="center-note"><a href="/login">Return to sign in</a></p>
   </div></div></section><SiteFooter/></main>;
 }

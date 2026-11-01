@@ -1,0 +1,11 @@
+# Career alert deployment
+
+1. Verify the target is Vercel project vetconnect and Supabase oflwhfptrorsjvhlofrn. Match the two applied migration versions documented in job-seeker-completion-blockers.md. Do not apply a different SQL payload using the same version.
+2. Run npm ci, npm test, npm run typecheck, npm run audit and npm run build for the proposed commit. Isolated PostgreSQL tests use the pinned PGlite dev dependency, not production fixtures.
+3. Configure the server-only email, service-role and cron variables from the blocker document using project settings. Use a verified notification sender. Restrict the worker service-role secret to the production server environment; never use NEXT_PUBLIC_ for it. Keep preview email delivery disabled.
+4. Confirm the hosting plan accepts a 15-minute cron and that CRON_SECRET is attached as Authorization: Bearer by the scheduler. The route fails closed when configuration or authorization is missing. Do not make the endpoint public to make scheduling work.
+5. Deploy a reviewed preview for UI checks with email sending disabled. Verify a pending, verified-email candidate can save a CV and preferences at /career while /dashboard remains gated. Verify a second account cannot read their CV or photograph. Check mobile forms, photo preview, and PDF output.
+6. Deploy the reviewed production commit. With a controlled candidate, verify consent off means no job-match email; profile pending means no matching email; approved active candidate plus consent and complete CV can receive a matching, approved job. Verify draft, expired and withdrawn jobs produce no alert. Check admin receipt, verified-login recipient and signed-in opt-out link. Do not send real test emails until a controlled recipient is selected.
+7. Inspect career_alert_outbox status, attempts, accepted_at and provider_id. accepted means provider accepted the request, not confirmed delivery. Check the email provider delivery event for end-to-end evidence. Never reset accepted or stale uncertain rows without checking the provider first.
+
+The current worker claims 10 rows per invocation. Before significant growth, monitor backlog age and tune the schedule and bounded batch size to the hosting/provider limits. Matching uses employer/profile data and candidate choices, not an automated recruitment decision.

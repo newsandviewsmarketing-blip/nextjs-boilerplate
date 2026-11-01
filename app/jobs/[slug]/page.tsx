@@ -21,8 +21,8 @@ async function loadJob(slug: string): Promise<PublicJob | null> {
   const { data } = await supabase.from("public_jobs").select("id, slug, title, description, sector, city, province, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_name").eq("slug", slug).maybeSingle();
   if (!data?.id) return sample ?? null;
   const { data: coverage } = await supabase.from("job_coverage").select("job_id,scope,province,display_text").eq("job_id",data.id).maybeSingle();
-  const {data:media}=await supabase.from("jobs").select("advert_image_path,advert_image_mime").eq("id",data.id).maybeSingle();
-  return {...data,coverage,image_available:Boolean(media?.advert_image_path && ["image/jpeg","image/png","image/webp"].includes(media?.advert_image_mime??""))} as PublicJob;
+  const {data:media}=await supabase.from("jobs").select("advert_image_path,advert_image_mime,country,work_mode,salary_min,salary_max,salary_currency,salary_period").eq("id",data.id).maybeSingle();
+  return {...data,...media,coverage,image_available:Boolean(media?.advert_image_path && ["image/jpeg","image/png","image/webp"].includes(media?.advert_image_mime??""))} as PublicJob;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -103,6 +103,8 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
         <dl className="product-specs">
           <div><dt>Employer</dt><dd>{job.company_name}</dd></div>
           <div><dt>Location</dt><dd>{job.coverage?.display_text || [job.city,job.province].filter(Boolean).join(", ") || "Pakistan"}</dd></div>
+          <div><dt>Country / work arrangement</dt><dd>{[job.country,job.work_mode].filter(Boolean).join(' / ')||'Not specified'}</dd></div>
+          <div><dt>Salary</dt><dd>{job.salary_min!=null||job.salary_max!=null?`${job.salary_currency} ${job.salary_min??'Not specified'} to ${job.salary_max??'Not specified'} per ${job.salary_period}`:'Not disclosed'}</dd></div>
           <div><dt>Employment type</dt><dd>{job.employment_type}</dd></div>
           <div><dt>Minimum qualification</dt><dd>{job.minimum_qualification||"Not specified"}</dd></div>
           <div><dt>Minimum experience</dt><dd>{job.minimum_experience===null?"Not specified":job.minimum_experience+" years"}</dd></div>
@@ -188,7 +190,7 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
                   {(cvDocuments??[]).map((doc,index)=>
                     <option key={doc.id} value={"saved:"+doc.id}>Saved CV {index+1} · {new Date(doc.created_at).toLocaleDateString("en-PK")}{doc.is_current?" (Current)":""}</option>)}
                 </select>
-                <label htmlFor="cover_note">Short application note (optional)</label>
+                <label className="checkbox-line"><input type="checkbox" name="use_saved_letter"/>Use my saved cover letter instead of the note below</label><p className="form-help"><a href="/career/cover-letter" target="_blank" rel="noopener noreferrer">Review my cover letter for this employer</a> before selecting it. This is optional.</p><label htmlFor="cover_note">Short application note (optional)</label>
                 <textarea id="cover_note" name="cover_note" maxLength={3000}
                   placeholder="Briefly explain your fit for this role."/>
                 <label htmlFor="apply_confirm_email">Confirm your verified VetConnect login email *</label>

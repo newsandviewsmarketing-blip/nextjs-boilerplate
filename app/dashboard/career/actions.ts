@@ -1,5 +1,6 @@
 "use server";
 
+import {requireCareerAccount} from "@/lib/career-access";
 import {randomUUID} from "node:crypto";
 import {redirect} from "next/navigation";
 import {revalidatePath} from "next/cache";
@@ -8,50 +9,45 @@ import {createClient} from "@/lib/supabase/server";
 import {matchingVerifiedAccountEmail} from "@/lib/career-email-verification";
 import {inspectCvFile} from "@/lib/guest-job-applications";
 
-function fail(message:string):never{
- redirect("/dashboard/career?error="+encodeURIComponent(message));
-}
 export async function uploadCareerCvAction(formData:FormData){
+ const destination=formData.get("return_to")==="/career/cv"?"/career/cv?mode=upload":"/dashboard/career";
+ const uploadFail=(message:string):never=>redirect(destination+(destination.includes("?")?"&":"?")+"error="+encodeURIComponent(message));
  const identity=await getCurrentIdentity();
  if(!identity)redirect("/login?next=/dashboard/career");
- if(!identity.roles.some(r=>["candidate","professional","veterinarian"].includes(r)))fail("Career profile required.");
+ if(!identity.roles.some(r=>["candidate","professional","veterinarian"].includes(r)))uploadFail("Career profile required.");
  const file=formData.get("cv_file");
- if(!(file instanceof File)||file.size===0)fail("Select a PDF, Word, JPG or PNG CV.");
+ if(!(file instanceof File)||file.size===0)return uploadFail("Select a PDF, Word, JPG or PNG CV.");
  let validated:Awaited<ReturnType<typeof inspectCvFile>>;
  try{validated=await inspectCvFile(file);}
- catch(e){fail(e instanceof Error?e.message:"Invalid CV file.");}
+ catch(e){return uploadFail(e instanceof Error?e.message:"Invalid CV file.");}
  const supabase=await createClient();
- if(!await matchingVerifiedAccountEmail(supabase,identity.userId,String(formData.get("confirm_email")??"")))fail("Enter your own verified login email to upload your CV.");
+ if(!await matchingVerifiedAccountEmail(supabase,identity.userId,String(formData.get("confirm_email")??"")))uploadFail("Enter your own verified login email to upload your CV.");
  const path=identity.userId+"/cv/"+randomUUID()+"."+validated.ext;
  const {error:uploadError}=await supabase.storage.from("career-documents").upload(path,file,{
   contentType:validated.mime,upsert:false
  });
- if(uploadError)fail("CV upload failed: "+uploadError.message);
+ if(uploadError)uploadFail("CV upload failed: "+uploadError.message);
  const {data:record,error}=await supabase.from("career_documents").insert({
   professional_user_id:identity.userId,document_type:"cv",file_path:path,
   template_type:"uploaded",is_current:true,visibility:"owner_only"
  }).select("id").single();
  if(error||!record){
    await supabase.storage.from("career-documents").remove([path]);
-   fail("CV could not be saved: "+(error?.message||"Unknown error"));
+   return uploadFail("CV could not be saved: "+(error?.message||"Unknown error"));
  }
  await supabase.from("career_documents").update({is_current:false})
     .eq("professional_user_id",identity.userId).eq("document_type","cv").neq("id",record.id);
  revalidatePath("/dashboard/career");
- redirect("/dashboard/career?message="+encodeURIComponent("CV saved privately to My Career."));
+ redirect(destination+(destination.includes("?")?"&":"?")+"message="+encodeURIComponent("Original CV saved privately to your account."));
 }
 
 function value(data:FormData,key:string,max:number){
  return String(data.get(key)??"").trim().slice(0,max);
 }
 export async function saveCareerCvBuilderAction(formData:FormData){
- const identity=await getCurrentIdentity();
- if(!identity)redirect("/login?next=/dashboard/career/cv");
- if(!identity.roles.some(r=>["candidate","professional","veterinarian"].includes(r)))
-   redirect("/dashboard?error=Career%20account%20required.");
+ const {identity,supabase}=await requireCareerAccount();
  const name=value(formData,"full_name",120);
- if(name.length<2)redirect("/dashboard/career/cv?error=Enter%20your%20full%20name.");
- const supabase=await createClient();
+ if(name.length<2)redirect("/career/cv?error=Enter%20your%20full%20name.");
  const {error}=await supabase.from("career_cv_profiles").upsert({
   user_id:identity.userId,full_name:name,
   contact_email:value(formData,"contact_email",200)||null,
@@ -62,8 +58,35 @@ export async function saveCareerCvBuilderAction(formData:FormData){
   skills:value(formData,"skills",3000)||null,
   updated_at:new Date().toISOString()
  },{onConflict:"user_id"});
- if(error)redirect("/dashboard/career/cv?error="+encodeURIComponent(error.message));
+ if(error)redirect("/career/cv?error="+encodeURIComponent(error.message));
  revalidatePath("/dashboard/career");
- revalidatePath("/dashboard/career/cv");
- redirect("/dashboard/career/cv?message="+encodeURIComponent("CV builder saved. It is ready for job applications."));
+ revalidatePath("/career/cv");
+ redirect("/career/cv?review=1&message="+encodeURIComponent("CV saved. Open the saved CV to print or save a PDF, then choose future job interests."));
+}
+
+export async function uploadCareerPhotoAction(formData:FormData){
+ const {identity,supabase}=await requireCareerAccount();
+ const failPhoto=(message:string):never=>redirect('/career/cv?error='+encodeURIComponent(message));
+ const file=formData.get('photo');
+ if(!(file instanceof File)||file.size===0||file.size>5*1024*1024)return failPhoto('Choose a photograph up to 5 MB.');
+ const bytes=new Uint8Array(await file.arrayBuffer());
+ const ext=file.type==='image/jpeg'&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255?'jpg':
+  file.type==='image/png'&&bytes.slice(0,8).join(',')==='137,80,78,71,13,10,26,10'?'png':
+  file.type==='image/webp'&&String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP'?'webp':null;
+ if(!ext)failPhoto('Choose a valid JPG, PNG or WebP photograph.');
+ const {data:cv,error:readError}=await supabase.from('career_cv_profiles').select('user_id').eq('user_id',identity.userId).maybeSingle();
+ if(readError)return failPhoto('Your CV could not be loaded. Please retry.');
+ if(!cv){
+  const name=identity.profile?.full_name?.trim();
+  if(!name)return failPhoto('Save your name in the CV form before uploading a photograph.');
+  const {error:draftError}=await supabase.from('career_cv_profiles').upsert({user_id:identity.userId,full_name:name},{onConflict:'user_id',ignoreDuplicates:true});
+  if(draftError)return failPhoto('Your private CV draft could not be started. Please retry.');
+ }
+ const path=identity.userId+'/'+randomUUID()+'.'+ext;
+ const {error:uploadError}=await supabase.storage.from('career-cv-photos').upload(path,file,{contentType:file.type,upsert:false});
+ if(uploadError)failPhoto('Photograph could not be uploaded. Please retry.');
+ const {data:saved,error}=await supabase.from('career_cv_profiles').update({photo_path:path}).eq('user_id',identity.userId).select('user_id').maybeSingle();
+ if(error||!saved){await supabase.storage.from('career-cv-photos').remove([path]);failPhoto('Photograph could not be saved. Please retry.');}
+ revalidatePath('/career/cv');revalidatePath('/career/cv/print');
+ redirect('/career/cv?message=Your%20private%20CV%20photograph%20is%20saved.');
 }
