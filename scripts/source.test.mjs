@@ -241,7 +241,8 @@ test("clinic workspace activates facility profile, media, services and affiliati
   const detailPage = read("app/dashboard/clinics/[id]/page.tsx");
   const actions = read("app/dashboard/clinics/actions.ts");
   const publicPage = read("app/clinics/[slug]/page.tsx");
-  assert.match(listPage, /CLINIC WORKSPACE/);
+  assert.match(listPage, /CareerWorkspaceFrame/);
+  assert.match(listPage, /MY FACILITIES/);
   assert.match(detailPage, /Standardized service catalogue/);
   assert.match(detailPage, /uploadClinicMediaAction/);
   assert.match(actions, /request_clinic_membership/);
