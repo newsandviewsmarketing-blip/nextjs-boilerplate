@@ -690,4 +690,3 @@ export default async function CompanyDashboardPage({
     </CareerWorkspaceFrame>
   );
 }
-}
