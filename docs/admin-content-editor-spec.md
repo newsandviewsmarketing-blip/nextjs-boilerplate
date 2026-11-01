@@ -1,42 +1,27 @@
-# Editable public information: owner brief and delivery boundary
+# Website content editor
 
-Status: implementation specification, NOT an active admin editor.
+Implementation: /admin/website. Admin > Administration > Website pages.
 
-The owner requests later editing of About, Team, Terms, Privacy, Cookies and their SEO text through Admin. Public copy is revised in this PR. The current pages still read the versioned source file; there is no save/publish backend in this PR.
+Editable pages: About Us, Team, Terms, Privacy and Cookies. Fields: page title, introduction, version/date, SEO title/description, ordered sections, paragraphs and public source links. Plain text only; no executable HTML.
 
-## Proposed permissions
-- site_content.edit: create and edit private drafts, edit SEO title/description, view rendered preview and request review.
-- site_content.publish: approve and publish an exact saved revision; restore an earlier revision by creating a new publish event.
-- Assign the publisher permission to the owner/super-admin initially. Assign editing only to explicitly selected staff. Do not grant account access from a person’s public team listing.
-- Extend the existing per-user grant/revocation system. Enforce effective permissions in server actions AND database policies; revoked grants and lookup errors must deny writes.
+Permissions:
+- site_content.edit grants private draft editing and history/restore.
+- site.manage grants editing and explicit publication. It is already present in the deployed database's super_admin role permissions; the application registry now matches it.
+- No actual user permission grants are made. Existing per-user revocations and active-account database checks apply on every action.
+- Save and publish are separate server actions. Editors cannot publish through the UI, server action or publication-table RLS.
 
-## Minimum workflow
-Admin > Website pages > choose page > Edit draft > Preview > Publish reviewed revision.
-Public visitors see only the published revision. Saving a draft never changes the public page. Preserve title, subtitle, plain-text sections, approved links, SEO title/description, version, publication date and editor. Validate lengths and allowlisted route names; reject executable HTML, javascript: URLs, arbitrary canonical domains and private document links.
-Show current published and draft revision numbers. Use expected-version checks to prevent two editors overwriting one another. Record author, approver, timestamp, changed fields and reason; keep immutable revisions and audit entries. Restore creates a new version rather than erasing history.
-Publishing policy changes does not retrospectively record consent. Material changes need a separate notice/renewed-agreement assessment.
+Persistence uses the existing site_content_drafts, site_content_publications and site_content_history tables and revision-checked RPCs. SQL compatibility upgrade: docs/sql/website-content-editor-upgrade.sql. It extends validation for schemaVersion 2, SEO and safe links, and adds draft-only permissions. Existing publications and history remain untouched. No user data is seeded or republished.
 
-## Implementation prerequisites and acceptance
-Prepare compatible content/revision/audit tables in an isolated staging database, migrations and RLS. No production database mutation is included or implied by this specification.
-Verify anonymous and ordinary users cannot read drafts or write content; editor cannot publish; publisher can approve; revoked and suspended staff cannot write; failed authorization lookups deny access; stale revisions reject; history and restore work.
-Public metadata must use the published text with the existing canonical-domain helper. SEO fields must not expose private data. Any cache invalidation must follow successful publication; backend failure must retain the last known published content.
-Keep Team profiles private until names, roles, biographies and publication permission are confirmed.
-Do not claim admin editing is usable until migration, authenticated permission tests and browser QA have passed.
+The public page and metadata load only published schema-2 documents. Legacy database snapshots predate the newer reviewed source and do not replace it automatically. In the editor, a legacy draft starts with the current reviewed source; saving explicitly creates the new-format draft. Existing historical documents can be restored into a new-format draft without changing the public page. A changed public document requires a new version. Restore preserves history and creates a new draft; publication remains explicit.
 
-## Product and privacy scope agreed in the owner brief
-Core: PVMC-registered veterinarian discovery and farmer/pet-owner connections.
-Allied identities: qualifications, experience, professional profile information.
-Business: relevant company/service-provider connections and source-backed product references (brand/generic, ingredients/salts, strength, form, packaging, manufacturer/supplier, review scope and source date).
-Careers: vacancies linked to identifiable employers and sources, with truthful review labels.
-Learning: knowledge sharing, training, online courses and skill development; actual enrolment/completion availability must be stated.
-Roadmap: animal/herd identity, consultations, clinician-authored prescriptions, treatment/vaccination history and owner-authorised care-team access. The current repository README and roadmap identify complete clinical-record/prescription workflows as outstanding; do not publish them as operational.
+Validation:
+- Behavioral tests cover all five source documents, invalid date/schema/slug/HTML, unsafe and signed links, immutable history conversion, unauthenticated/revoked/database-denied actions, draft-only permissions and stale/unreviewed publication.
+- Run full repository CI at the final head.
+- Verify database schema/document compatibility and anonymous/applicant/editor/publisher RLS using rollback-only checks; do not claim authenticated browser QA without it.
+- Browser/mobile QA and a real owner save/preview/publish/restore cycle remain required for complete acceptance.
+- No registration, CV, product, medicine or clinical-record workflows are changed.
 
-VNV relationship is described as the owner's digital initiative, without asserting a separate incorporated subsidiary. Official NIC Faisalabad sources confirm Vet-Connect Cohort 3 and Muhammad Atif Naseem as Founder. NICF's own About page describes Ministry of IT & Telecom / Ignite funding. This does not imply official product or practitioner approval.
-Founder Muhammad Atif Naseem explicitly endorses Pakistan-first positioning. Publish it as a founder-attributed statement about the combined verified communications/connectivity scope, not as an independent market survey or NICF certification. VNV's established-1987 heritage is nearly four decades; do not state VetConnect itself has operated for forty years.
+When backend reads fail, public routes fall back to the reviewed source text. This is not a guarantee to retain every latest database publication through an outage; infrastructure backups and recovery remain separate. Publishing updates the matching public route and metadata; it does not record user agreement to a policy. Drafts and history are never public or included in the sitemap.
 
-Sources checked 1 November 2026:
-- https://www.nicfaisalabad.com/startup/vet-connect/
-- https://www.nicfaisalabad.com/about-us/
-- Repository README.md, docs/ROADMAP-GAP-MATRIX.md and app/learn/page.tsx.
-
-Geographic roadmap: distinguish province/district/tehsil/city/service area from precise GPS/device location. Do not imply coordinates are collected without a feature-specific choice. Structured future records include products/ingredients, disease information and clinician-authored treatments; keep directory data separate from private patient records.
+## Database attempt
+The additive compatibility migration was submitted through the Supabase connector during this task. Its native confirmation expired after two minutes. Follow-up inspection is required; do not claim this upgrade applied or the editor operational. Do not bypass the expired confirmation by issuing the same DDL through execute_sql. Existing published wording was not changed by this attempt.

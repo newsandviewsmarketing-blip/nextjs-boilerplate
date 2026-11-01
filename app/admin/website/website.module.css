@@ -1,0 +1,14 @@
+.editor { min-width: 0; }
+.editor label { display: grid; gap: 7px; margin: 14px 0; font-size: 14px; font-weight: 650; }
+.editor input, .editor textarea { width: 100%; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; }
+.editor textarea { resize: vertical; }
+.editor fieldset { min-width: 0; margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; }
+.editor legend { padding: 0 7px; font-weight: 700; }
+.grid, .linkRow { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 18px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.editor button { min-height: 44px; }
+.editor a { color: var(--blue-deep); text-decoration: underline; overflow-wrap: anywhere; }
+.preview { padding: 24px; background: var(--soft); border-radius: 12px; overflow-wrap: anywhere; }
+.preview p { white-space: pre-wrap; line-height: 1.8; }
+.editor :focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+@media(max-width:700px) { .grid, .linkRow { grid-template-columns:minmax(0,1fr); } .editor fieldset { padding:12px; } }
