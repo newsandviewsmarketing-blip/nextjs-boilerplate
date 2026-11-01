@@ -51,6 +51,10 @@ export function resolveClinicFacilityType(
 
 export function clinicFocusEntries(formData:FormData,kind:"services"|"species"):string[] {
   const allowed = new Set<string>(kind === "services" ? CLINIC_SERVICES : CLINIC_SPECIES);
+  // Backwards-compatible with old forms or stale browser tabs while users update.
+  if(!formData.has(kind+"_extra")&&!formData.has(kind+"_selected"))
+    return String(formData.get(kind)??"").split(",")
+      .map(x=>x.trim()).filter(Boolean).slice(0,35);
   const submitted = formData.getAll(kind + "_selected").map(x=>String(x).trim());
   const extra = String(formData.get(kind + "_extra")??"")
     .split(",").map(x=>x.trim().replace(/\s+/g," ")).filter(Boolean);
