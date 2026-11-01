@@ -105,6 +105,8 @@ export async function createClinicAction(formData: FormData) {
       owner_id: identity.userId,
       slug,
       clinic_name: clinicName,
+      responsible_veterinarian_name: nullableText(formData, "responsible_veterinarian_name"),
+      responsible_veterinarian_pvmc: nullableText(formData, "responsible_veterinarian_pvmc"),
       facility_type:
         text(formData, "facility_type") || "Veterinary Clinic",
       description: nullableText(formData, "description"),
@@ -142,7 +144,7 @@ export async function createClinicAction(formData: FormData) {
     routeMessage(
       `/dashboard/clinics/${data.id}`,
       "message",
-      "Clinic created. Complete the profile, weekly availability and team hierarchy before verification.",
+      "Private clinic draft saved. Add registered veterinarian details, weekly hours, clinical services and team before VetConnect administrator review.",
     ),
   );
 }
@@ -173,6 +175,8 @@ export async function updateClinicAction(formData: FormData) {
     .from("clinics")
     .update({
       clinic_name: clinicName,
+      responsible_veterinarian_name: nullableText(formData, "responsible_veterinarian_name"),
+      responsible_veterinarian_pvmc: nullableText(formData, "responsible_veterinarian_pvmc"),
       facility_type:
         text(formData, "facility_type") || "Veterinary Clinic",
       description: nullableText(formData, "description"),
