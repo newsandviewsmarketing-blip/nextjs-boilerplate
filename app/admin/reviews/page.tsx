@@ -290,7 +290,7 @@ export default async function AdminPage({
             <form action={reviewRegistrationSubmissionAction}>
               <input type="hidden" name="user_id" value={row.user_id}/>
               <label>Reviewer note <textarea name="reason" maxLength={1000} placeholder="For clinic approval, record PVMC registry source, registration status and verification details (at least 25 characters)."/></label>
-              {row.primary_role==="company"&&row.registration_intent==="clinic"&&<label className="checkbox-line"><input type="checkbox" name="pvmc_checked" />I have reviewed the responsible veterinarian's PVMC registration evidence and clinic details. Clinical services and weekly hours must be completed before approving the clinic.</label>}
+              {row.primary_role==="company"&&row.registration_intent==="clinic"&&<label className="checkbox-line"><input type="checkbox" name="pvmc_checked" />I have reviewed the responsible veterinarian&apos;s PVMC registration evidence and clinic details. Clinical services and weekly hours must be completed before approving the clinic.</label>}
               <div className="review-actions">
                 <FormSubmitButton className="button button-primary" pendingLabel="Approving…" name="decision" value="approved">Approve registration</FormSubmitButton>
                 <FormSubmitButton className="button button-secondary" pendingLabel="Returning…" name="decision" value="rejected">Return for changes</FormSubmitButton>
@@ -446,7 +446,7 @@ export default async function AdminPage({
                       name="reason"
                       placeholder="Add correction or verification note"
                     />
-                    {row.record_source==="clinics"&&<label className="checkbox-line"><input type="checkbox" name="pvmc_checked" />I checked the responsible veterinarian's PVMC registration against official evidence and recorded the source/status in the review note. Approval also requires at least one public service and one open day.</label>}
+                    {row.record_source==="clinics"&&<label className="checkbox-line"><input type="checkbox" name="pvmc_checked" />I checked the responsible veterinarian&apos;s PVMC registration against official evidence and recorded the source/status in the review note. Approval also requires at least one public service and one open day.</label>}
                     <div className="review-actions">
                       <FormSubmitButton
                         className="button button-primary"
