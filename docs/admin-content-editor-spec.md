@@ -32,9 +32,11 @@ Learning: knowledge sharing, training, online courses and skill development; act
 Roadmap: animal/herd identity, consultations, clinician-authored prescriptions, treatment/vaccination history and owner-authorised care-team access. The current repository README and roadmap identify complete clinical-record/prescription workflows as outstanding; do not publish them as operational.
 
 VNV relationship is described as the owner's digital initiative, without asserting a separate incorporated subsidiary. Official NIC Faisalabad sources confirm Vet-Connect Cohort 3 and Muhammad Atif Naseem as Founder. NICF's own About page describes Ministry of IT & Telecom / Ignite funding. This does not imply official product or practitioner approval.
-No independent comparative evidence was found to substantiate an absolute Pakistan’s first claim; use an integrated platform for Pakistan.
+Founder Muhammad Atif Naseem explicitly endorses Pakistan-first positioning. Publish it as a founder-attributed statement about the combined verified communications/connectivity scope, not as an independent market survey or NICF certification. VNV's established-1987 heritage is nearly four decades; do not state VetConnect itself has operated for forty years.
 
 Sources checked 1 November 2026:
 - https://www.nicfaisalabad.com/startup/vet-connect/
 - https://www.nicfaisalabad.com/about-us/
 - Repository README.md, docs/ROADMAP-GAP-MATRIX.md and app/learn/page.tsx.
+
+Geographic roadmap: distinguish province/district/tehsil/city/service area from precise GPS/device location. Do not imply coordinates are collected without a feature-specific choice. Structured future records include products/ingredients, disease information and clinician-authored treatments; keep directory data separate from private patient records.
