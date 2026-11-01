@@ -726,3 +726,27 @@ test("clinic onboarding stays linked to the personal dashboard and never self-pu
  assert.match(readiness,/At least one open day/);
  assert.match(readiness,/At least one active public clinical service/);
 });
+
+
+test("registration approval never publishes clinical practice without separate PVMC review",()=>{
+  const migration=read("supabase/migrations/20261101162000_separate_clinic_publication_from_registration.sql");
+  const admin=read("app/admin/actions.ts");
+  const reviews=read("app/admin/reviews/page.tsx");
+  const first="if gate_row.registration_intent = 'clinic' then";
+  const start=migration.lastIndexOf(first);
+  const end=migration.indexOf("elsif account_role_value = 'laboratory'",start);
+  assert.ok(start>0 && end>start);
+  const clinicRegistration=migration.slice(start,end);
+  assert.match(clinicRegistration,/is_published = false/);
+  assert.match(clinicRegistration,/then 'pending'::public.approval_status/);
+  assert.doesNotMatch(clinicRegistration,/is_published = p_decision='approved'/);
+  assert.match(migration,/enforce_clinic_publication_readiness/);
+  assert.match(migration,/pvmc_reviewed_by/);
+  assert.match(migration,/pvmc_review_note/);
+  assert.match(migration,/clinic_availability/);
+  assert.match(migration,/clinic_services/);
+  assert.match(admin,/pvmc_review_note: decision === "approved" \? reason : null/);
+  assert.match(admin,/select\("id"\)\.single\(\)/);
+  assert.doesNotMatch(admin,/Clinic registration requires manual PVMC evidence confirmation and a review note/);
+  assert.match(reviews,/its clinic stays private and pending/i);
+});
