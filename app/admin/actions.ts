@@ -440,6 +440,32 @@ export async function reviewRegistrationSubmissionAction(formData: FormData) {
     supabase.from("registration_evidence").select("document_type,storage_path,content_type,verification_status").eq("user_id",userId).eq("verification_status","pending").order("created_at",{ascending:false}),
   ]);
   if(!profile||!gate||gate.review_status!=="pending") redirect("/admin/reviews?error=This%20registration%20is%20not%20waiting%20for%20review.");
+  // A company account registered as a clinic can otherwise be published
+  // by the existing registration RPC. Do the same clinic readiness and
+  // human PVMC evidence check here before allowing its approval.
+  if(decision==="approved"&&profile.primary_role==="company"&&gate.registration_intent==="clinic"){
+    if(formData.get("pvmc_checked")!=="on"||reason.length<25){
+      redirect("/admin/reviews?error="+encodeURIComponent("Clinic registration requires manual PVMC evidence confirmation and a review note describing registration status (at least 25 characters)."));
+    }
+    const facilities=await supabase.from("clinics")
+      .select("id,clinic_name,responsible_veterinarian_name,responsible_veterinarian_pvmc,province,city")
+      .eq("owner_id",userId);
+    if(facilities.error||!facilities.data?.length){
+      redirect("/admin/reviews?error="+encodeURIComponent("Clinic ownership or setup could not be confirmed. Registration approval was not sent."));
+    }
+    const clinicIds=facilities.data.map(row=>row.id);
+    const [days,services]=await Promise.all([
+      supabase.from("clinic_availability").select("clinic_id").in("clinic_id",clinicIds).eq("is_open",true),
+      supabase.from("clinic_services").select("clinic_id").in("clinic_id",clinicIds).eq("is_active",true).eq("is_public",true),
+    ]);
+    if(days.error||services.error){
+      redirect("/admin/reviews?error="+encodeURIComponent("Clinic services or weekly hours could not be checked."));
+    }
+    for(const clinic of facilities.data){
+      const missing=clinicPracticeReadiness(clinic,(days.data??[]).filter(x=>x.clinic_id===clinic.id).length,(services.data??[]).filter(x=>x.clinic_id===clinic.id).length);
+      if(missing.length)redirect("/admin/reviews?error="+encodeURIComponent("Complete clinic setup before approval: "+missing.join("; ")));
+    }
+  }
   let publicImageUrl: string|null=null;
   let publicPath: string|null=null;
   if(decision==="approved") {
