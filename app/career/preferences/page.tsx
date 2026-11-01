@@ -1,8 +1,6 @@
-import WorkspaceNavigation from '@/app/components/WorkspaceNavigation';
+import CareerWorkspaceFrame from '@/app/components/CareerWorkspaceFrame';
 import CareerChoiceChips from '@/app/components/CareerChoiceChips';
 import Link from 'next/link';
-import SiteHeader from '@/app/components/SiteHeader';
-import SiteFooter from '@/app/components/SiteFooter';
 import {requireCareerAccount} from '@/lib/career-access';
 import {CAREER_ROLE_SUGGESTIONS} from '@/lib/career-options';
 import {locationSearchOptions} from '@/lib/job-location';
@@ -17,21 +15,24 @@ export default async function Preferences({searchParams}:{searchParams:Promise<{
  const [{data:p,error},params,profile,approvedSectors]=await Promise.all([
   supabase.from('candidate_preferences').select('*').eq('professional_user_id',identity.userId).maybeSingle(),
   searchParams,
-  supabase.from('professional_profiles').select('verification_status').eq('user_id',identity.userId).maybeSingle(),
+  supabase.from('professional_profiles').select('verification_status,image_url,headline,professional_type').eq('user_id',identity.userId).maybeSingle(),
   supabase.from('master_data_items').select('label').eq('category','job_sector').eq('is_active',true).order('label'),
  ]);
  const sectors=(approvedSectors.data??[]).map(item=>item.label);
  const cities=locationSearchOptions();
  const currentCity=[identity.profile?.city,identity.profile?.province].filter(Boolean).join(', ');
  const cannotSave=Boolean(error||approvedSectors.error);
- return <main className="career-interests-page">
-  <SiteHeader/><WorkspaceNavigation approved={profile.data?.verification_status==='approved'}/>
-  <section className="page-hero"><div className="shell career-interests-shell">
-   <span className="section-kicker">YOUR FUTURE OPPORTUNITIES</span>
-   <h1>Tell us what you are interested in.</h1>
-   <p>Select the roles, sectors and places that matter to you. This is separate from your current profession and CV. Every choice is optional and editable.</p>
-  </div></section>
-  <section className="section compact-section"><div className="shell career-interests-shell">
+ return <CareerWorkspaceFrame active="preferences"
+  name={identity.profile?.full_name||identity.email}
+  headline={profile.data?.headline||profile.data?.professional_type}
+  photoUrl={profile.data?.image_url}
+  location={[identity.profile?.city,identity.profile?.province].filter(Boolean).join(', ')}
+  approved={profile.data?.verification_status==='approved'}
+  verificationStatus={profile.data?.verification_status}
+  emailAlerts={Boolean(p?.email_alerts)}
+  title="Find opportunities that fit."
+  description="Choose sectors, roles, cities and internships. These are future interests, separate from your current professional identity.">
+  <div className="vcx-career-preferences">
    {(error||params.error||approvedSectors.error)&&<p role="alert" className="form-message form-message-error">{params.error||'Some preferences or approved sectors could not be loaded. Please retry before saving.'}</p>}
    <form action={saveCareerPreferences} className="career-interests-form">
     <section className="backend-form-card career-interests-section" aria-labelledby="career-direction-title">
@@ -82,7 +83,5 @@ export default async function Preferences({searchParams}:{searchParams:Promise<{
     <div className="career-interests-actions"><Link href="/career/cv" className="button button-secondary">Back to CV</Link><button type="submit" disabled={cannotSave} className="button button-primary">Save my interests</button></div>
    </form>
    <p className="form-help"><Link href="/career">Return to my profile home</Link></p>
-  </div></section>
-  <SiteFooter/>
- </main>;
+  </div></CareerWorkspaceFrame>;
 }
