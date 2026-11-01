@@ -205,7 +205,10 @@ test("professional workspace supports rich profile, photo, education, experience
   const actions = read("app/dashboard/professional/actions.ts");
   const migration = read("supabase/migrations/202608300002_workspaces_and_media.sql");
   const publicPage = read("app/professionals/[slug]/page.tsx");
-  assert.match(page, /PROFESSIONAL WORKSPACE/);
+  // The workspace heading is now centralized in the shared frame.
+  const frame = read("app/components/CareerWorkspaceFrame.tsx");
+  assert.match(page, /CareerWorkspaceFrame/);
+  assert.match(frame, /PROFESSIONAL WORKSPACE/);
   assert.match(page, /professional_education/);
   assert.match(page, /professional_experience/);
   assert.match(page, /professional_credentials/);
@@ -216,6 +219,21 @@ test("professional workspace supports rich profile, photo, education, experience
   assert.match(migration, /professional_education_public_read/);
   assert.match(publicPage, /Professional experience/);
   assert.match(publicPage, /VERIFIED CREDENTIALS/);
+});
+
+test("core profile progress is consistent and independent from practitioner verification", () => {
+  const shared = read("lib/professional-progress.ts");
+  const frame = read("app/components/CareerWorkspaceFrame.tsx");
+  const profile = read("app/dashboard/professional/page.tsx");
+  const career = read("app/career/page.tsx");
+  assert.match(shared, /coreProfileChecks/);
+  assert.match(shared, /Basic identity/);
+  assert.match(shared, /Education or work background/);
+  assert.match(frame, /getCoreProfileProgress/);
+  assert.match(profile, /getCoreProfileProgress/);
+  assert.match(frame, /isVeterinaryPractitioner/);
+  assert.match(frame, /pvmc\.gov\.pk\/Registration\/Search/);
+  assert.match(career, /CV details are saved/);
 });
 
 test("clinic workspace activates facility profile, media, services and affiliation request", () => {
