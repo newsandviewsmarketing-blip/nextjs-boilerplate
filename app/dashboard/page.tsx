@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import FormMessage from "../components/FormMessage";
+import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import FormSubmitButton from "../components/FormSubmitButton";
 import PakistanLocationFields from "../components/PakistanLocationFields";
 import VeterinaryProfileFields from "../components/VeterinaryProfileFields";
@@ -13,12 +14,6 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
-
-function statusLabel(status?: string | null) {
-  if (status === "approved") return "Approved";
-  if (status === "rejected") return "Needs correction";
-  return "Pending review";
-}
 
 const companyRoleOptions = [
   ["manufacturer", "Manufacturer"],
@@ -116,75 +111,22 @@ export default async function DashboardPage({
     specialistProfile = data;
   }
 
-  const verificationStatus = specialistProfile?.verification_status as
-    | string
-    | undefined;
   return (
-    <main>
-      <SiteHeader />
-      <section className="dashboard-hero">
-        <div className="shell dashboard-hero-row">
-          <div>
-            <span className="section-kicker">MY VETCONNECT</span>
-            <h1>Welcome, {identity.profile?.full_name || identity.email}.</h1>
-            <p>
-              {identity.email} · {String(role).replaceAll("_", " ")}
-            </p>
-          </div>
-          <div className="dashboard-actions">
-            {isAdmin && (
-              <Link className="button button-secondary" href="/admin">
-                Open admin panel
-              </Link>
-            )}
-            <form action={signOutAction}>
-              <button className="button button-dark" type="submit">
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
-      <section className="section compact-section">
-        <div className="shell"><section className="vc-customer-hub" aria-label="Personal VetConnect dashboard">
-  <div className="vc-customer-hub-head"><div><span className="section-kicker">YOUR WORKSPACE</span><h2>Manage your VetConnect activity</h2><p>Account status: <b>{identity.profile?.account_status ?? "active"}</b>{verificationStatus ? ` · Profile review: ${statusLabel(verificationStatus)}` : ""}. New records may need approval before publication.</p></div>
-    <a className="button button-secondary" href="#account-settings">Account settings</a></div>
-  <nav className="vc-customer-shortcuts" aria-label="My workspace quick links">
-    {["veterinarian","professional","candidate"].includes(role) && <Link href="/dashboard/professional">Professional profile & CV</Link>}
-    {["veterinarian","professional","candidate"].includes(role) && <Link href="/dashboard/career">Jobs & applications</Link>}
-    {["veterinarian","professional"].includes(role) && <Link href="/dashboard/clinics">Clinic workspace</Link>}
-    {role==="company" && <Link href="/dashboard/company">Company products & jobs</Link>}
-    {role==="laboratory" && <Link href="/dashboard/laboratory">Laboratory workspace</Link>}
-    <Link href="/marketplace">Marketplace</Link><Link href="/jobs">Browse jobs</Link><Link href="/clinics">Find clinics</Link>
-  </nav></section></div>
-  <div className="shell dashboard-layout">
-          <aside className="dashboard-sidebar">
-            <h3>Account overview</h3>
-            <div className="dashboard-stat">
-              <span>Account</span>
-              <b>{identity.profile?.account_status ?? "active"}</b>
-            </div>
-            {(["veterinarian", "company", "professional", "candidate", "laboratory"] as string[]).includes(role) && (
-              <div className="dashboard-stat">
-                <span>Verification</span>
-                <b
-                  className={`status-text status-${verificationStatus ?? "pending"}`}
-                >
-                  {statusLabel(verificationStatus)}
-                </b>
-              </div>
-            )}
-            <div className="dashboard-stat">
-              <span>Roles</span>
-              <b>
-                {identity.roles
-                  .map((item) => item.replaceAll("_", " "))
-                  .join(", ")}
-              </b>
-            </div>
-          </aside>
-          <div>
-            <FormMessage {...params} />
+    <CareerWorkspaceFrame
+      active="account" module="account"
+      name={identity.profile?.full_name||identity.email}
+      headline={role==="veterinarian"?"Veterinarian":role==="company"?"Company account":role==="laboratory"?"Laboratory account":role==="candidate"?"Student / job seeker":"Professional account"}
+      location={[identity.profile?.city,identity.profile?.province].filter(Boolean).join(", ")}
+      title="Manage your account details."
+      description="One place for identity and contact information. Your clinics, jobs and company relationships remain connected but separate.">
+      <div className="vcx-account-summary">
+        <span>Account: <b>{identity.profile?.account_status??"active"}</b></span>
+        <span>Account role: <b>{String(role).replaceAll("_"," ")}</b></span>
+        {isAdmin&&<Link className="vcx-button vcx-button-outline" href="/admin">Admin workspace</Link>}
+        <form action={signOutAction}><button className="vcx-button vcx-button-outline" type="submit">Sign out</button></form>
+      </div>
+      <section className="backend-form-card vcx-account-card">
+        <FormMessage {...params} />
             <form id="account-settings" className="backend-form-card vc-review-target" action={updateProfileAction}>
               <div className="section-heading">
                 <span className="section-kicker">PROFILE</span>
@@ -193,6 +135,10 @@ export default async function DashboardPage({
                   Saved information is protected by account-level database
                   policies.
                 </p>
+              </div>
+              <div className="vcx-account-section-heading">
+                <strong>Identity and contact</strong>
+                <p>These details belong to your personal account and are reused by connected professional and clinic workspaces.</p>
               </div>
               <div className="form-grid">
                 <div>
@@ -218,6 +164,10 @@ export default async function DashboardPage({
                   defaultTehsil={String(identity.profile?.tehsil ?? specialistProfile?.tehsil ?? "")}
                   defaultCity={String(identity.profile?.city ?? specialistProfile?.city ?? "")}
                 />
+              </div>
+              <details className="vcx-account-details" open={role==="company"||role==="laboratory"||(role==="veterinarian"&&!String(specialistProfile?.pvmc_number??"").trim())}>
+                <summary><strong>{role==="veterinarian"?"Veterinary profession & PVMC":role==="company"?"Company account information":role==="laboratory"?"Laboratory account information":"Professional extras"}</strong><small>Optional and role-specific information · click to expand</small></summary>
+                <div className="form-grid">
                 {role === "veterinarian" && (
                   <>
                     <div>
@@ -462,56 +412,15 @@ export default async function DashboardPage({
                     <label className="checkbox-line"><input type="checkbox" name="emergency_service" defaultChecked={Boolean(specialistProfile?.emergency_service)} /> Emergency service available</label>
                   </>
                 )}
-              </div>
+                </div>
+              </details>
+              <p className="form-help">Saving account information does not authorize clinical practice or publish a clinic. Those reviews remain separate.</p>
               <FormSubmitButton pendingLabel="Saving profile...">
                 Save profile
               </FormSubmitButton>
             </form>
-            <div className="dashboard-module-grid">
-              <article>
-                <span>PROFILE</span>
-                <h3>Account and verification</h3>
-                <p>Maintain identity, contact and role-specific information.</p>
-              </article>
-              {["veterinarian", "professional", "candidate"].includes(role) && (
-                <article>
-                  <span>PROFESSIONAL</span>
-                  <h3>Professional profile & CV</h3>
-                  <p>Build a LinkedIn-style veterinary profile with photograph, experience, education, credentials and CV records.</p>
-                  <Link href="/dashboard/professional">Open professional workspace →</Link>
-                </article>
-              )}
-              {["veterinarian", "professional", "candidate"].includes(role) && (
-                <article>
-                  <span>JOBS</span>
-                  <h3>Career workspace</h3>
-                  <p>Browse verified vacancies, save opportunities and track applications.</p>
-                  <Link href="/dashboard/career">Open career workspace →</Link>
-                </article>
-              )}
-              {["veterinarian", "professional"].includes(role) && (
-                <article>
-                  <span>CLINICS</span>
-                  <h3>Clinic workspace</h3>
-                  <p>Create and manage clinic identity, services, team affiliation, public contacts and facility media.</p>
-                  <Link href="/dashboard/clinics">Open clinic workspace →</Link>
-                </article>
-              )}
-              <article>
-                <span>MARKETPLACE</span>
-                <h3>Business listings</h3>
-                <p>Approved companies can submit products and answer customer requests.</p>
-                {role === "company" ? (
-                  <Link href="/dashboard/company">Open company workspace →</Link>
-                ) : (
-                  <Link href="/marketplace">Open marketplace →</Link>
-                )}
-              </article>
-            </div>
-          </div>
-        </div>
       </section>
-      <SiteFooter />
-    </main>
+    </CareerWorkspaceFrame>
   );
+}
 }
