@@ -365,6 +365,7 @@ export default async function ClinicWorkspacePage({
           )}
 
           <form
+            id="new-clinic"
             className="backend-form-card workspace-section-card workspace-heading-gap"
             action={createClinicAction}
           >

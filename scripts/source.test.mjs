@@ -680,3 +680,20 @@ test("Phase 2 dashboard links to actionable administration, reports and records"
     assert.ok(read(file).length>300, file+" is missing");
   }
 });
+
+
+test("organization connections distinguish clinic ownership, affiliations and company roles", () => {
+  const connections = read("app/career/connections/page.tsx");
+  const clinics = read("app/dashboard/clinics/page.tsx");
+  const actions = read("app/dashboard/clinics/actions.ts");
+  assert.match(connections, /\.from\('clinics'\)\.select\('id,slug,clinic_name,facility_type,city,verification_status,is_published'\)\.eq\('owner_id',identity\.userId\)/);
+  assert.match(connections, /Clinics I own/);
+  assert.match(connections, /My clinic affiliations/);
+  assert.match(connections, /My company relationships/);
+  assert.match(connections, /dashboard\/clinics#new-clinic/);
+  assert.match(connections, /clinic\.is_published\?'Published':'Unpublished'/);
+  assert.match(connections, /hasCompanyAccess&&approved/);
+  assert.match(clinics, /id="new-clinic"/);
+  assert.match(actions, /verification_status: "pending"/);
+  assert.match(actions, /is_published: false/);
+});
