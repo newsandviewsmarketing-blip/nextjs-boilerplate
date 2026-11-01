@@ -2,10 +2,11 @@ import Link from "next/link";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import {
-  PUBLIC_INFORMATION, PUBLIC_INFORMATION_LINKS, PUBLIC_INFORMATION_UPDATED,
-  PUBLIC_INFORMATION_VERSION, type PublicInformationSlug, type PublicInformationContent,
+  PUBLIC_INFORMATION_LINKS, type PublicInformationSlug,
 } from "@/lib/public-information";
 import styles from "./PublicInformation.module.css";
+import { getPublishedSiteDocument } from "@/lib/site-content";
+import { publicPageFromDocument } from "@/lib/site-content-document";
 
 const contact = "vetconnect.official@gmail.com";
 
@@ -15,8 +16,9 @@ function Paragraph({ text }: { text: string }) {
   </span>)}</p>;
 }
 
-export default function PublicInformationPage({ slug }: { slug: PublicInformationSlug }) {
-  const page: PublicInformationContent = PUBLIC_INFORMATION[slug];
+export default async function PublicInformationPage({ slug }: { slug: PublicInformationSlug }) {
+  const document = await getPublishedSiteDocument(slug);
+  const page = publicPageFromDocument(document);
   return <>
     <SiteHeader />
     <main id="public-information" className={styles.main}>
@@ -26,7 +28,7 @@ export default function PublicInformationPage({ slug }: { slug: PublicInformatio
           <p className={styles.eyebrow}>VETCONNECT PAKISTAN</p>
           <h1>{page.title}</h1>
           <p className={styles.description}>{page.description}</p>
-          <p className={styles.version}>Last updated <time dateTime={PUBLIC_INFORMATION_UPDATED}>1 November 2026</time> · Version {PUBLIC_INFORMATION_VERSION}</p>
+          <p className={styles.version}>Last updated <time dateTime={document.effectiveDate}>{document.effectiveDate}</time> · Version {document.version}</p>
         </header>
         <div className={styles.layout}>
           <aside className={styles.sidebar}>
@@ -43,7 +45,7 @@ export default function PublicInformationPage({ slug }: { slug: PublicInformatio
           <article className={styles.article} aria-label={page.title}>
             {page.sections.map((section, index) => <section key={section.title} aria-labelledby={"information-section-" + index}>
               <h2 id={"information-section-" + index}>{section.title}</h2>
-              <Paragraph text={section.body} />
+              {section.body.split("\n\n").map((paragraph,i)=><Paragraph key={i} text={paragraph}/>)}
               {section.links ? <ul className={styles.sectionLinks}>{section.links.map(link => <li key={link.href}>
                 {link.href.startsWith("/") ? <Link href={link.href}>{link.label}</Link> :
                   <a href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>}

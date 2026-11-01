@@ -1,8 +1,5 @@
 import PublicInformationPage from "@/app/components/PublicInformationPage";
-import { publicInformationMetadata } from "@/lib/public-information";
+import { siteContentMetadata } from "@/lib/site-content";
 
-export const metadata = publicInformationMetadata("team");
-
-export default function Page() {
-  return <PublicInformationPage slug="team" />;
-}
+export async function generateMetadata() { return siteContentMetadata("team"); }
+export default function Page() { return <PublicInformationPage slug="team" />; }

@@ -27,6 +27,7 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
       {name:"Applications",href:"/admin/applications",permission:"jobs.manage"},
       {name:"Job images",href:"/admin/jobs-media",permission:"jobs.manage"}]},
     {title:"Administration",items:[
+      {name:"Website pages",href:"/admin/website",permission:"site_content.edit"},
       {name:"Master directory",href:"/admin/directory",permission:"directories.manage"},
       {name:"Categories & data",href:"/admin/data",permission:"master_data.manage"},
       {name:"Roles & permissions",href:"/admin/users",permission:"users.manage"},
@@ -41,7 +42,7 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
         {groups.map(group=><div className="vc-nav-section" key={group.title}>
           <span className="vc-nav-label">{group.title}</span>
           {group.title==="Overview" && review && <Link href="/admin/reviews">Approvals & review queue</Link>}
-          {group.items.filter(item=>allowed(item.permission)).map(item=><Link href={item.href} key={item.name}>{item.name}</Link>)}
+          {group.items.filter(item=>allowed(item.permission)||(item.href==="/admin/website"&&allowed("site.manage"))).map(item=><Link href={item.href} key={item.name}>{item.name}</Link>)}
           
         </div>)}
         {assist && <div className="vc-nav-section"><span className="vc-nav-label">Quick actions</span><Link href="/admin/create">Add new record</Link></div>}

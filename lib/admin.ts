@@ -22,7 +22,9 @@ export type AdminPermission =
   | "products.create"
   | "jobs.create"
   | "master_data.manage"
-  | "directories.manage";
+  | "directories.manage"
+  | "site.manage"
+  | "site_content.edit";
 
 export const permissionOptions: ReadonlyArray<{ value: AdminPermission; label: string; summary: string }> = [
   { value: "profiles.create", label: "Create profiles", summary: "Create staff-assisted veterinarian/professional directory records." },
@@ -42,10 +44,12 @@ export const permissionOptions: ReadonlyArray<{ value: AdminPermission; label: s
   { value: "audit.view", label: "View audit log", summary: "Review administrative activity." },
   { value: "review.analytics", label: "Review analytics", summary: "See reviewer performance and decision history." },
   { value: "analytics.view", label: "View analytics", summary: "Read operational metrics." },
+  { value: "site_content.edit", label: "Edit website drafts", summary: "Edit About, Team and policy drafts and SEO without publication." },
+  { value: "site.manage", label: "Publish website content", summary: "Edit and publish website pages and restore previous wording." },
 ] as const;
 
 const rolePermissions: Partial<Record<AccountRole, readonly AdminPermission[]>> = {
-  super_admin: ["admin.view","profiles.review","regulatory.review","products.manage","products.delete","jobs.manage","users.manage","audit.view","analytics.view","review.analytics","profiles.create","companies.create","clinics.manage","laboratories.manage","products.create","jobs.create","master_data.manage","directories.manage"],
+  super_admin: ["admin.view","profiles.review","regulatory.review","products.manage","products.delete","jobs.manage","users.manage","audit.view","analytics.view","review.analytics","profiles.create","companies.create","clinics.manage","laboratories.manage","products.create","jobs.create","master_data.manage","directories.manage","site.manage","site_content.edit"],
   verification_officer: ["admin.view","profiles.review","regulatory.review","review.analytics","profiles.create","clinics.manage","laboratories.manage","directories.manage"],
   content_admin: ["admin.view","products.manage","jobs.manage","products.create","jobs.create","companies.create","directories.manage"],
   career_admin: ["admin.view","jobs.manage","jobs.create"],
