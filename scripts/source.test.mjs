@@ -718,6 +718,9 @@ test("clinic onboarding stays linked to the personal dashboard and never self-pu
  assert.match(admin,/clinicPracticeReadiness/);
  assert.match(admin,/reviewerCheckedPVMC/);
  assert.match(admin,/gate.registration_intent==="clinic"/);
+ const adminReview=read("app/admin/reviews/page.tsx");
+ assert.match(adminReview,/name="pvmc_checked"/);
+ assert.match(admin,/registration_intent==="clinic"/);
  assert.match(adminCreate,/const publish = false/);
  assert.match(readiness,/At least one open day/);
  assert.match(readiness,/At least one active public clinical service/);
