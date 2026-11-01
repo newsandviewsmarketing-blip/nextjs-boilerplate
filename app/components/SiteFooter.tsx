@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
+import { PUBLIC_INFORMATION_LINKS } from "@/lib/public-information";
+import styles from "./PublicInformation.module.css";
 
 export default function SiteFooter() {
   return (
@@ -126,6 +128,10 @@ export default function SiteFooter() {
           </p>
         </div>
       </div>
+
+      <nav className={"shell " + styles.footerLinks} aria-label="Footer about and policies">
+        {PUBLIC_INFORMATION_LINKS.map(item => <Link key={item.slug} href={"/" + item.slug}>{item.label}</Link>)}
+      </nav>
 
       <div className="shell footer-bottom">
         <span>© 2026 VetConnect Pakistan</span>

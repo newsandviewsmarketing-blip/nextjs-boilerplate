@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/seo";
+import { PUBLIC_INFORMATION_LINKS } from "@/lib/public-information";
 
 const publicRoutes = [
   "/",
@@ -11,6 +12,7 @@ const publicRoutes = [
   "/marketplace",
   "/jobs",
   "/learn",
+  ...PUBLIC_INFORMATION_LINKS.map(item => "/" + item.slug),
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

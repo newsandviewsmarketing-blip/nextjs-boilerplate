@@ -1,0 +1,13 @@
+# Public information pages
+
+Adds /about, /team, /terms, /privacy and /cookies with footer navigation and sitemap entries.
+
+Content source: VetConnect_Website_Policies.docx, version 2026-10-31.1, read in full on 1 November 2026. Public page version: 2026-11-01.1. The Team announcement is retained; no unconfirmed names, titles or biographies are published. About retains mission, objectives, independence, contact and emergency guidance.
+
+Editorial changes: references to the not-yet-created report/verification pages use the existing support email and a short qualification-review explanation instead. Cookie wording distinguishes the application-source review from unaudited hosting configuration. This does not introduce analytics, consent recording, cookie preference controls, tracking or automatic deletion. A footer link is not recorded agreement to terms.
+
+The existing footer wording, social links and contact details are preserved. New content uses scoped CSS, native links, a single h1 per page, labelled navigation, focus outlines, wrapping email addresses, 44px navigation targets and a one-column layout below 760px. Metadata includes route-specific descriptions and canonical/Open Graph URLs through the existing site URL helper.
+
+No database, authentication, registration, API, billing or permissions changes. Existing registration migration and end-to-end blockers remain separate.
+
+Validation: final-head GitHub CI and Vercel Preview must be inspected. Do not claim interactive or mobile-browser QA from CSS/source review. The local executor could not reach GitHub/npm to install the exact Next.js dependencies, so bundled node_modules documentation was unavailable; the official Next.js page and metadata guides were read through the GitHub connector. Policy operator/formal-notice details, retention schedules and a live cookie/provider inventory remain operational follow-ups from the source document. No statutory deadline, liability immunity or legal certification is asserted.
