@@ -1,3 +1,4 @@
+import JobCompensationFields from "@/app/components/JobCompensationFields";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -558,7 +559,7 @@ export default async function CompanyDashboardPage({
                 <fieldset disabled={!approved}>
                   <div className="form-grid">
                     <div><label htmlFor="title">Job title</label><input id="title" name="title" required /></div>
-                    <MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" allowCustom />
+                    <JobCompensationFields/><MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" allowCustom />
                     <JobMasterChoice category="job_sector" name="job_sector" label="Job sector" />
                     <JobTerritoryFields />
                     <JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" />

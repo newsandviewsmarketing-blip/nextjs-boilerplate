@@ -1,3 +1,4 @@
+import JobCompensationFields from "@/app/components/JobCompensationFields";
 import { AcademicQualifications } from "../../register/RegistrationDetails";
 import { VETERINARY_QUALIFICATIONS } from "@/lib/registration-categories";
 import SiteHeader from "../../components/SiteHeader";
@@ -145,7 +146,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <div><label>Employer company</label><select name="company_id" required><option value="">Select company</option>{(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.canonical_name}</option>)}</select></div><div><label>Job title</label><input name="title" required /></div>
         <JobMasterChoice category="job_sector" name="sector" label="Job sector" /><MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" />
         <JobTerritoryFields />
-        <div className="form-span-2"><label>Address / workplace</label><input name="address" /></div><JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" /><div><label>Minimum experience (years)</label><input type="number" min="0" name="minimum_experience" /></div><div><label>Deadline</label><input type="date" name="deadline" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={5} required /></div>
+        <div className="form-span-2"><label>Address / workplace</label><input name="address" /></div><JobCompensationFields/><JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" /><div><label>Minimum experience (years)</label><input type="number" min="0" name="minimum_experience" /></div><div><label>Deadline</label><input type="date" name="deadline" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={5} required /></div>
         <div className="form-span-2"><label>Original job advertisement image (optional, JPG/PNG/WebP, max 5 MB)</label>
      <input name="job_ad_image" type="file" accept="image/jpeg,image/png,image/webp" />
      <p className="form-help">This image becomes publicly visible only after an administrator approves the job. Use a separate supporting document for private evidence.</p>

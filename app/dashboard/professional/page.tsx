@@ -1,3 +1,5 @@
+import WorkspaceNavigation from "@/app/components/WorkspaceNavigation";
+import ProfileBuilder from "./ProfileBuilder";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -100,7 +102,7 @@ function visibilityLabel(value: string) {
 export default async function ProfessionalWorkspacePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; step?: string }>;
 }) {
   const messages = await searchParams;
   const identity = await getCurrentIdentity();
@@ -178,14 +180,15 @@ export default async function ProfessionalWorkspacePage({
   ].filter(Boolean);
 
   return (
-    <main>
+    <main className="professional-builder-page">
       <SiteHeader />
+      <WorkspaceNavigation approved={profile?.verification_status==="approved"}/>
       <section className="dashboard-hero">
         <div className="shell dashboard-hero-row">
           <div>
             <span className="section-kicker">PROFESSIONAL WORKSPACE</span>
-            <h1>Build your VetConnect professional identity.</h1>
-            <p>Profile, experience, education, credentials and career documents in one verified record.</p>
+            <h1>Your professional profile builder</h1>
+            <p>Build your profile in six clear sections. Review your information, save each section and continue at your own pace.</p>
           </div>
           <div className="dashboard-actions">
             {profile?.slug && profile.profile_visibility === "public" && (
@@ -193,7 +196,6 @@ export default async function ProfessionalWorkspacePage({
                 View public profile
               </Link>
             )}
-            <Link className="button button-secondary" href="/dashboard/career">Career workspace</Link>
             <Link className="button button-dark" href="/dashboard">Account dashboard</Link>
           </div>
         </div>
@@ -208,7 +210,8 @@ export default async function ProfessionalWorkspacePage({
             </div>
           )}
 
-          <div className="professional-workspace-overview">
+          <ProfileBuilder key={messages.step??"photo"} initialStep={messages.step} completion={completion} completed={{photo:Boolean(profile?.image_url),about:Boolean(profile?.headline&&profile?.public_summary),experience:experience.length>0,education:education.length>0,credentials:credentials.length>0,documents:signedDocuments.length>0}} panels={{
+photo:(<div className="professional-workspace-overview">
             <article className="professional-photo-card">
               <div className="professional-photo-large">
                 <ProfilePhoto
@@ -236,12 +239,11 @@ export default async function ProfessionalWorkspacePage({
               <p className="form-help">JPG, PNG or WebP. Maximum 5 MB. Use a clear professional photograph.</p>
               <FormSubmitButton pendingLabel="Uploading photo...">Upload photograph</FormSubmitButton>
             </form>
-          </div>
-
-          <form className="backend-form-card workspace-section-card" action={updateProfessionalProfileAction}>
+          </div>),
+about:(<form className="backend-form-card workspace-section-card" action={updateProfessionalProfileAction}>
             <div className="section-heading">
               <span className="section-kicker">ABOUT</span>
-              <h2>Professional headline and summary.</h2>
+              <h2>Professional introduction</h2>
               <p>This information forms the top section of your public professional profile.</p>
             </div>
             <div className="form-grid">
@@ -285,13 +287,11 @@ export default async function ProfessionalWorkspacePage({
               </div>
             </div>
             <FormSubmitButton pendingLabel="Saving profile...">Save professional profile</FormSubmitButton>
-          </form>
-
-          <div className="workspace-two-column">
-            <section className="backend-form-card workspace-section-card">
+          </form>),
+experience:(<section className="backend-form-card workspace-section-card">
               <div className="section-heading">
                 <span className="section-kicker">EXPERIENCE</span>
-                <h2>Employment and professional experience.</h2>
+                <h2>Work experience</h2>
               </div>
               <div className="workspace-record-list">
                 {experience.length === 0 ? <p>No experience records yet.</p> : experience.map((row) => (
@@ -320,12 +320,11 @@ export default async function ProfessionalWorkspacePage({
                 <label>Visibility<select name="visibility" defaultValue="owner_only"><option value="owner_only">Private</option><option value="registered_users">Registered users</option><option value="authorized_company">Approved recruiters</option><option value="public">Public</option></select></label>
                 <FormSubmitButton pendingLabel="Adding experience...">Add experience</FormSubmitButton>
               </form>
-            </section>
-
-            <section className="backend-form-card workspace-section-card">
+            </section>),
+education:(<section className="backend-form-card workspace-section-card">
               <div className="section-heading">
                 <span className="section-kicker">EDUCATION</span>
-                <h2>Degrees and academic training.</h2>
+                <h2>Education & qualifications</h2>
               </div>
               <div className="workspace-record-list">
                 {education.length === 0 ? <p>No education records yet.</p> : education.map((row) => (
@@ -354,12 +353,9 @@ export default async function ProfessionalWorkspacePage({
                 <label>Visibility<select name="visibility" defaultValue="owner_only"><option value="owner_only">Private</option><option value="registered_users">Registered users</option><option value="authorized_company">Approved recruiters</option><option value="public">Public</option></select></label>
                 <FormSubmitButton pendingLabel="Adding education...">Add education</FormSubmitButton>
               </form>
-            </section>
-          </div>
-
-          <div className="workspace-two-column">
-            <section className="backend-form-card workspace-section-card">
-              <div className="section-heading"><span className="section-kicker">CREDENTIALS</span><h2>Licences, certificates and memberships.</h2></div>
+            </section>),
+credentials:(<section className="backend-form-card workspace-section-card">
+              <div className="section-heading"><span className="section-kicker">CREDENTIALS</span><h2>Licences & certificates</h2></div>
               <div className="workspace-record-list">
                 {credentials.length === 0 ? <p>No credentials yet.</p> : credentials.map((row) => (
                   <article key={row.id}>
@@ -376,11 +372,10 @@ export default async function ProfessionalWorkspacePage({
                 <label>Visibility<select name="visibility" defaultValue="owner_only"><option value="owner_only">Private</option><option value="registered_users">Registered users</option><option value="authorized_company">Approved recruiters</option><option value="public">Public after approval</option></select></label>
                 <FormSubmitButton pendingLabel="Submitting credential...">Add credential</FormSubmitButton>
               </form>
-            </section>
-
-            <section className="backend-form-card workspace-section-card">
-              <div className="section-heading"><span className="section-kicker">CAREER DOCUMENTS</span><h2>CV and supporting documents.</h2><p>Files are stored privately. Links below expire automatically.</p></div>
-              <div className="workspace-record-list">
+            </section>),
+documents:(<section className="backend-form-card workspace-section-card">
+              <div className="section-heading"><span className="section-kicker">CAREER DOCUMENTS</span><h2>CV & supporting documents</h2><p>Files are stored privately. Links below expire automatically.</p></div>
+              <div className="builder-career-links"><Link className="button button-primary" href="/career/cv">Create / edit my CV</Link><Link className="button button-secondary" href="/career/preferences">Job interests & salary</Link></div><div className="workspace-record-list">
                 {signedDocuments.length === 0 ? <p>No career documents uploaded.</p> : signedDocuments.map((row) => (
                   <article key={row.id}>
                     <div><h3>{row.document_type.toUpperCase()}</h3><p>Uploaded {new Date(row.created_at).toLocaleDateString("en-PK")}</p><span className="status-pill">{visibilityLabel(row.visibility)}</span></div>
@@ -395,8 +390,8 @@ export default async function ProfessionalWorkspacePage({
                 <label>Visibility<select name="visibility" defaultValue="owner_only"><option value="owner_only">Private</option><option value="authorized_company">Approved recruiters</option><option value="registered_users">Registered users</option></select></label>
                 <FormSubmitButton pendingLabel="Uploading document...">Upload document</FormSubmitButton>
               </form>
-            </section>
-          </div>
+            </section>)
+          }}/>
         </div>
       </section>
       <SiteFooter />

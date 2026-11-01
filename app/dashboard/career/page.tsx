@@ -1,3 +1,4 @@
+import WorkspaceNavigation from '@/app/components/WorkspaceNavigation';
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -45,7 +46,7 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
   }
 
   const supabase = await createClient();
-  const [applicationResult, savedResult, matchResult, cvDocumentsResult, cvProfileResult] = await Promise.all([
+  const [applicationResult, savedResult, matchResult, cvDocumentsResult, cvProfileResult, professionalResult] = await Promise.all([
     supabase
       .from("job_applications")
       .select("id, job_id, status, cover_note, applied_at, cv_source, cv_document_id")
@@ -67,6 +68,7 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
       .order("created_at",{ascending:false}).limit(25),
     supabase.from("career_cv_profiles").select("full_name,headline")
       .eq("user_id",identity.userId).maybeSingle(),
+    supabase.from("professional_profiles").select("verification_status").eq("user_id",identity.userId).maybeSingle(),
   ]);
 
   const applicationRows = (applicationResult.data ?? []) as ApplicationRow[];
@@ -90,7 +92,7 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
 
   return (
     <main>
-      <SiteHeader />
+      <SiteHeader /><WorkspaceNavigation approved={professionalResult.data?.verification_status==='approved'}/>
       <section className="dashboard-hero">
         <div className="shell dashboard-hero-row">
           <div>

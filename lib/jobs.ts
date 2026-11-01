@@ -10,6 +10,7 @@ export type PublicJob = {
   tehsil?: string | null;
   address?: string | null;
   employment_type: string;
+  country?:string;work_mode?:string;salary_min?:number|null;salary_max?:number|null;salary_currency?:string;salary_period?:string;
   minimum_qualification: string | null;
   minimum_experience: number | null;
   coverage?: {job_id:string;scope:string;province:string|null;display_text:string} | null;

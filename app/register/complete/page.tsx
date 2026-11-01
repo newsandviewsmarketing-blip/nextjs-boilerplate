@@ -58,6 +58,7 @@ export default async function CompleteRegistrationPage({
             </form>}
             {registrationReady && <RegistrationEvidenceForm requirements={requirements} cnic={gate?.cnic_number ?? ""} saved={existing.data ?? []} />}
             <p className="form-help">Your CNIC and credential files are held for VetConnect identity and category verification. Do not submit another person’s documents.</p>
+            {["candidate","professional","veterinarian"].includes(role)&&<p><a className="button button-primary" href="/career">Continue with your private CV and job interests</a></p>}
             <LinkBack />
           </div>
         </div>

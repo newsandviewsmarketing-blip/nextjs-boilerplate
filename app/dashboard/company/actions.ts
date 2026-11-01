@@ -1,4 +1,5 @@
 "use server";
+import {jobCompensation} from "@/lib/job-compensation";
 
 import {proposeJobMasterTerms,emailJobReviewNotice} from "@/lib/job-review-helpers";
 import {jobAdvertFile,saveJobAdvertImage} from "@/lib/job-advert-image";
@@ -462,7 +463,10 @@ export async function createJobAction(formData: FormData) {
       regionId=created.id;
     }
   }
+  let compensation;
+  try{compensation=jobCompensation(formData);}catch(e){redirect(message("error",e instanceof Error?e.message:"Check job salary."));}
   const {data: job,error}=await supabase.from("jobs").insert({
+    ...compensation,
     company_id:companyId,company_user_id:workspace.legacy_company_user_id,
     slug:uniqueSlug(title),title,description,
     sector:value(formData,"job_sector") || null,
