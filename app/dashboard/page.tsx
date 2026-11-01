@@ -111,10 +111,16 @@ export default async function DashboardPage({
     specialistProfile = data;
   }
 
+  const portrait=(["veterinarian","professional","candidate"].includes(role))
+    ? await supabase.from("professional_profiles")
+      .select("image_url").eq("user_id",identity.userId).maybeSingle()
+    : null;
+
   return (
     <CareerWorkspaceFrame
       active="account" module="account"
       name={identity.profile?.full_name||identity.email}
+      photoUrl={portrait?.data?.image_url??(role==='company'?String(specialistProfile?.logo_url??''):null)}
       headline={role==="veterinarian"?"Veterinarian":role==="company"?"Company account":role==="laboratory"?"Laboratory account":role==="candidate"?"Student / job seeker":"Professional account"}
       location={[identity.profile?.city,identity.profile?.province].filter(Boolean).join(", ")}
       title="Manage your account details."
