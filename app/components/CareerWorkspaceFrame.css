@@ -222,3 +222,54 @@
  .vcx-clinic-new>form{padding:0 12px 16px}
  .vcx-clinic-new>summary{padding:14px 34px 14px 14px}
 }
+
+
+/* Shared account, clinic and company contexts: same rhythm and safe width. */
+.vcx-account-summary{display:flex;flex-wrap:wrap;gap:10px;align-items:center;border:1px solid #e0e6f0;background:#fff;border-radius:15px;padding:14px 18px}
+.vcx-account-summary>span{background:#f2f6fb;padding:9px 11px;border-radius:9px;font-size:12px;color:#5b6b80}
+.vcx-account-summary>span b{color:#142b53}
+.vcx-account-summary form{margin-left:auto}
+.vcx-account-summary .vcx-button{min-height:38px}
+.vcx-account-card{padding:25px!important}
+.vcx-account-card .section-heading h2{font-size:22px}
+.vcx-account-section-heading{margin:14px 0 16px}
+.vcx-account-section-heading strong{display:block;font-size:17px;color:#12254e}
+.vcx-account-section-heading p{margin:7px 0;color:#69788e;font-size:12px;line-height:1.65}
+.vcx-account-details{margin:20px 0 20px;border:1px solid #dfe6f0;border-radius:13px;overflow:hidden;background:#fafcff}
+.vcx-account-details>summary{cursor:pointer;padding:17px 20px;display:flex;align-items:center;gap:11px;justify-content:space-between;list-style:none}
+.vcx-account-details>summary::-webkit-details-marker{display:none}
+.vcx-account-details>summary strong{font-size:14px;color:#132b54}
+.vcx-account-details>summary small{font-size:11px;color:#6c7b90;line-height:1.5}
+.vcx-account-details>summary:after{content:"+";font-size:20px;color:#c16a0e;font-weight:700}
+.vcx-account-details[open]>summary{border-bottom:1px solid #dee5ef;background:#f5f8fc}
+.vcx-account-details[open]>summary:after{content:"−"}
+.vcx-account-details>.form-grid{padding:20px;align-items:start}
+.vcx-account-details .role-check-grid{max-height:400px;overflow-y:auto}
+.vcx-credential-tag{color:#245a92!important;background:#e7f1ff!important;border:1px solid #b9d5f7}
+.vcx-app[data-module="company"] .vcx-content-grid{grid-template-columns:minmax(0,1fr)}
+.vcx-app[data-module="company"] .vcx-right-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.vcx-app[data-module="company"] .vcx-identity-card{grid-template-columns:100px minmax(0,1fr)}
+.vcx-app[data-module="company"] .vcx-portrait-frame{width:94px;height:94px}
+.vcx-company-body{display:grid;gap:16px;min-width:0}
+.vcx-company-body>*{min-width:0;max-width:100%}
+.vcx-company-body .backend-form-card{margin:0}
+.vcx-company-body .admin-table-wrap,.vcx-company-body .table-wrap{max-width:100%;overflow-x:auto}
+.vcx-app[data-module="clinic"] .vcx-identity-card{grid-template-columns:108px minmax(0,1fr)}
+.vcx-app[data-module="clinic"] .vcx-privacy-note{margin-top:16px}
+.vcx-app[data-module="clinic"] .vcx-clinic-operations .vcx-clinic-steps{margin:0}
+.vcx-primary input:not([type="checkbox"]):not([type="radio"]),.vcx-primary select,.vcx-primary textarea{max-width:100%}
+.vcx-primary .form-grid>div,.vcx-primary .form-grid>label{min-width:0}
+@media(max-width:780px){
+ .vcx-account-card{padding:18px!important}
+ .vcx-account-details>summary{padding:15px;flex-wrap:wrap}
+ .vcx-account-details>summary small{flex:1 1 100%}
+ .vcx-account-details>.form-grid{padding:15px}
+ .vcx-app[data-module="company"] .vcx-right-rail{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ .vcx-account-summary form{margin-left:0}
+ .vcx-account-summary .vcx-button{font-size:11px}
+ .vcx-app[data-module="company"] .vcx-identity-card,.vcx-app[data-module="clinic"] .vcx-identity-card{grid-template-columns:80px minmax(0,1fr)}
+ .vcx-app[data-module="company"] .vcx-portrait-frame{width:76px;height:76px}
+ .vcx-company-body .form-grid{grid-template-columns:1fr}
+}
