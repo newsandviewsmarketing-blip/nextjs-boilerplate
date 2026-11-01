@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
+import ClinicFacilityTypeField from "./ClinicFacilityTypeField";
+import ClinicFocusFields from "./ClinicFocusFields";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
@@ -379,23 +381,7 @@ export default async function ClinicWorkspacePage({
                 />
               </div>
 
-              <div>
-                <label htmlFor="facility_type">
-                  Facility type
-                </label>
-                <select
-                  id="facility_type"
-                  name="facility_type"
-                  defaultValue="Veterinary Clinic"
-                >
-                  <option>Veterinary Clinic</option>
-                  <option>Veterinary Hospital</option>
-                  <option>Pet Clinic</option>
-                  <option>Livestock Clinic</option>
-                  <option>Farm Veterinary Service</option>
-                  <option>Mobile Veterinary Service</option>
-                </select>
-              </div>
+              <ClinicFacilityTypeField />
 
               <div className="form-span-2">
                 <h3>Responsible registered veterinarian</h3>
@@ -449,43 +435,13 @@ export default async function ClinicWorkspacePage({
                 />
               </div>
 
-              <div>
-                <label>Working hours</label>
-                <input
-                  value="Set after clinic creation"
-                  readOnly
-                />
-                <p className="form-help">
-                  The next screen provides Monday-Sunday calendar
-                  and clock controls.
-                </p>
+              <div className="vcx-clinic-next-step">
+                <strong>Weekly hours & appointment slots</strong>
+                <p>After saving this private clinic draft, set open days, start and end times, breaks and appointment duration in the existing schedule editor.</p>
+                <span>Next: manage opening hours <span aria-hidden="true">→</span></span>
               </div>
 
-              <div className="form-span-2">
-                <label htmlFor="services">
-                  Initial services
-                </label>
-                <input
-                  id="services"
-                  name="services"
-                  placeholder="Consultation, vaccination, surgery"
-                />
-                <p className="form-help">
-                  Separate with commas. You can add standardized
-                  services after creating the clinic.
-                </p>
-              </div>
-
-              <div className="form-span-2">
-                <label htmlFor="species">
-                  Species served
-                </label>
-                <input
-                  id="species"
-                  name="species"
-                  placeholder="Dogs, cats, cattle, buffalo, poultry"
-                />
-              </div>
+              <ClinicFocusFields />
 
               <div className="form-span-2">
                 <label htmlFor="description">
