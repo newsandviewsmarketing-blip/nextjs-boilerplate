@@ -110,7 +110,7 @@ export default async function ClinicWorkspacePage({
 
   return (
     <CareerWorkspaceFrame
-      active="connections"
+      active="clinic" module="clinic"
       name={identity.profile?.full_name || identity.email}
       headline="Clinic & veterinary practice"
       title="Your clinic practice, in one place."
