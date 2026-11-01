@@ -1,8 +1,7 @@
 import JobCompensationFields from "@/app/components/JobCompensationFields";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
+import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import MasterDataInput from "../../components/MasterDataInput";
@@ -247,27 +246,15 @@ export default async function CompanyDashboardPage({
     canManageMembers;
 
   return (
-    <main>
-      <SiteHeader />
-
-      <section className="dashboard-hero">
-        <div className="shell dashboard-hero-row">
-          <div>
-            <span className="section-kicker">COMPANY WORKSPACE</span>
-            <h1>{displayName}</h1>
-            <p>
-              {roleLabel(workspace.member_role)}
-              {workspace.designation ? ` · ${workspace.designation}` : ""}
-            </p>
-          </div>
-          <Link className="button button-secondary" href="/dashboard">
-            Account profile
-          </Link>
-        </div>
-      </section>
-
-      <section className="section compact-section">
-        <div className="shell">
+    <CareerWorkspaceFrame
+      active="company" module="company"
+      name={displayName}
+      headline={[roleLabel(workspace.member_role),workspace.designation].filter(Boolean).join(" · ")}
+      photoUrl={company?.logo_url}
+      verificationStatus={workspace.company_verification_status}
+      title="Manage your company workspace."
+      description="An approved organization has its own profile, jobs, products and team permissions. Your personal account stays separate.">
+       <div className="vcx-company-body">
           <FormMessage {...params} />
           {submittedJob && <JobSubmissionReceipt closeHref="/dashboard/company"
             job={{id:submittedJob.id,title:submittedJob.title,sector:submittedJob.sector,
@@ -698,10 +685,9 @@ export default async function CompanyDashboardPage({
               </div>
             </div>
           )}
-        </div>
-      </section>
 
-      <SiteFooter />
-    </main>
+       </div>
+    </CareerWorkspaceFrame>
   );
+}
 }
