@@ -273,3 +273,20 @@
  .vcx-app[data-module="company"] .vcx-portrait-frame{width:76px;height:76px}
  .vcx-company-body .form-grid{grid-template-columns:1fr}
 }
+
+
+/* Admin uses the same visual hierarchy without borrowing member permissions. */
+.admin-navigation.vc-sidebar{background:#fff;border-right:1px solid #e1e7f0;color:#172747;padding:18px 12px}
+.admin-navigation .vc-sidebar-brand{background:#f5f7fb;border:1px solid #e1e7f0;border-radius:12px;padding:14px}
+.admin-navigation .vc-sidebar-brand span{color:#d66c00;font-size:10px;font-weight:850;letter-spacing:1.2px}
+.admin-navigation .vc-sidebar-brand strong{color:#14264e;font-size:13px}
+.admin-navigation .vc-sidebar-fold summary{cursor:pointer}
+.admin-navigation .vc-admin-section{border:0;background:transparent;border-radius:11px;margin-bottom:6px;padding:2px}
+.admin-navigation .vc-admin-section>summary{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:12px 11px;font-size:11px;letter-spacing:.8px;font-weight:850;color:#64758d;list-style:none;border-radius:9px}
+.admin-navigation .vc-admin-section>summary::-webkit-details-marker{display:none}
+.admin-navigation .vc-admin-section>summary:after{content:"+";font-size:16px;font-weight:800;color:#bc680c}
+.admin-navigation .vc-admin-section[open]>summary:after{content:"−"}
+.admin-navigation .vc-admin-section>summary:hover,.admin-navigation .vc-admin-section[open]>summary{background:#f2f6fb}
+.admin-navigation .vc-admin-section a{display:block;border-radius:9px;padding:11px 12px;color:#405579;font-weight:650;font-size:12px;line-height:1.4;min-height:38px}
+.admin-navigation .vc-admin-section a:hover,.admin-navigation .vc-admin-section a:focus-visible{background:#fff0e2;color:#995109}
+.admin-navigation a:focus-visible,.admin-navigation summary:focus-visible{outline:3px solid #f59e43;outline-offset:2px}
