@@ -445,6 +445,7 @@ export default async function AdminPage({
                       name="reason"
                       placeholder="Add correction or verification note"
                     />
+                    {row.record_source==="clinics"&&<label className="checkbox-line"><input type="checkbox" name="pvmc_checked" />I checked the responsible veterinarian's PVMC registration against official evidence and recorded the source/status in the review note. Approval also requires at least one public service and one open day.</label>}
                     <div className="review-actions">
                       <FormSubmitButton
                         className="button button-primary"
