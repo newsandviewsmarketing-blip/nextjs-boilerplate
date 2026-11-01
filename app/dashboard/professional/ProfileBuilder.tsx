@@ -4,7 +4,7 @@ import {useRef,useState,type ReactNode,type KeyboardEvent} from 'react';
 
 import {PROFILE_SECTIONS as steps,type ProfileSectionId} from '@/lib/professional-workspace';
 
-export default function ProfileBuilder({panels,initialStep,completed,completion}:{panels:Record<ProfileSectionId,ReactNode>;initialStep?:string;completed:Partial<Record<ProfileSectionId,boolean>>;completion:number}){
+export default function ProfileBuilder({panels,initialStep,completed}:{panels:Record<ProfileSectionId,ReactNode>;initialStep?:string;completed:Partial<Record<ProfileSectionId,boolean>>;completion?:number}){
  const initial=steps.findIndex(step=>step.id===initialStep);
  const [active,setActive]=useState(initial<0?0:initial);
  const tabs=useRef<Array<HTMLButtonElement|null>>([]);
@@ -27,7 +27,7 @@ export default function ProfileBuilder({panels,initialStep,completed,completion}
  }
  return <div className="profile-builder">
   <aside className="builder-sidebar">
-   <div className="builder-progress"><span className="section-kicker">YOUR PROFILE</span><strong>{completion}% of checklist saved</strong><progress aria-label="Saved profile checklist" value={completion} max={100}/><p>Profile completion and verification are separate. Experience and credentials depend on your background.</p></div>
+   <div className="builder-progress"><span className="section-kicker">YOUR PROFILE SECTIONS</span><strong>Choose what to update</strong><p>These steps are independent of core profile completion and PVMC credential review. Optional information can be added later.</p></div>
    <label className="builder-mobile-selector">Profile section<select value={active} onChange={event=>select(Number(event.target.value),true)}>{steps.map((step,index)=><option key={step.id} value={index}>{index+1}. {step.label}{completed[step.id]?' · Saved':''}</option>)}</select></label>
    <div className="builder-step-list" role="tablist" aria-label="Profile builder sections">
     {steps.map((step,index)=><button key={step.id} type="button" role="tab" id={'builder-tab-'+step.id} aria-controls={'builder-panel-'+step.id} aria-selected={active===index} tabIndex={active===index?0:-1} ref={el=>{tabs.current[index]=el;}} onKeyDown={event=>navigate(event,index)} onClick={()=>select(index)} className={active===index?'builder-step is-active':'builder-step'}>

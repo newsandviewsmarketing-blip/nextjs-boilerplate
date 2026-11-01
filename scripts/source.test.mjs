@@ -179,7 +179,9 @@ test("career workspace and veterinarian job application flow are active", () => 
   const dashboard = read("app/dashboard/page.tsx");
   const career = read("app/dashboard/career/page.tsx");
   const jobs = read("app/jobs/actions.ts");
-  assert.match(dashboard, /href="\/dashboard\/career"/);
+  const routes=read("lib/professional-workspace.ts");
+  assert.match(dashboard, /active="account" module="account"/);
+  assert.match(routes, /href:'\/dashboard\/career'/);
   assert.match(career, /MY APPLICATIONS/);
   assert.match(career, /job_applications/);
   assert.match(jobs, /"veterinarian"/);
@@ -676,7 +678,8 @@ test("Phase 2 dashboard links to actionable administration, reports and records"
   assert.match(exportRoute, /no-store/);
   assert.match(exportRoute, /csvCell/);
   assert.match(company, /company-applications/);
-  assert.match(account, /vc-customer-hub/);
+  assert.match(account, /CareerWorkspaceFrame/);
+  assert.match(account, /updateProfileAction/);
   for(const file of ["app/admin/jobs/page.tsx","app/admin/jobs/[id]/page.tsx","app/admin/applications/page.tsx","app/admin/clinic-affiliations/page.tsx","app/admin/reports/page.tsx"]){
     assert.ok(read(file).length>300, file+" is missing");
   }
@@ -749,4 +752,33 @@ test("registration approval never publishes clinical practice without separate P
   assert.match(admin,/select\("id"\)\.single\(\)/);
   assert.doesNotMatch(admin,/Clinic registration requires manual PVMC evidence confirmation and a review note/);
   assert.match(reviews,/its clinic stays private and pending/i);
+});
+
+
+test("account, professional, clinic and company use one navigation shell with separate review states",()=>{
+ const nav=read("lib/professional-workspace.ts");
+ const frame=read("app/components/CareerWorkspaceFrame.tsx");
+ const account=read("app/dashboard/page.tsx");
+ const profile=read("app/dashboard/professional/ProfileBuilder.tsx");
+ const clinic=read("app/dashboard/clinics/page.tsx");
+ const clinicDetail=read("app/dashboard/clinics/[id]/page.tsx");
+ const company=read("app/dashboard/company/page.tsx");
+ const admin=read("app/admin/components/AdminNav.tsx");
+ assert.match(nav,/id:'account'/);
+ assert.match(nav,/id:'clinic'/);
+ assert.match(nav,/id:'company'/);
+ assert.match(frame,/data-module=\{module\}/);
+ assert.match(frame,/PVMC number provided · verification pending/);
+ assert.match(frame,/credentialReviewed/);
+ assert.match(account,/active="account" module="account"/);
+ assert.match(account,/className="vcx-account-details"/);
+ assert.match(account,/updateProfileAction/);
+ assert.doesNotMatch(account, /dashboard-hero-row/);
+ assert.match(clinic,/active="clinic" module="clinic"/);
+ assert.match(clinicDetail,/active="clinic" module="clinic"/);
+ assert.match(company,/active="company" module="company"/);
+ assert.doesNotMatch(company, /<SiteHeader/);
+ assert.doesNotMatch(profile, /of checklist saved/);
+ assert.match(admin,/vc-admin-section/);
+ assert.match(read("docs/unified-workspace-design-system.md"),/Clinic publication database-migration/);
 });
