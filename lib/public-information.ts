@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { absoluteUrl } from "@/lib/seo";
 
-export const PUBLIC_INFORMATION_VERSION = "2026-11-01.1";
+export const PUBLIC_INFORMATION_VERSION = "2026-11-01.2";
 export const PUBLIC_INFORMATION_UPDATED = "2026-11-01";
 export const PUBLIC_INFORMATION_LINKS = [
   {
@@ -26,30 +26,146 @@ export const PUBLIC_INFORMATION_LINKS = [
   }
 ] as const;
 
+export type PublicInformationContent = {
+  title: string;
+  description: string;
+  sections: readonly {
+    title: string;
+    body: string;
+    links?: readonly { label: string; href: string }[];
+  }[];
+};
+
 export const PUBLIC_INFORMATION = {
   "about": {
-    "title": "About VetConnect",
-    "description": "Connecting people, information and opportunities across Pakistan’s veterinary and animal sectors.",
+    "title": "About VetConnect Pakistan",
+    "description": "Connecting farmers and pet owners with PVMC-registered veterinarians, animal-health professionals, companies, product information, careers and learning.",
     "sections": [
       {
         "title": "Our purpose",
-        "body": "VetConnect Pakistan brings together veterinary professionals, students, allied professionals, animal owners, farmers, clinics, laboratories, companies and employers. The platform provides directory information, career opportunities, learning resources and relevant business listings."
+        "body": "VetConnect Pakistan is a digital initiative of The Veterinary News & Views (VNV), developed to connect Pakistan’s veterinary and animal-health community. At its centre is a clear purpose: help farmers, livestock keepers and pet owners find veterinary practitioners whose qualifications and PVMC registration can be checked. Around that connection, the platform brings together allied professionals, clinics, laboratories, companies, product information, career opportunities and learning.",
+        "links": [
+          {
+            "label": "The Veterinary News & Views",
+            "href": "https://vetnewsandviews.com"
+          },
+          {
+            "label": "Find a veterinarian",
+            "href": "/vets"
+          }
+        ]
       },
       {
-        "title": "Mission and objectives",
-        "body": "Our mission is to make relevant information easier to find and help people present their qualifications and services accurately. Our objectives are to support responsible professional connections, education, careers and business information, while respecting personal information and providing a clear correction route."
+        "title": "Our mission",
+        "body": "Our mission is to improve access to qualified veterinary care, reliable sector information and professional opportunities through responsible digital connections. We aim to help people present their qualifications accurately, find appropriate expertise, exchange knowledge and work together across livestock, poultry, dairy, companion-animal care, fisheries and related animal-health services."
       },
       {
-        "title": "Independence",
-        "body": "VetConnect is an independent platform. It is not PVMC, a university or a government authority. Links to regulators and institutions do not imply their endorsement or a partnership. A profile, company or product label refers only to its stated review scope."
+        "title": "Veterinary professionals and allied expertise",
+        "body": "Veterinary practitioners are the core of the platform. Professional profiles bring qualifications, institutions, experience, areas of practice and public contact choices into one place. Allied professionals, students, researchers and industry specialists also have a place to establish their professional identity. Veterinary clinical practice requires the relevant professional registration; an allied-professional profile or academic qualification does not itself confer practice rights.",
+        "links": [
+          {
+            "label": "Professional directory",
+            "href": "/professionals"
+          },
+          {
+            "label": "Create a profile",
+            "href": "/register"
+          }
+        ]
       },
       {
-        "title": "Contact",
-        "body": "For platform information, corrections or a request for operator and formal-notice details, contact vetconnect.official@gmail.com. This website uses the service name VetConnect Pakistan. No company registration or government affiliation is implied by that name."
+        "title": "Connecting farmers, pet owners and care providers",
+        "body": "We aim to make it easier to find practitioners, clinics and diagnostic services by location, animal sector and expertise, including for underserved farming communities. VetConnect supports discovery and communication; availability, consultation arrangements and clinical decisions remain with the relevant care provider.",
+        "links": [
+          {
+            "label": "Clinics and hospitals",
+            "href": "/clinics"
+          },
+          {
+            "label": "Diagnostic laboratories",
+            "href": "/labs"
+          }
+        ]
+      },
+      {
+        "title": "Companies, services and product information",
+        "body": "The business network connects relevant companies and service providers with professionals, farmers and other sector participants. Our product-information objective is to organise brand and generic names, active ingredients or salts, strength, dosage form, pack size, manufacturer or authorised supplier, and source-supported regulatory information where available. Review of a company or one product field does not approve every product claim. Product references help users check information; they do not replace approved labelling, professional judgement or a veterinary consultation.",
+        "links": [
+          {
+            "label": "Company directory",
+            "href": "/companies"
+          },
+          {
+            "label": "Product information",
+            "href": "/marketplace"
+          }
+        ]
+      },
+      {
+        "title": "Jobs and professional opportunities",
+        "body": "VetConnect connects job seekers with employers and relevant veterinary and animal-health vacancies. We aim to make the employer, source, eligibility, location and application deadline easier to check. A reviewed listing is not a guarantee of employment or an endorsement of every employer claim. Applicants should confirm the current advertisement and application instructions.",
+        "links": [
+          {
+            "label": "Jobs and careers",
+            "href": "/jobs"
+          }
+        ]
+      },
+      {
+        "title": "Learning, skills and knowledge sharing",
+        "body": "Knowledge sharing and skill development are part of the project’s purpose. The learning direction includes professional courses, workshops, webinars, practical training and sector resources for veterinarians, students, farm teams and industry professionals. VNV supports the project through sector information, professional networks and outreach. Course enrolment, assessments and completion records should be described as available only when the relevant service is active.",
+        "links": [
+          {
+            "label": "Learning hub",
+            "href": "/learn"
+          }
+        ]
+      },
+      {
+        "title": "Animal records and continuity of care",
+        "body": "Our development roadmap includes animal and herd records, veterinarian-authored prescriptions, treatment history, vaccination and follow-up information, and communication between authorised care teams and owners. These are planned capabilities, not a claim that a complete clinical-record or prescription service is currently available. Each such service needs its own access controls, owner authorisation, clinical responsibilities and record-handling notice before launch."
+      },
+      {
+        "title": "Our startup journey",
+        "body": "The National Incubation Center Faisalabad lists Vet-Connect in Cohort 3, with Muhammad Atif Naseem as Founder. NIC Faisalabad is funded through the Ministry of IT & Telecom and Ignite National Technology Fund. Incubation support describes the startup’s development journey; it does not mean that a government body, NICF or Ignite approves individual practitioners, products or services on VetConnect.",
+        "links": [
+          {
+            "label": "Vet-Connect in the NIC Faisalabad startup directory",
+            "href": "https://www.nicfaisalabad.com/startup/vet-connect/"
+          },
+          {
+            "label": "About NIC Faisalabad",
+            "href": "https://www.nicfaisalabad.com/about-us/"
+          }
+        ]
+      },
+      {
+        "title": "Verification, independence and trust",
+        "body": "VetConnect is not PVMC or a licensing authority. Email confirmation, profile review, PVMC registration checks, company identity and product-information review have different scopes. A listed institution, uploaded document or profile label does not automatically establish current permission to practise, product approval or a guaranteed outcome. Regulatory and institutional links do not imply endorsement.",
+        "links": [
+          {
+            "label": "Pakistan Veterinary Medical Council",
+            "href": "https://pvmc.gov.pk/"
+          }
+        ]
+      },
+      {
+        "title": "Contact and corrections",
+        "body": "For platform enquiries, incorrect information, privacy requests or operator and formal-notice details, contact vetconnect.official@gmail.com. Include the relevant page link and a concise explanation. Do not send passwords, OTPs or complete identity documents by ordinary email.",
+        "links": [
+          {
+            "label": "Privacy Notice",
+            "href": "/privacy"
+          },
+          {
+            "label": "Terms of Use",
+            "href": "/terms"
+          }
+        ]
       },
       {
         "title": "Animal emergencies",
-        "body": "A directory or educational article is not a clinical consultation. Contact an appropriately qualified veterinary practitioner directly for an animal emergency. Platform messages are not an emergency response service."
+        "body": "A directory, educational resource or product-information page is not a clinical consultation. Contact an appropriately qualified veterinary practitioner directly for an animal emergency. VetConnect messages are not an emergency response service."
       }
     ]
   },
@@ -67,7 +183,7 @@ export const PUBLIC_INFORMATION = {
       },
       {
         "title": "Professional and commercial activities",
-        "body": "Users are responsible for relevant professional registrations and business authorisations. VetConnect does not confer permission to practise. Independent practitioners, employers and suppliers are responsible for their own services and claims; VetConnect remains responsible for its own conduct and applicable obligations. A listing is not a guarantee of treatment, employment, product safety or commercial performance."
+        "body": "Users are responsible for relevant professional registrations and business authorisations. VetConnect does not confer permission to practise. Independent practitioners, employers and suppliers are responsible for their own services and claims; VetConnect remains responsible for its own conduct and applicable obligations. A listing is not a guarantee of treatment, employment, product safety or commercial performance. Product composition, packaging and regulatory information should be checked against the identified source and current approved label. VetConnect does not issue prescriptions or grant regulatory approval by displaying a listing."
       },
       {
         "title": "Content rights",
@@ -88,6 +204,10 @@ export const PUBLIC_INFORMATION = {
       {
         "title": "Changes",
         "body": "The version and date on this page identify this text. Material changes should be communicated through the affected service and renewed agreement obtained where required. Changes do not retrospectively remove accrued rights."
+      },
+      {
+        "title": "Future clinical records and learning services",
+        "body": "Animal-care records, prescription workflows, course enrolment and completion records form part of the development roadmap. Before any such service is activated, its specific responsibilities, access arrangements and applicable terms must be presented. Mention of a planned capability is not a commitment that it is currently available."
       }
     ]
   },
@@ -101,7 +221,7 @@ export const PUBLIC_INFORMATION = {
       },
       {
         "title": "Information and purposes",
-        "body": "Information may include your name, email, telephone, location, account type, education, institution, experience and selected profile details. The features you use may request professional-registration evidence, business details, documents, CVs or job applications. These support authentication, requested profiles and applications, verification, communications, moderation and abuse prevention."
+        "body": "Information may include your name, email, telephone, location, account type, education, institution, experience and selected profile details. The features you use may request professional-registration evidence, business details, documents, CVs or job applications. These support authentication, requested profiles and applications, verification, communications, moderation and abuse prevention. Product and company submissions can include representative details, source documents and information used to assess authority to publish. Learning or event features may request enrolment and participation information when those services become available."
       },
       {
         "title": "Public and private information",
@@ -110,6 +230,22 @@ export const PUBLIC_INFORMATION = {
       {
         "title": "Recruitment",
         "body": "A CV submitted for a particular job is for that application and the authorised receiving employer, with necessary platform-support access. Employers must not sell it, publish it or reuse it for unrelated marketing. A future talent-pool or marketing choice must be separate from the application itself."
+      },
+      {
+        "title": "Animal and farm records: planned services",
+        "body": "The roadmap includes animal identification, owner or farm links, treatment and vaccination history, prescriptions and follow-up records. These features are not represented as a complete live service by this notice. Before activation, the relevant workflow must explain the information collected, the responsible record author, authorised viewers, sharing choices and retention arrangements. Farm location and commercial records can identify or affect people and businesses even when the subject is an animal."
+      },
+      {
+        "title": "Care-team access and sharing",
+        "body": "For a future animal-record service, access is intended to be limited to the owner or authorised farm representative, the treating practitioner and explicitly authorised care-team members. A directory listing or company account must not provide access to private clinical records. Research, optional marketing, supplier access or sharing with another clinic requires a separately explained and appropriate basis. These are service-design requirements, not a claim that the access system has already been deployed."
+      },
+      {
+        "title": "Professional documents and public search",
+        "body": "A professional biography, qualification summary or experience description selected and approved for publication may appear in public search results. Private identity evidence, full registration documents, contact details designated private, CV files and animal-care records are not intended to be indexed or included in public profiles. Removing a public page may not immediately remove copies held by search engines."
+      },
+      {
+        "title": "VNV, incubation and partner boundaries",
+        "body": "VNV supports VetConnect through information, networks and outreach. NIC Faisalabad incubation or a link to a training partner does not, by itself, authorise access to user accounts, CVs, identity evidence or future animal-care records. Any operational sharing between VetConnect, VNV or other partners must be explained for the relevant purpose and limited to the information needed."
       },
       {
         "title": "Providers and disclosures",
@@ -161,7 +297,7 @@ export const PUBLIC_INFORMATION = {
       }
     ]
   }
-} as const;
+} as const satisfies Record<string, PublicInformationContent>;
 export type PublicInformationSlug = keyof typeof PUBLIC_INFORMATION;
 
 export function publicInformationMetadata(slug: PublicInformationSlug): Metadata {
@@ -169,6 +305,7 @@ export function publicInformationMetadata(slug: PublicInformationSlug): Metadata
   return {
     title,
     description,
+    keywords: slug === "about" ? ["VetConnect Pakistan", "PVMC-registered veterinarians", "veterinary jobs Pakistan", "animal-health product information", "livestock farmers", "pet owners", "veterinary learning"] : undefined,
     alternates: { canonical: absoluteUrl("/" + slug) },
     openGraph: {
       title: title + " | VetConnect Pakistan",

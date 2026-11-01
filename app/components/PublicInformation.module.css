@@ -38,3 +38,6 @@
   .layout { display: block; }
   .article { padding: 0; border: 0; }
 }
+
+.sectionLinks { display: flex; flex-wrap: wrap; gap: 4px 22px; list-style: none; padding: 0; margin: 12px 0 0; }
+.sectionLinks a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
