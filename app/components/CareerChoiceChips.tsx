@@ -2,7 +2,7 @@
 
 import {useId,useMemo,useState,type KeyboardEvent} from 'react';
 
-/** A focused multi-choice input that posts the existing comma-separated server format. */
+/** A focused multi-choice input using JSON arrays (legacy comma lists remain supported). */
 export default function CareerChoiceChips({
   name,label,initial=[],options=[],placeholder='Type to search',
   help,allowCustom=false,showSuggestionsInitially=false,
@@ -26,8 +26,8 @@ export default function CareerChoiceChips({
   function add(text:string){
     const item=text.trim();
     if(!item)return;
-    if(item.length>100||item.includes(',')||/[\n\r<>]/.test(item)){
-      setNotice('Choose one entry at a time, up to 100 characters without commas.');return;
+    if(item.length>90||/[\n\r<>]/.test(item)){
+      setNotice('Choose one entry at a time, up to 90 characters.');return;
     }
     if(!allowCustom&&!options.some(option=>option.toLocaleLowerCase()===item.toLocaleLowerCase())){
       setNotice('Choose an approved option from the suggestions.');return;
@@ -49,12 +49,12 @@ export default function CareerChoiceChips({
   }
   return <div className="career-choice-field">
     <label htmlFor={id}>{label}</label>
-    <input type="hidden" name={name} value={chosen.join(', ')}/>
+    <input type="hidden" name={name} value={JSON.stringify(chosen)}/>
     {chosen.length>0&&<ul className="career-choice-tags" aria-label={'Selected '+label}>
       {chosen.map(value=><li key={value}><span>{value}</span><button type="button" aria-label={'Remove '+value} onClick={()=>{setChosen(items=>items.filter(item=>item!==value));setNotice('');}}>×</button></li>)}
     </ul>}
     <div className="career-choice-entry">
-      <input id={id} value={query} onChange={e=>{setQuery(e.target.value);setNotice('');}} onKeyDown={keyDown} placeholder={placeholder} maxLength={100} autoComplete="off"/>
+      <input id={id} value={query} onChange={e=>{setQuery(e.target.value);setNotice('');}} onKeyDown={keyDown} placeholder={placeholder} maxLength={90} autoComplete="off"/>
       <button className="button button-secondary" type="button" disabled={!query.trim()||chosen.length>=20} onClick={()=>add(query)}>Add</button>
     </div>
     {suggestions.length>0&&<div className="career-choice-suggestions" aria-label={'Suggestions for '+label}>
