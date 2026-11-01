@@ -259,7 +259,7 @@ export default async function ClinicManagePage({
   ].filter(Boolean);
 
   return (
-    <CareerWorkspaceFrame active="connections"
+    <CareerWorkspaceFrame active="clinic" module="clinic"
       name={identity.profile?.full_name||identity.email}
       headline={clinic.facility_type}
       title={clinic.clinic_name}
