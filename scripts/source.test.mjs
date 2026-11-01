@@ -697,3 +697,28 @@ test("organization connections distinguish clinic ownership, affiliations and co
   assert.match(actions, /verification_status: "pending"/);
   assert.match(actions, /is_published: false/);
 });
+
+
+test("clinic onboarding stays linked to the personal dashboard and never self-publishes",()=>{
+ const connections=read("app/career/connections/page.tsx");
+ const clinic=read("app/dashboard/clinics/page.tsx");
+ const detail=read("app/dashboard/clinics/[id]/page.tsx");
+ const actions=read("app/dashboard/clinics/actions.ts");
+ const admin=read("app/admin/actions.ts");
+ const adminCreate=read("app/admin/create/actions.ts");
+ const readiness=read("lib/clinic-practice-readiness.ts");
+ assert.match(connections,/Clinics I own/);
+ assert.match(clinic,/CareerWorkspaceFrame/);
+ assert.match(detail,/CareerWorkspaceFrame/);
+ assert.match(clinic,/responsible_veterinarian_pvmc/);
+ assert.match(detail,/responsible_veterinarian_pvmc/);
+ assert.match(actions,/responsible_veterinarian_pvmc: nullableText\(formData, "responsible_veterinarian_pvmc"\)/);
+ assert.match(actions,/verification_status: "pending"/);
+ assert.match(actions,/is_published: false/);
+ assert.match(admin,/clinicPracticeReadiness/);
+ assert.match(admin,/reviewerCheckedPVMC/);
+ assert.match(admin,/gate.registration_intent==="clinic"/);
+ assert.match(adminCreate,/const publish = false/);
+ assert.match(readiness,/At least one open day/);
+ assert.match(readiness,/At least one active public clinical service/);
+});
