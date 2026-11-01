@@ -40,7 +40,7 @@ export default async function CareerHome({searchParams}:{searchParams:Promise<{m
      <Link className="vcx-task" href="/career/connections"><span className="vcx-task-number">03</span><strong>Clinics & company links</strong><small>See your recorded workplace relationships without mixing identities.</small></Link>
     </div>
     <div className="vcx-callout"><div><strong>Need to update your education, qualifications or experience?</strong><p>Your professional information stays in one focused profile builder.</p></div>
-     <Link className="vcx-button vcx-button-outline" href={approved?'/dashboard/professional':'/register/complete'}>{approved?'Open profile':'Review registration'}</Link>
+     <Link className="vcx-button vcx-button-outline" href="/dashboard/professional">Open my profile</Link>
     </div>
    </section>
    <section className="vcx-panel">
