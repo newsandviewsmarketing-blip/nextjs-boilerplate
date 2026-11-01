@@ -3,7 +3,7 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import {
   PUBLIC_INFORMATION, PUBLIC_INFORMATION_LINKS, PUBLIC_INFORMATION_UPDATED,
-  PUBLIC_INFORMATION_VERSION, type PublicInformationSlug,
+  PUBLIC_INFORMATION_VERSION, type PublicInformationSlug, type PublicInformationContent,
 } from "@/lib/public-information";
 import styles from "./PublicInformation.module.css";
 
@@ -16,7 +16,7 @@ function Paragraph({ text }: { text: string }) {
 }
 
 export default function PublicInformationPage({ slug }: { slug: PublicInformationSlug }) {
-  const page = PUBLIC_INFORMATION[slug];
+  const page: PublicInformationContent = PUBLIC_INFORMATION[slug];
   return <>
     <SiteHeader />
     <main id="public-information" className={styles.main}>
@@ -44,6 +44,10 @@ export default function PublicInformationPage({ slug }: { slug: PublicInformatio
             {page.sections.map((section, index) => <section key={section.title} aria-labelledby={"information-section-" + index}>
               <h2 id={"information-section-" + index}>{section.title}</h2>
               <Paragraph text={section.body} />
+              {section.links ? <ul className={styles.sectionLinks}>{section.links.map(link => <li key={link.href}>
+                {link.href.startsWith("/") ? <Link href={link.href}>{link.label}</Link> :
+                  <a href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>}
+              </li>)}</ul> : null}
             </section>)}
             <nav className={styles.related} aria-label="Related information">
               <h2>Related information</h2>
