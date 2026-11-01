@@ -143,7 +143,7 @@ export default async function CareerWorkspaceFrame({
        <Link className="vcx-button vcx-button-outline" href="/dashboard/clinics">Manage my clinics</Link>
       </section>:module==='company'?<section className="vcx-side-card">
        <span className="vcx-eyebrow">SEPARATE IDENTITY</span><h2>Company workspace</h2>
-       <p className="vcx-secondary">Company records and permissions remain separate from this user's professional CV and personal account.</p>
+       <p className="vcx-secondary">Company records and permissions remain separate from this user&apos;s professional CV and personal account.</p>
        <Link className="vcx-button vcx-button-outline" href="/career/connections">Professional connections</Link>
       </section>:<section className="vcx-side-card">
        <span className="vcx-eyebrow">YOUR CV</span><h2>VetConnect CV Builder</h2>
