@@ -72,7 +72,7 @@ export default function CareerWorkspaceFrame({
    <div className="vcx-content">
     <div className="vcx-intro">
      <div><span className="vcx-eyebrow">PROFESSIONAL WORKSPACE</span><h1>{title}</h1><p>{description}</p></div>
-     <Link className="vcx-button vcx-button-outline" href="/career/cv/print" target="_blank" rel="noopener noreferrer">CV preview</Link>
+     <Link className="vcx-button vcx-button-outline" href={cvStatus==='saved'?'/career/cv/print':'/career/cv'} target={cvStatus==='saved'?'_blank':undefined} rel={cvStatus==='saved'?'noopener noreferrer':undefined}>{cvStatus==='saved'?'View saved CV':'Create my CV'}</Link>
     </div>
     <article className="vcx-identity-card">
      <div className="vcx-portrait-frame"><ProfilePhoto imageUrl={photoUrl??null} name={name} fallback={fallback}/></div>
@@ -110,7 +110,7 @@ export default function CareerWorkspaceFrame({
       </section>
      </aside>
     </div>
-    <p className="vcx-privacy-note">A personal profile and a company or clinic are separate records. Qualifications and employment require their own verification. Your private CV is shared only when you choose to use it in an application.</p>
+    <p className="vcx-privacy-note"><Link href="/about">About VetConnect</Link> · <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link>. A personal profile and a company or clinic are separate records. Qualifications and employment require their own verification. Your private CV is shared only when you choose to use it in an application.</p>
    </div>
   </div>
  </main>;
