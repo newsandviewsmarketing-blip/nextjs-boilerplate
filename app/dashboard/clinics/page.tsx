@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
+import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
@@ -105,43 +104,25 @@ export default async function ClinicWorkspacePage({
     affiliatedClinics.map((clinic) => [clinic.id, clinic]),
   );
 
+  const {data:practitioner}=identity.roles.includes("veterinarian")
+    ? await supabase.from("veterinarian_profiles").select("pvmc_number").eq("user_id",identity.userId).maybeSingle()
+    : {data:null};
+
   return (
-    <main>
-      <SiteHeader />
-
-      <section className="dashboard-hero">
-        <div className="shell dashboard-hero-row">
-          <div>
-            <span className="section-kicker">
-              CLINIC WORKSPACE
-            </span>
-            <h1>Manage veterinary facilities and affiliations.</h1>
-            <p>
-              Create a clinic profile, manage public information,
-              weekly availability, appointments and professional
-              affiliations.
-            </p>
-          </div>
-
-          <div className="dashboard-actions">
-            <Link
-              className="button button-secondary"
-              href="/clinics"
-            >
-              Public clinic directory
-            </Link>
-            <Link
-              className="button button-dark"
-              href="/dashboard"
-            >
-              Account dashboard
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="section compact-section">
-        <div className="shell">
+    <CareerWorkspaceFrame
+      active="connections"
+      name={identity.profile?.full_name || identity.email}
+      headline="Clinic & veterinary practice"
+      title="Your clinic practice, in one place."
+      description="Create a clinic draft, configure professional services and hours, manage staff and appointments, then request VetConnect review before public listing.">
+      <section className="vcx-clinic-operations">
+       <div className="vcx-clinic-steps">
+        <div><b>01</b><span>Clinic identity & responsible veterinarian</span></div>
+        <div><b>02</b><span>Location, skills & services</span></div>
+        <div><b>03</b><span>Hours, slots & fees</span></div>
+        <div><b>04</b><span>Staff & admin publication review</span></div>
+       </div>
+       <p className="vcx-secondary">Clinic profile information remains private during setup. Only a reviewed and approved facility can become publicly listed. Saving a clinic does not verify a PVMC number.</p>
           <FormMessage {...messages} />
 
           {(ownedError || membershipError) && (
@@ -364,6 +345,8 @@ export default async function ClinicWorkspacePage({
             </div>
           )}
 
+          <details className="vcx-clinic-new" open={ownedClinics.length===0}>
+           <summary><strong>Register another clinic or veterinary hospital</strong><span>Begin a separate facility draft without changing your personal professional profile.</span></summary>
           <form
             id="new-clinic"
             className="backend-form-card workspace-section-card workspace-heading-gap"
@@ -414,6 +397,21 @@ export default async function ClinicWorkspacePage({
                 </select>
               </div>
 
+              <div className="form-span-2">
+                <h3>Responsible registered veterinarian</h3>
+                <p className="form-help">Clinic ownership can differ from clinical responsibility. A PVMC-registered practitioner must be identified for veterinary practice. These details are private until administrator review.</p>
+              </div>
+              <div>
+               <label htmlFor="responsible_veterinarian_name">Responsible veterinarian's full name</label>
+               <input id="responsible_veterinarian_name" name="responsible_veterinarian_name" maxLength={180}
+                defaultValue={identity.roles.includes("veterinarian") ? identity.profile?.full_name ?? "" : ""} placeholder="Name on PVMC registration" />
+              </div>
+              <div>
+               <label htmlFor="responsible_veterinarian_pvmc">PVMC registration number</label>
+               <input id="responsible_veterinarian_pvmc" name="responsible_veterinarian_pvmc" maxLength={70}
+                defaultValue={identity.roles.includes("veterinarian") ? practitioner?.pvmc_number ?? "" : ""} placeholder="Registered veterinarian's PVMC number" />
+               <p className="form-help">Required before clinic publication. <a href="https://pvmc.gov.pk/Registration/Search" target="_blank" rel="noopener noreferrer">Official PVMC lookup</a></p>
+              </div>
               <PakistanLocationFields />
 
               <div className="form-span-2">
@@ -508,14 +506,13 @@ export default async function ClinicWorkspacePage({
               </label>
             </div>
 
-            <FormSubmitButton pendingLabel="Creating clinic...">
-              Create clinic
+            <p className="form-help">This saves an unpublished draft. Responsible veterinarian information, clinic hours, services and booking settings are reviewed before publication.</p>
+            <FormSubmitButton pendingLabel="Saving clinic draft...">
+              Save clinic draft
             </FormSubmitButton>
           </form>
-        </div>
+          </details>
       </section>
-
-      <SiteFooter />
-    </main>
+    </CareerWorkspaceFrame>
   );
 }
