@@ -7,7 +7,9 @@ function OptionGroup({kind,items,existing}:{
 }){
  const known=new Set(items);
  const extra=existing.filter(x=>!known.has(x)).join(", ");
- return <fieldset className="vcx-clinic-focus">
+ return <details className="vcx-clinic-focus-disclosure">
+   <summary><strong>{kind==="services"?"Expertise & services":"Species served"}</strong><span>{existing.length?`${existing.length} saved selections · edit`:"Optional · choose relevant options"}</span></summary>
+   <fieldset className="vcx-clinic-focus">
    <legend>{kind==="services"?"Areas of expertise & intended services":"Animal groups / species served"}</legend>
    <p className="form-help">{kind==="services"
     ?"Select your focus. Actual bookable services, consultation fees and duration are managed in the next step."
@@ -19,7 +21,8 @@ function OptionGroup({kind,items,existing}:{
    <label htmlFor={"clinic_"+kind+"_extra"}>Other (optional, separate with commas)</label>
    <input id={"clinic_"+kind+"_extra"} name={kind+"_extra"} defaultValue={extra}
      maxLength={350} placeholder={kind==="services"?"e.g. Equine field consultancy":"e.g. Camel, exotic pets"}/>
- </fieldset>;
+ </fieldset>
+ </details>;
 }
 export default function ClinicFocusFields({services=[],species=[]}:Props){
  return <div className="form-span-2 vcx-focus-sections">
