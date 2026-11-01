@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
 import { getEffectiveAdminPermission } from "@/lib/admin";
 import {vetProfileApprovalProblem,veterinaryCredentialApprovalProblem,credentialDataFlags} from "@/lib/veterinary-verification";
+import {clinicPracticeReadiness} from "@/lib/clinic-practice-readiness";
 
 export async function reviewProfileAction(formData: FormData) {
   const identity = await getCurrentIdentity();
@@ -71,6 +72,24 @@ export async function reviewProfileAction(formData: FormData) {
     }).eq("id", entityId);
     error = result.error;
   } else if (recordSource === "clinics") {
+    if (decision === "approved") {
+      // No self-reported PVMC number becomes verified automatically.
+      // A reviewer must consult official evidence and record the source.
+      const reviewerCheckedPVMC=formData.get("pvmc_checked")==="on";
+      if(!reviewerCheckedPVMC || reason.length<25){
+        redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent("Before publishing a clinic, confirm the PVMC registry and record the evidence source, registration status and reviewer note (at least 25 characters).")}`);
+      }
+      const [details,availability,services]=await Promise.all([
+        supabase.from("clinics").select("clinic_name,responsible_veterinarian_name,responsible_veterinarian_pvmc,province,city").eq("id",entityId).maybeSingle(),
+        supabase.from("clinic_availability").select("day_of_week").eq("clinic_id",entityId).eq("is_open",true).limit(1),
+        supabase.from("clinic_services").select("id").eq("clinic_id",entityId).eq("is_active",true).eq("is_public",true).limit(1),
+      ]);
+      if(details.error||availability.error||services.error||!details.data){
+        redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent("Clinic information could not be checked. No approval was recorded.")}`);
+      }
+      const missing=clinicPracticeReadiness(details.data,availability.data?.length??0,services.data?.length??0);
+      if(missing.length) redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent("Complete clinic setup before publishing: "+missing.join("; "))}`);
+    }
     const result = await supabase.from("clinics").update({
       verification_status: decision,
       rejection_reason: decision === "rejected" ? reason || "Please update the submitted clinic information." : null,
@@ -421,6 +440,32 @@ export async function reviewRegistrationSubmissionAction(formData: FormData) {
     supabase.from("registration_evidence").select("document_type,storage_path,content_type,verification_status").eq("user_id",userId).eq("verification_status","pending").order("created_at",{ascending:false}),
   ]);
   if(!profile||!gate||gate.review_status!=="pending") redirect("/admin/reviews?error=This%20registration%20is%20not%20waiting%20for%20review.");
+  // A company account registered as a clinic can otherwise be published
+  // by the existing registration RPC. Do the same clinic readiness and
+  // human PVMC evidence check here before allowing its approval.
+  if(decision==="approved"&&profile.primary_role==="company"&&gate.registration_intent==="clinic"){
+    if(formData.get("pvmc_checked")!=="on"||reason.length<25){
+      redirect("/admin/reviews?error="+encodeURIComponent("Clinic registration requires manual PVMC evidence confirmation and a review note describing registration status (at least 25 characters)."));
+    }
+    const facilities=await supabase.from("clinics")
+      .select("id,clinic_name,responsible_veterinarian_name,responsible_veterinarian_pvmc,province,city")
+      .eq("owner_id",userId);
+    if(facilities.error||!facilities.data?.length){
+      redirect("/admin/reviews?error="+encodeURIComponent("Clinic ownership or setup could not be confirmed. Registration approval was not sent."));
+    }
+    const clinicIds=facilities.data.map(row=>row.id);
+    const [days,services]=await Promise.all([
+      supabase.from("clinic_availability").select("clinic_id").in("clinic_id",clinicIds).eq("is_open",true),
+      supabase.from("clinic_services").select("clinic_id").in("clinic_id",clinicIds).eq("is_active",true).eq("is_public",true),
+    ]);
+    if(days.error||services.error){
+      redirect("/admin/reviews?error="+encodeURIComponent("Clinic services or weekly hours could not be checked."));
+    }
+    for(const clinic of facilities.data){
+      const missing=clinicPracticeReadiness(clinic,(days.data??[]).filter(x=>x.clinic_id===clinic.id).length,(services.data??[]).filter(x=>x.clinic_id===clinic.id).length);
+      if(missing.length)redirect("/admin/reviews?error="+encodeURIComponent("Complete clinic setup before approval: "+missing.join("; ")));
+    }
+  }
   let publicImageUrl: string|null=null;
   let publicPath: string|null=null;
   if(decision==="approved") {

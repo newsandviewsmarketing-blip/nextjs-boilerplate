@@ -110,6 +110,9 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div><div><label>Website</label><input name="website" /></div><div><label>Working hours</label><input name="working_hours" /></div>
         <div><label>Upload clinic logo</label><input name="logo_file" type="file" accept="image/jpeg,image/png,image/webp" /></div><div><label>Upload cover photo</label><input name="cover_file" type="file" accept="image/jpeg,image/png,image/webp" /></div>
         <div className="form-span-2"><label>Registration / licence evidence</label><input name="supporting_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /></div>
+        <div><label>Responsible veterinarian name</label><input name="responsible_veterinarian_name" maxLength={180} placeholder="Registered clinical practitioner" /></div>
+        <div><label>Responsible veterinarian PVMC number</label><input name="responsible_veterinarian_pvmc" maxLength={70} /></div>
+        <p className="form-help">This admin-assisted clinic begins private and pending. Verify PVMC evidence, hours and public services in the clinic review before publication.</p>
         <PakistanLocationFields />
         <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
         <div className="form-span-2"><label>Services (comma separated)</label><input name="services" /></div><div className="form-span-2"><label>Species (comma separated)</label><input name="species" /></div>

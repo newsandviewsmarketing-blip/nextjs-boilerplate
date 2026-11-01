@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import SiteHeader from "../../../components/SiteHeader";
-import SiteFooter from "../../../components/SiteFooter";
+import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import FormMessage from "../../../components/FormMessage";
 import FormSubmitButton from "../../../components/FormSubmitButton";
 import PakistanLocationFields from "../../../components/PakistanLocationFields";
@@ -11,6 +10,7 @@ import ProfilePhoto from "../../../components/ProfilePhoto";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { initials } from "@/lib/directories";
+import {clinicPracticeReadiness} from "@/lib/clinic-practice-readiness";
 import {
   addClinicServiceAction,
   endClinicMemberAction,
@@ -40,6 +40,8 @@ type ClinicRow = {
   id: string;
   slug: string;
   clinic_name: string;
+  responsible_veterinarian_name: string|null;
+  responsible_veterinarian_pvmc: string|null;
   facility_type: string;
   description: string | null;
   province: string | null;
@@ -156,7 +158,7 @@ export default async function ClinicManagePage({
     supabase
       .from("clinics")
       .select(
-        "id, slug, clinic_name, facility_type, description, province, district, tehsil, city, address, public_phone, public_email, website, working_hours, emergency_service, services, species, verification_status, rejection_reason, is_published, logo_url, cover_image_url",
+        "id, slug, clinic_name, responsible_veterinarian_name, responsible_veterinarian_pvmc, facility_type, description, province, district, tehsil, city, address, public_phone, public_email, website, working_hours, emergency_service, services, species, verification_status, rejection_reason, is_published, logo_url, cover_image_url",
       )
       .eq("id", id)
       .eq("owner_id", identity.userId)
@@ -238,6 +240,11 @@ export default async function ClinicManagePage({
   const activeMembers = members.filter(
     (row) => row.membership_status === "active",
   );
+  const readinessIssues=clinicPracticeReadiness(
+    clinic,
+    availability.filter(day=>day.is_open).length,
+    clinicServices.filter(service=>service.is_public&&service.is_active).length
+  );
   const primaryMember = activeMembers.find(
     (row) => row.is_primary,
   );
@@ -252,51 +259,33 @@ export default async function ClinicManagePage({
   ].filter(Boolean);
 
   return (
-    <main>
-      <SiteHeader />
-
-      <section className="dashboard-hero">
-        <div className="shell dashboard-hero-row">
-          <div>
-            <span className="section-kicker">
-              CLINIC MANAGEMENT
-            </span>
-            <h1>{clinic.clinic_name}</h1>
-            <p>
-              {clinic.facility_type} ·{" "}
-              {[clinic.city, clinic.province]
-                .filter(Boolean)
-                .join(", ") || "Location pending"}
-            </p>
-          </div>
-
-          <div className="dashboard-actions">
-            {clinic.is_published && (
-              <Link
-                className="button button-secondary"
-                href={`/clinics/${clinic.slug}`}
-              >
-                View public profile
-              </Link>
-            )}
-            <Link
-              className="button button-secondary"
-              href="/dashboard/clinics"
-            >
-              All clinics
-            </Link>
-            <Link
-              className="button button-dark"
-              href="/dashboard"
-            >
-              Dashboard
-            </Link>
-          </div>
+    <CareerWorkspaceFrame active="connections"
+      name={identity.profile?.full_name||identity.email}
+      headline={clinic.facility_type}
+      title={clinic.clinic_name}
+      description="Manage your registered veterinary practice, services, appointment availability and team from your personal VetConnect workspace.">
+      <section className="vcx-clinic-operations">
+       <div className="vcx-clinic-identity-bar">
+        <div><span className="vcx-eyebrow">CLINIC MANAGEMENT</span><strong>{clinic.facility_type}</strong><small>{[clinic.city,clinic.province].filter(Boolean).join(", ")||"Location not yet specified"}</small></div>
+        <div className="vcx-pills"><span>Review: {clinic.verification_status}</span><span>{clinic.is_published?"Published":"Unpublished"}</span></div>
+        <div className="vcx-clinic-action-row">
+         {clinic.is_published&&<Link className="vcx-button vcx-button-outline" href={`/clinics/${clinic.slug}`}>Public clinic page</Link>}
+         <Link className="vcx-button vcx-button-outline" href="/career/connections">All my connections</Link>
         </div>
-      </section>
-
-      <section className="section compact-section">
-        <div className="shell">
+       </div>
+       <nav className="vcx-clinic-jump" aria-label="Clinic setup sections">
+        <a href="#clinic-identity">01 · Details & PVMC</a>
+        <a href="#clinic-hours">02 · Hours</a>
+        <a href="#clinic-services">03 · Services & fees</a>
+        <a href="#clinic-team">04 · Team</a>
+        <a href="#clinic-appointments">05 · Appointments</a>
+       </nav>
+       <section className="vcx-clinic-readiness" aria-label="Clinic publication readiness">
+         <div><span className="vcx-eyebrow">FACILITY REVIEW</span><h2>{readinessIssues.length===0?"Core clinic details ready for VetConnect review":"Complete your clinic before publication"}</h2>
+          <p>Saving the clinic does not verify a veterinarian&apos;s registration. VetConnect administrators separately review credentials and facility information before publishing.</p></div>
+         {readinessIssues.length>0?<ul>{readinessIssues.map(issue=><li key={issue}>{issue}</li>)}</ul>:
+          <p className="vcx-secondary">Core fields are present. Administrator credential verification and publication approval are still required.</p>}
+       </section>
           <FormMessage {...messages} />
 
           {loadingErrors.length > 0 && (
@@ -424,7 +413,7 @@ export default async function ClinicManagePage({
             </form>
           </div>
 
-          <form
+          <form id="clinic-identity"
             className="backend-form-card workspace-section-card workspace-heading-gap"
             action={updateClinicAction}
           >
@@ -476,6 +465,19 @@ export default async function ClinicManagePage({
                 </select>
               </div>
 
+              <div className="form-span-2">
+                <h3>Responsible veterinarian & PVMC registration</h3>
+                <p className="form-help">Clinical services must be linked to a registered veterinarian. The name and number are for private VetConnect administrator review, not a public PVMC-verified badge.</p>
+              </div>
+              <div>
+                <label htmlFor="edit-responsible-vet">Responsible veterinarian&apos;s name</label>
+                <input id="edit-responsible-vet" name="responsible_veterinarian_name" maxLength={180} defaultValue={clinic.responsible_veterinarian_name??""}/>
+              </div>
+              <div>
+                <label htmlFor="edit-responsible-pvmc">PVMC registration number</label>
+                <input id="edit-responsible-pvmc" name="responsible_veterinarian_pvmc" maxLength={70} defaultValue={clinic.responsible_veterinarian_pvmc??""}/>
+                <p className="form-help">Check registration with <a href="https://pvmc.gov.pk/Registration/Search" target="_blank" rel="noopener noreferrer">PVMC&apos;s official registry</a>. Entering a number does not verify it.</p>
+              </div>
               <PakistanLocationFields
                 defaultProvince={clinic.province ?? ""}
                 defaultDistrict={clinic.district ?? ""}
@@ -589,7 +591,7 @@ export default async function ClinicManagePage({
             </FormSubmitButton>
           </form>
 
-          <form
+          <form id="clinic-hours"
             className="backend-form-card workspace-section-card workspace-heading-gap"
             action={saveClinicAvailabilityAction}
           >
@@ -721,7 +723,7 @@ export default async function ClinicManagePage({
             <section className="backend-form-card workspace-section-card">
               <div className="section-heading">
                 <span className="section-kicker">SERVICES</span>
-                <h2>Standardized service catalogue.</h2>
+                <h2 id="clinic-services">Standardized service catalogue.</h2>
               </div>
 
               <div className="workspace-record-list">
@@ -892,7 +894,7 @@ export default async function ClinicManagePage({
                 <span className="section-kicker">
                   TEAM HIERARCHY
                 </span>
-                <h2>Owner, primary professional and clinic team.</h2>
+                <h2 id="clinic-team">Owner, primary professional and clinic team.</h2>
                 <p>
                   Clinic ownership remains separate from
                   professional and PVMC verification. A clinic may
@@ -1178,7 +1180,7 @@ export default async function ClinicManagePage({
               <span className="section-kicker">
                 APPOINTMENT REQUESTS
               </span>
-              <h2>Clinic appointment inbox.</h2>
+              <h2 id="clinic-appointments">Clinic appointment inbox.</h2>
               <p>
                 Public requests enter here. Confirm a date/time,
                 contact the client, complete or decline the request
@@ -1331,10 +1333,7 @@ export default async function ClinicManagePage({
               )}
             </div>
           </section>
-        </div>
       </section>
-
-      <SiteFooter />
-    </main>
+    </CareerWorkspaceFrame>
   );
 }
