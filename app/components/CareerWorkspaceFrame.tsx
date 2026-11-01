@@ -99,7 +99,7 @@ export default async function CareerWorkspaceFrame({
    <div className="vcx-content">
     <div className="vcx-intro">
      <div><span className="vcx-eyebrow">{module==='clinic'?'VETERINARY PRACTICE':module==='company'?'COMPANY WORKSPACE':module==='account'?'ACCOUNT & IDENTITY':'PROFESSIONAL WORKSPACE'}</span><h1>{title}</h1><p>{description}</p></div>
-    <Link className="vcx-button vcx-button-outline" href={module==='clinic'?'/career/connections':module==='company'?'/dashboard':module==='account'?'/career':cvStatus==='saved'?'/career/cv/print':'/career/cv'} target={module==='career'&&cvStatus==='saved'?'_blank':undefined} rel={module==='career'&&cvStatus==='saved'?'noopener noreferrer':undefined}>{module==='clinic'?'My connections':module==='company'?'Account settings':module==='account'?'Professional workspace':cvStatus==='saved'?'View saved CV':'Create my CV'}</Link>
+    {active==='overview'&&<Link className="vcx-button vcx-button-outline" href={cvStatus==='saved'?'/career/cv/print':'/career/cv'} target={cvStatus==='saved'?'_blank':undefined} rel={cvStatus==='saved'?'noopener noreferrer':undefined}>{cvStatus==='saved'?'View saved CV':'Create my CV'}</Link>}
     </div>
     <article className="vcx-identity-card">
      <div className="vcx-portrait-frame"><ProfilePhoto imageUrl={photoUrl??null} name={name} fallback={fallback}/></div>
