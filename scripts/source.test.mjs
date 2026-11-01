@@ -798,8 +798,8 @@ test("clinic practice types, Other options and specialty labels reuse both clini
  assert.match(types,/Other/);
  assert.match(selector,/value="Other"/);
  assert.match(selector,/required maxLength=\{90\}/);
- assert.match(focus,/services_selected/);
- assert.match(focus,/species_selected/);
+ assert.match(focus,/kind\+"_selected"/);
+ assert.match(focus,/<OptionGroup kind="species"/);
  assert.match(list,/<ClinicFacilityTypeField \/>/);
  assert.match(list,/<ClinicFocusFields \/>/);
  assert.match(detail,/<ClinicFacilityTypeField defaultValue=\{clinic.facility_type\} \/>/);
