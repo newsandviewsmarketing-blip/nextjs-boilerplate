@@ -8,7 +8,7 @@ export default function ClinicFacilityTypeField({defaultValue,id="facility_type"
  const [value,setValue]=useState(defaultValue&&!known?"Other":defaultValue||"Veterinary Clinic");
  return <div className="vcx-facility-type">
   <label htmlFor={id}>Facility / practice type</label>
-  <select id={id} name="facility_type" value={value} onChange={setValue}>
+  <select id={id} name="facility_type" value={value} onChange={event=>setValue(event.target.value)}>
    {CLINIC_FACILITY_TYPES.map(x=><option value={x} key={x}>{x}</option>)}
    <option value="Other">Other · specify practice</option>
   </select>
