@@ -1,12 +1,10 @@
-import WorkspaceNavigation from "@/app/components/WorkspaceNavigation";
+import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import ProfileBuilder from "./ProfileBuilder";
 import ProfilePhotoStudio from "./ProfilePhotoStudio";
 import ProfessionalSkillsEdit from "./ProfessionalSkillsEdit";
 import {PROFESSIONAL_TITLE_SUGGESTIONS} from "@/lib/career-options";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import ProfilePhoto from "../../components/ProfilePhoto";
@@ -182,29 +180,24 @@ export default async function ProfessionalWorkspacePage({
   ].filter(Boolean);
 
   return (
-    <main className="professional-builder-page">
-      <SiteHeader />
-      <WorkspaceNavigation approved={profile?.verification_status==="approved"}/>
-      <section className="dashboard-hero">
-        <div className="shell dashboard-hero-row">
-          <div>
-            <span className="section-kicker">PROFESSIONAL WORKSPACE</span>
-            <h1>Your professional profile builder</h1>
-            <p>Build your profile in six clear sections. Review your information, save each section and continue at your own pace.</p>
-          </div>
-          <div className="dashboard-actions">
-            {profile?.slug && profile.profile_visibility === "public" && (
-              <Link className="button button-secondary" href={`/professionals/${profile.slug}`}>
-                View public profile
-              </Link>
-            )}
-            <Link className="button button-dark" href="/dashboard">Account dashboard</Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="section compact-section">
-        <div className="shell">
+    <CareerWorkspaceFrame active="profile"
+      name={identity.profile?.full_name||identity.email}
+      headline={profile?.headline||profile?.professional_type}
+      location={[identity.profile?.city,identity.profile?.province].filter(Boolean).join(', ')}
+      photoUrl={profile?.image_url}
+      verificationStatus={profile?.verification_status}
+      approved={profile?.verification_status==="approved"}
+      checklist={[
+        {label:"Basic identity",done:Boolean(identity.profile?.full_name)},
+        {label:"Professional introduction",done:Boolean(profile?.headline&&profile?.public_summary)},
+        {label:"Education",done:education.length>0},
+        {label:"Work experience",done:experience.length>0,optional:true},
+        {label:"Photo",done:Boolean(profile?.image_url),optional:true},
+        {label:"Licences and certificates",done:credentials.length>0,optional:true}
+      ]}
+      title="Build your professional profile."
+      description="Your education, credentials, skills and work history, organized one section at a time.">
+      {profile?.slug && profile.profile_visibility==="public"&&<p><Link href={`/professionals/${profile.slug}`}>View your public profile</Link></p>}
           <FormMessage {...messages} />
           {errors.length > 0 && (
             <div className="form-message form-message-error">
@@ -394,9 +387,6 @@ documents:(<section className="backend-form-card workspace-section-card">
               </form>
             </section>)
           }}/>
-        </div>
-      </section>
-      <SiteFooter />
-    </main>
+    </CareerWorkspaceFrame>
   );
 }
