@@ -768,7 +768,7 @@ test("account, professional, clinic and company use one navigation shell with se
  assert.match(nav,/id:'clinic'/);
  assert.match(nav,/id:'company'/);
  assert.match(frame,/data-module=\{module\}/);
- assert.match(frame,/Number provided · verification pending/);
+ assert.match(frame,/PVMC number provided · verification pending/);
  assert.match(frame,/credentialReviewed/);
  assert.match(account,/active="account" module="account"/);
  assert.match(account,/className="vcx-account-details"/);
