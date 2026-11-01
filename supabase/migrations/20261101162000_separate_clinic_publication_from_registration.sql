@@ -34,6 +34,14 @@ begin
     end if;
     needs_review := new.is_published and old.is_published is distinct from true;
   else
+    -- Ordinary clinic creators cannot fabricate a completed PVMC check
+    -- while the facility is a private draft.
+    if not public.can_verify() and not public.is_admin()
+       and (new.pvmc_review_note is not null
+          or new.pvmc_reviewed_by is not null
+          or new.pvmc_reviewed_at is not null) then
+      raise exception 'Only an authorized reviewer may attest PVMC verification';
+    end if;
     needs_review := new.is_published;
   end if;
 
