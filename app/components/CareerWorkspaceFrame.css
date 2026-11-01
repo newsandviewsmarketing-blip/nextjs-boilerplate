@@ -290,3 +290,30 @@
 .admin-navigation .vc-admin-section a{display:block;border-radius:9px;padding:11px 12px;color:#405579;font-weight:650;font-size:12px;line-height:1.4;min-height:38px}
 .admin-navigation .vc-admin-section a:hover,.admin-navigation .vc-admin-section a:focus-visible{background:#fff0e2;color:#995109}
 .admin-navigation a:focus-visible,.admin-navigation summary:focus-visible{outline:3px solid #f59e43;outline-offset:2px}
+
+
+/* Clinic specialty & type: progressive, accessible, responsive options. */
+.vcx-facility-type{display:flex;flex-direction:column;gap:7px;min-width:0}
+.vcx-facility-type>label,.vcx-other-practice>label{font-weight:750;color:#253b60;font-size:12px}
+.vcx-facility-type select{width:100%;min-height:45px;border-radius:10px}
+.vcx-other-practice{background:#f5f8fd;border:1px solid #dfe7f1;border-radius:11px;padding:13px;display:grid;gap:8px}
+.vcx-other-practice input{width:100%;min-width:0;max-width:100%}
+.vcx-other-practice small{font-size:11px;color:#60748d;line-height:1.5}
+.vcx-focus-sections{display:grid;gap:15px;min-width:0}
+.vcx-clinic-focus{border:1px solid #e2e8f1;border-radius:13px;padding:16px;min-width:0;margin:0;background:#fff}
+.vcx-clinic-focus legend{font-size:14px;font-weight:800;color:#172d55;padding:0 7px}
+.vcx-clinic-focus .form-help{margin:0 0 13px;font-size:12px}
+.vcx-clinic-focus-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 15px}
+.vcx-clinic-focus-pill{display:flex;gap:9px;align-items:center;cursor:pointer;min-width:0;min-height:43px;
+ background:#f7f9fd;border:1px solid #dfe7f1;border-radius:10px;padding:8px 10px;font-size:11px;line-height:1.45;color:#203757}
+.vcx-clinic-focus-pill:has(input:checked){background:#fff0e3;border-color:#f9bf87;color:#924a08}
+.vcx-clinic-focus-pill input{accent-color:#f27606;flex:0 0 auto}
+.vcx-clinic-focus-pill span{overflow-wrap:anywhere}
+.vcx-clinic-focus>label[for]{display:block;font-size:11px;font-weight:750;margin:10px 0 7px}
+.vcx-clinic-focus>input{max-width:100%}
+.vcx-clinic-next-step{border:1px solid #d7e3f3;background:#f4f8ff;border-radius:12px;padding:16px}
+.vcx-clinic-next-step strong{font-size:13px;color:#153569}
+.vcx-clinic-next-step p{font-size:11px;color:#5a6e88;line-height:1.55;margin:8px 0}
+.vcx-clinic-next-step>span{display:inline-flex;font-size:11px;font-weight:800;color:#bb6507}
+@media(max-width:940px){.vcx-clinic-focus-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.vcx-clinic-focus-grid{grid-template-columns:1fr}.vcx-clinic-focus{padding:13px}}
