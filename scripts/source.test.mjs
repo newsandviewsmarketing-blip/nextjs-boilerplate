@@ -750,3 +750,32 @@ test("registration approval never publishes clinical practice without separate P
   assert.doesNotMatch(admin,/Clinic registration requires manual PVMC evidence confirmation and a review note/);
   assert.match(reviews,/its clinic stays private and pending/i);
 });
+
+
+test("account, professional, clinic and company use one navigation shell with separate review states",()=>{
+ const nav=read("lib/professional-workspace.ts");
+ const frame=read("app/components/CareerWorkspaceFrame.tsx");
+ const account=read("app/dashboard/page.tsx");
+ const profile=read("app/dashboard/professional/ProfileBuilder.tsx");
+ const clinic=read("app/dashboard/clinics/page.tsx");
+ const clinicDetail=read("app/dashboard/clinics/[id]/page.tsx");
+ const company=read("app/dashboard/company/page.tsx");
+ const admin=read("app/admin/components/AdminNav.tsx");
+ assert.match(nav,/id:'account'/);
+ assert.match(nav,/id:'clinic'/);
+ assert.match(nav,/id:'company'/);
+ assert.match(frame,/data-module=\{module\}/);
+ assert.match(frame,/Number provided · verification pending/);
+ assert.match(frame,/credentialReviewed/);
+ assert.match(account,/active="account" module="account"/);
+ assert.match(account,/className="vcx-account-details"/);
+ assert.match(account,/updateProfileAction/);
+ assert.doesNotMatch(account, /dashboard-hero-row/);
+ assert.match(clinic,/active="clinic" module="clinic"/);
+ assert.match(clinicDetail,/active="clinic" module="clinic"/);
+ assert.match(company,/active="company" module="company"/);
+ assert.doesNotMatch(company, /<SiteHeader/);
+ assert.doesNotMatch(profile, /of checklist saved/);
+ assert.match(admin,/vc-admin-section/);
+ assert.match(read("docs/unified-workspace-design-system.md"),/Clinic publication database-migration/);
+});
