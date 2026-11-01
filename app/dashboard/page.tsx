@@ -423,4 +423,3 @@ export default async function DashboardPage({
     </CareerWorkspaceFrame>
   );
 }
-}
