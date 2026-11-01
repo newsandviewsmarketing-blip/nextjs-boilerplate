@@ -36,7 +36,7 @@ function profileReview(status?:string|null, practitioner=false){
 }
 export default async function CareerWorkspaceFrame({
  active,name,headline,location,photoUrl,approved=false,verificationStatus,
- cvStatus,emailAlerts,checklist,title,description,children
+ cvStatus,emailAlerts,title,description,children
 }:Props){
  const current=WORKSPACE_LINKS.find(link=>link.id===active);
  // Ignore older route-specific checklists: use one shared core-progress calculation.
