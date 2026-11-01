@@ -1,5 +1,6 @@
 import WorkspaceNavigation from "@/app/components/WorkspaceNavigation";
 import ProfileBuilder from "./ProfileBuilder";
+import ProfilePhotoStudio from "./ProfilePhotoStudio";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -20,7 +21,6 @@ import {
   deleteExperienceAction,
   updateProfessionalProfileAction,
   uploadCareerDocumentAction,
-  uploadProfessionalPhotoAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -233,12 +233,7 @@ photo:(<div className="professional-workspace-overview">
               </div>
             </article>
 
-            <form className="backend-form-card professional-photo-upload" action={uploadProfessionalPhotoAction}>
-              <label htmlFor="photo">Upload profile photograph</label>
-              <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required />
-              <p className="form-help">JPG, PNG or WebP. Maximum 5 MB. Use a clear professional photograph.</p>
-              <FormSubmitButton pendingLabel="Uploading photo...">Upload photograph</FormSubmitButton>
-            </form>
+            <ProfilePhotoStudio />
           </div>),
 about:(<form className="backend-form-card workspace-section-card" action={updateProfessionalProfileAction}>
             <div className="section-heading">
