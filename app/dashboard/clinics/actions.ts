@@ -94,7 +94,7 @@ export async function createClinicAction(formData: FormData) {
 
   const facility=resolveClinicFacilityType(formData);
   if(facility.error){
-    redirect(routeMessage(/dashboard/clinics,"error",facility.error));
+    redirect(routeMessage("/dashboard/clinics","error",facility.error));
   }
   const focusServices=clinicFocusEntries(formData,"services");
   const focusSpecies=clinicFocusEntries(formData,"species");
