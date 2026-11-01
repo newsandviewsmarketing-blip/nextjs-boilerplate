@@ -402,7 +402,7 @@ export default async function ClinicWorkspacePage({
                 <p className="form-help">Clinic ownership can differ from clinical responsibility. A PVMC-registered practitioner must be identified for veterinary practice. These details are private until administrator review.</p>
               </div>
               <div>
-               <label htmlFor="responsible_veterinarian_name">Responsible veterinarian's full name</label>
+               <label htmlFor="responsible_veterinarian_name">Responsible veterinarian&apos;s full name</label>
                <input id="responsible_veterinarian_name" name="responsible_veterinarian_name" maxLength={180}
                 defaultValue={identity.roles.includes("veterinarian") ? identity.profile?.full_name ?? "" : ""} placeholder="Name on PVMC registration" />
               </div>
