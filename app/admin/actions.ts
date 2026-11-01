@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
 import { getEffectiveAdminPermission } from "@/lib/admin";
 import {vetProfileApprovalProblem,veterinaryCredentialApprovalProblem,credentialDataFlags} from "@/lib/veterinary-verification";
+import {clinicPracticeReadiness} from "@/lib/clinic-practice-readiness";
 
 export async function reviewProfileAction(formData: FormData) {
   const identity = await getCurrentIdentity();
@@ -71,6 +72,24 @@ export async function reviewProfileAction(formData: FormData) {
     }).eq("id", entityId);
     error = result.error;
   } else if (recordSource === "clinics") {
+    if (decision === "approved") {
+      // No self-reported PVMC number becomes verified automatically.
+      // A reviewer must consult official evidence and record the source.
+      const reviewerCheckedPVMC=formData.get("pvmc_checked")==="on";
+      if(!reviewerCheckedPVMC || reason.length<25){
+        redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent("Before publishing a clinic, confirm the PVMC registry and record the evidence source, registration status and reviewer note (at least 25 characters).")}`);
+      }
+      const [details,availability,services]=await Promise.all([
+        supabase.from("clinics").select("clinic_name,responsible_veterinarian_name,responsible_veterinarian_pvmc,province,city").eq("id",entityId).maybeSingle(),
+        supabase.from("clinic_availability").select("day_of_week").eq("clinic_id",entityId).eq("is_open",true).limit(1),
+        supabase.from("clinic_services").select("id").eq("clinic_id",entityId).eq("is_active",true).eq("is_public",true).limit(1),
+      ]);
+      if(details.error||availability.error||services.error||!details.data){
+        redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent("Clinic information could not be checked. No approval was recorded.")}`);
+      }
+      const missing=clinicPracticeReadiness(details.data,availability.data?.length??0,services.data?.length??0);
+      if(missing.length) redirect(`${returnTo||"/admin/reviews"}?error=${encodeURIComponent("Complete clinic setup before publishing: "+missing.join("; "))}`);
+    }
     const result = await supabase.from("clinics").update({
       verification_status: decision,
       rejection_reason: decision === "rejected" ? reason || "Please update the submitted clinic information." : null,
