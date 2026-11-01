@@ -26,7 +26,7 @@ On inspection of Vercel project vetconnect, the production environment did not c
 - SUPABASE_SERVICE_ROLE_KEY (server-only)
 - CRON_SECRET
 
-NEXT_PUBLIC_SITE_URL and the public Supabase configuration are present. Configure missing secrets in Vercel project settings, never in source code or chat. The worker refuses to send when configuration is incomplete or VERCEL_ENV is not production. The protected cron endpoint is /api/cron/career-alerts; vercel.json requests a 15-minute schedule, subject to the hosting plan's cron limits. If that schedule is unsupported, configure a supported external scheduler with the same bearer secret; do not assume the scheduler is active.
+NEXT_PUBLIC_SITE_URL and the public Supabase configuration are present. Configure missing secrets in Vercel project settings, never in source code or chat. The worker refuses to send when configuration is incomplete or VERCEL_ENV is not production. The protected cron endpoint is /api/cron/career-alerts; the observed Hobby plan supports a daily schedule only, so vercel.json uses 03:00 UTC (08:00 Pakistan time). For faster alerts, configure a supported external scheduler with the same bearer secret or an appropriate hosting plan; do not assume scheduling or email is active before configuration is verified.
 
 The frontend/worker commit must be published and deployed before new routes are live. Authenticated browser/mobile QA and a controlled candidate/admin email delivery check remain release requirements. A real candidate must confirm their own email and supply their own photograph and qualifications. No personal candidate information has been fabricated or filled on anyone's behalf.
 
