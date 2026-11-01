@@ -186,3 +186,39 @@
 @media(max-width:1100px){.vcx-connection-actions{grid-template-columns:1fr}}
 @media(max-width:780px){.vcx-connection-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.vcx-connection-actions{grid-template-columns:1fr}.vcx-connection-choice{padding:15px}}
+
+/* Unified clinic & practice onboarding, no duplicate dashboard chrome. */
+.vcx-clinic-operations{display:grid;gap:17px;min-width:0}
+.vcx-clinic-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.vcx-clinic-steps>div{border:1px solid #e0e7f1;border-radius:12px;padding:15px 12px;background:#fff;display:flex;gap:9px;align-items:start;min-width:0}
+.vcx-clinic-steps b{background:#fff1e4;color:#ae5807;display:grid;place-items:center;width:28px;height:28px;border-radius:9px;flex-shrink:0;font-size:11px}
+.vcx-clinic-steps span{font-size:11px;color:#263a60;line-height:1.5;font-weight:700}
+.vcx-clinic-new{border:1px solid #e0e7f1;border-radius:15px;background:white;overflow:hidden}
+.vcx-clinic-new>summary{list-style:none;cursor:pointer;display:grid;gap:5px;padding:18px 22px;color:#12254e}
+.vcx-clinic-new>summary::-webkit-details-marker{display:none}
+.vcx-clinic-new>summary::after{content:"+";position:absolute;right:22px;font-size:24px;color:#c36a0d}
+.vcx-clinic-new[open]>summary::after{content:"−"}
+.vcx-clinic-new>summary{position:relative;padding-right:46px}
+.vcx-clinic-new>summary span{font-size:12px;color:#68788d;line-height:1.5}
+.vcx-clinic-new>form{padding:0 19px 20px;margin:0;border:none;box-shadow:none}
+.vcx-clinic-identity-bar,.vcx-clinic-readiness{border:1px solid #e1e7f0;border-radius:14px;background:white;padding:19px;display:grid;gap:12px}
+.vcx-clinic-identity-bar>div:first-child{display:grid;gap:5px}
+.vcx-clinic-identity-bar strong{font-size:17px;color:#14264e}
+.vcx-clinic-identity-bar small{font-size:12px;color:#677791}
+.vcx-clinic-action-row{display:flex;flex-wrap:wrap;gap:10px}
+.vcx-clinic-jump{display:flex;flex-wrap:wrap;gap:8px;background:white;border:1px solid #e1e7f0;padding:9px;border-radius:13px}
+.vcx-clinic-jump a{background:#f3f6fb;border-radius:9px;padding:10px 12px;font-size:11px;font-weight:750;color:#2c4569}
+.vcx-clinic-jump a:hover{background:#fff0e2;color:#a45004}
+.vcx-clinic-readiness h2{font-size:18px;line-height:1.4;margin:7px 0;color:#12254e}
+.vcx-clinic-readiness p,.vcx-clinic-readiness li{font-size:12px;color:#65748b;line-height:1.6}
+.vcx-clinic-readiness ul{margin:0;display:grid;gap:6px}
+#clinic-identity,#clinic-hours,#clinic-services,#clinic-team,#clinic-appointments{scroll-margin-top:18px}
+.vcx-clinic-operations .backend-form-card{min-width:0}
+@media(max-width:1060px){.vcx-clinic-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+ .vcx-clinic-steps{grid-template-columns:1fr}
+ .vcx-clinic-jump{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vcx-clinic-jump a{font-size:10px;padding:11px 8px}
+ .vcx-clinic-new>form{padding:0 12px 16px}
+ .vcx-clinic-new>summary{padding:14px 34px 14px 14px}
+}
