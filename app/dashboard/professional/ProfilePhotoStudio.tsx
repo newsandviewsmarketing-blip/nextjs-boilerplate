@@ -68,7 +68,7 @@ export default function ProfilePhotoStudio(){
     <span className="photo-studio-label">Background for transparent areas</span>
     <div className="photo-studio-swatches">{COLORS.map(color=><button key={color.hex} type="button" title={color.name} aria-label={color.name} aria-pressed={background===color.hex} style={{background:color.hex}} onClick={()=>setBackground(color.hex)}/>)}</div>
    </div>}
-   <p className="form-help">This does not erase an opaque photo background. Automatic background removal requires a separately reviewed image-segmentation feature. No image is uploaded until you save.</p>
+   <p className="form-help">This does not erase an opaque photo background. Automatic background removal requires a separately reviewed image-segmentation feature. No image is uploaded until you save. Saved profile photographs may appear on public VetConnect pages, so upload only a photo you are comfortable sharing.</p>
    {error&&<p className="photo-studio-error" role="alert">{error}</p>}
    <button type="button" className="button button-primary" disabled={!ready||pending} onClick={save}>{pending?'Saving photo...':'Save profile photo'}</button>
   </div>
