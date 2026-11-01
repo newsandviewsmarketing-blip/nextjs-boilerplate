@@ -1,5 +1,6 @@
 import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import ProfileBuilder from "./ProfileBuilder";
+import {getCoreProfileProgress} from "@/lib/professional-progress";
 import ProfilePhotoStudio from "./ProfilePhotoStudio";
 import ProfessionalSkillsEdit from "./ProfessionalSkillsEdit";
 import {PROFESSIONAL_TITLE_SUGGESTIONS} from "@/lib/career-options";
@@ -157,19 +158,10 @@ export default async function ProfessionalWorkspacePage({
     }),
   );
 
-  const completionChecks = [
-    Boolean(profile?.image_url),
-    Boolean(profile?.headline),
-    Boolean(profile?.public_summary),
-    Boolean(profile?.current_position),
-    education.length > 0,
-    experience.length > 0,
-    credentials.length > 0,
-    signedDocuments.length > 0,
-  ];
-  const completion = Math.round(
-    (completionChecks.filter(Boolean).length / completionChecks.length) * 100,
-  );
+  // Keep the progress identical to the one in the shared workspace header.
+  // Optional photo, work experience and credentials never reduce core completion.
+  const sharedProgress = await getCoreProfileProgress();
+  const completion = sharedProgress?.percent ?? 0;
 
   const errors = [
     profileResult.error,
@@ -223,7 +215,7 @@ photo:(<div className="professional-workspace-overview">
                   <span className={`status-pill status-${profile?.verification_status ?? "pending"}`}>
                     {profile?.verification_status ?? "pending"}
                   </span>
-                  <span className="status-pill">{completion}% complete</span>
+                  <span className="status-pill">{completion}% core profile</span>
                 </div>
               </div>
             </article>

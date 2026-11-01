@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProfilePhoto from '@/app/components/ProfilePhoto';
+import {getCoreProfileProgress} from '@/lib/professional-progress';
 import {WORKSPACE_LINKS} from '@/lib/professional-workspace';
 import './CareerWorkspaceFrame.css';
 
@@ -27,19 +28,22 @@ const SYMBOLS:Record<WorkspaceId,string>={
  overview:'▦',profile:'◉',cv:'▤',preferences:'⌖',
  letter:'✉',connections:'◇',applications:'☷',
 };
-function profileReview(status?:string|null){
- if(status==='approved')return 'Approved professional profile';
- if(status==='rejected')return 'Profile needs correction';
- if(status==='pending')return 'Professional review pending';
- return 'Professional verification not confirmed';
+function profileReview(status?:string|null, practitioner=false){
+ if(!practitioner)return 'Professional profile · self-managed';
+ if(status==='approved')return 'Profile reviewed · PVMC credential status separate';
+ if(status==='rejected')return 'Credential review needs attention';
+ return 'Practitioner credential review separate';
 }
-export default function CareerWorkspaceFrame({
+export default async function CareerWorkspaceFrame({
  active,name,headline,location,photoUrl,approved=false,verificationStatus,
- cvStatus,emailAlerts,checklist,title,description,children
+ cvStatus,emailAlerts,title,description,children
 }:Props){
  const current=WORKSPACE_LINKS.find(link=>link.id===active);
- const completion=checklist&&checklist.length?
-   Math.round(checklist.filter(item=>item.done).length/checklist.length*100):null;
+ // Ignore older route-specific checklists: use one shared core-progress calculation.
+ const sharedProgress=await getCoreProfileProgress();
+ const completion=sharedProgress?.percent??null;
+ const coreChecks=sharedProgress?.checks;
+ const isVeterinaryPractitioner=sharedProgress?.isVeterinaryPractitioner??false;
  const navigation=(mobile:boolean)=><nav className="vcx-navigation" aria-label={mobile?'Mobile workspace tools':'Workspace tools'}>
   {WORKSPACE_LINKS.filter(link=>approved||!link.requiresApproval||link.id===active).map(link=><Link
     key={link.id} href={link.href} aria-current={link.id===active?'page':undefined}
@@ -81,28 +85,34 @@ export default function CareerWorkspaceFrame({
       <h2>{name||'My professional profile'}</h2>
       <p>{headline||'Veterinary & animal-health professional'}</p>
       {location&&<p>{location}</p>}
-      <div className="vcx-pills"><span>{profileReview(verificationStatus)}</span>
+      <div className="vcx-pills"><span>{profileReview(verificationStatus,isVeterinaryPractitioner)}</span>
        {cvStatus&&<span>{cvStatus==='saved'?'CV details saved':cvStatus==='draft'?'CV draft started':'CV not saved yet'}</span>}
        {emailAlerts!==undefined&&<span>Job emails {emailAlerts?'on':'off'}</span>}
       </div>
       <Link className="vcx-photo-link" href="/dashboard/professional?step=photo">Edit my profile photo</Link>
      </div>
      {completion!==null&&<div className="vcx-identity-progress">
-      <strong>{completion}%</strong><small>Profile checklist</small>
-      <progress value={completion} max={100} aria-label="Profile checklist completion"/>
+      <strong>{completion}%</strong><small>Core profile information</small>
+      <progress value={completion} max={100} aria-label="Core profile information completion"/>
      </div>}
     </article>
     <div className="vcx-content-grid">
      <div className="vcx-primary">{children}</div>
      <aside className="vcx-right-rail" aria-label="Workspace summary">
       <section className="vcx-side-card">
-       <span className="vcx-eyebrow">YOUR PROGRESS</span><h2>Profile checklist</h2>
-       {checklist&&checklist.length?<ul className="vcx-checklist">{checklist.map(item=><li key={item.label}>
+       <span className="vcx-eyebrow">YOUR PROGRESS</span><h2>Core profile checklist</h2>
+       {coreChecks&&coreChecks.length?<ul className="vcx-checklist">{coreChecks.map(item=><li key={item.label}>
          <span className={item.done?'vcx-check is-done':'vcx-check'} aria-hidden="true">{item.done?'✓':'○'}</span>
-         {item.label}{item.optional?' (optional)':''}
+         {item.label}
        </li>)}</ul>:<p className="vcx-secondary">Complete your details at your own pace. Verification is a separate review.</p>}
-       <p className="vcx-secondary">Experience is optional for students and new graduates.</p>
+       <p className="vcx-secondary">Optional photos, CVs, credentials, and job interests do not affect core progress. This is not a verification score.</p>
       </section>
+      {isVeterinaryPractitioner&&<section className="vcx-side-card">
+       <span className="vcx-eyebrow">VETERINARY CREDENTIAL</span>
+       <h2>PVMC registration check</h2>
+       <p className="vcx-secondary">Your CV and profile can be saved without PVMC approval. Licensed veterinary practice requires separate credential verification. VetConnect does not automatically verify the PVMC registry.</p>
+       <a href="https://pvmc.gov.pk/Registration/Search" target="_blank" rel="noopener noreferrer" className="vcx-button vcx-button-outline">Check the official PVMC register</a>
+      </section>}
       <section className="vcx-side-card">
        <span className="vcx-eyebrow">YOUR CV</span><h2>VetConnect CV Builder</h2>
        <div className="vcx-tiny-cv" aria-hidden="true"><div><b>VETCONNECT</b><small>PROFESSIONAL CV</small></div><i/><i/><i/><i/><i/></div>
