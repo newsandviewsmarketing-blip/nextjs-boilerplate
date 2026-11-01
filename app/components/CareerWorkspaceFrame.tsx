@@ -76,7 +76,7 @@ export default async function CareerWorkspaceFrame({
   </Link>)}
  </nav>;
  const fallback=name.trim().split(/\s+/).slice(0,2).map(word=>word[0]?.toUpperCase()).join('')||'VC';
- return <main className="vcx-app">
+ return <main className="vcx-app" data-module={module}>
   <aside className="vcx-sidebar">
    <Link className="vcx-brand" href="/" aria-label="VetConnect public website"><Image src="/vetconnect-logo.png" alt="VetConnect" width={155} height={50} unoptimized/></Link>
    <span className="vcx-sidebar-eyebrow">{module==='company'?'ORGANIZATION WORKSPACE':'MY WORKSPACE'}</span>
@@ -104,18 +104,18 @@ export default async function CareerWorkspaceFrame({
     <article className="vcx-identity-card">
      <div className="vcx-portrait-frame"><ProfilePhoto imageUrl={photoUrl??null} name={name} fallback={fallback}/></div>
      <div className="vcx-identity-main">
-      <span className="vcx-eyebrow">YOUR PERSONAL PROFILE</span>
+      <span className="vcx-eyebrow">{module==='company'?'CURRENT ORGANIZATION':'YOUR PERSONAL PROFILE'}</span>
       <h2>{name||'My professional profile'}</h2>
       <p>{headline||'Veterinary & animal-health professional'}</p>
       {location&&<p>{location}</p>}
-      <div className="vcx-pills"><span>{profileReview(verificationStatus,isVeterinaryPractitioner)}</span>
+      <div className="vcx-pills"><span>{module==='company'?`Company review: ${verificationStatus??'pending'}`:profileReview(verificationStatus,isVeterinaryPractitioner)}</span>
        {hasPvmcNumber&&<span className="vcx-credential-tag">{credentialReviewed?'PVMC credential reviewed':'PVMC number provided · verification pending'}</span>}
        {cvStatus&&<span>{cvStatus==='saved'?'CV details saved':cvStatus==='draft'?'CV draft started':'CV not saved yet'}</span>}
        {emailAlerts!==undefined&&<span>Job emails {emailAlerts?'on':'off'}</span>}
       </div>
-      <Link className="vcx-photo-link" href="/dashboard/professional?step=photo">Edit my profile photo</Link>
+      {module!=='company'&&<Link className="vcx-photo-link" href="/dashboard/professional?step=photo">Edit my profile photo</Link>}
      </div>
-     {completion!==null&&<div className="vcx-identity-progress">
+     {module!=='company'&&module!=='clinic'&&completion!==null&&<div className="vcx-identity-progress">
       <strong>{completion}%</strong><small>Core profile information</small>
       <progress value={completion} max={100} aria-label="Core profile information completion"/>
      </div>}
@@ -123,15 +123,15 @@ export default async function CareerWorkspaceFrame({
     <div className="vcx-content-grid">
      <div className="vcx-primary">{children}</div>
      <aside className="vcx-right-rail" aria-label="Workspace summary">
-      <section className="vcx-side-card">
+      {module!=='company'&&module!=='clinic'&&<section className="vcx-side-card">
        <span className="vcx-eyebrow">YOUR PROGRESS</span><h2>Core profile checklist</h2>
        {coreChecks&&coreChecks.length?<ul className="vcx-checklist">{coreChecks.map(item=><li key={item.label}>
          <span className={item.done?'vcx-check is-done':'vcx-check'} aria-hidden="true">{item.done?'✓':'○'}</span>
          {item.label}
        </li>)}</ul>:<p className="vcx-secondary">Complete your details at your own pace. Verification is a separate review.</p>}
        <p className="vcx-secondary">Optional photos, CVs, credentials, and job interests do not affect core progress. This is not a verification score.</p>
-      </section>
-      {isVeterinaryPractitioner&&<section className="vcx-side-card">
+      </section>}
+      {isVeterinaryPractitioner&&module!=='company'&&<section className="vcx-side-card">
        <span className="vcx-eyebrow">VETERINARY CREDENTIAL</span>
        <h2>PVMC registration check</h2>
        <p className="vcx-secondary">Your CV and profile can be saved without PVMC approval. Licensed veterinary practice requires separate credential verification. VetConnect does not automatically verify the PVMC registry.</p>
