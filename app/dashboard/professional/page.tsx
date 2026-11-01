@@ -1,6 +1,8 @@
 import WorkspaceNavigation from "@/app/components/WorkspaceNavigation";
 import ProfileBuilder from "./ProfileBuilder";
 import ProfilePhotoStudio from "./ProfilePhotoStudio";
+import ProfessionalSkillsEdit from "./ProfessionalSkillsEdit";
+import {PROFESSIONAL_TITLE_SUGGESTIONS} from "@/lib/career-options";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
@@ -244,7 +246,9 @@ about:(<form className="backend-form-card workspace-section-card" action={update
             <div className="form-grid">
               <div>
                 <label htmlFor="professional_type">Professional type</label>
-                <input id="professional_type" name="professional_type" defaultValue={profile?.professional_type ?? "Animal Health Professional"} required />
+                <input id="professional_type" name="professional_type" list="professional-types" defaultValue={profile?.professional_type ?? "Animal Health Professional"} required maxLength={160} />
+                <datalist id="professional-types">{PROFESSIONAL_TITLE_SUGGESTIONS.map(value=><option key={value} value={value}/>)}</datalist>
+                <p className="form-help">Select an existing profession or enter an accurate title. Professional registration is verified separately.</p>
               </div>
               <div>
                 <label htmlFor="years_experience">Years of experience</label>
@@ -263,9 +267,12 @@ about:(<form className="backend-form-card workspace-section-card" action={update
                 <input id="organization_name" name="organization_name" defaultValue={profile?.organization_name ?? ""} />
               </div>
               <div className="form-span-2">
-                <label htmlFor="skills">Skills</label>
-                <input id="skills" name="skills" defaultValue={profile?.skills?.join(", ") ?? ""} placeholder="Poultry health, vaccination, biosecurity, diagnostics" />
-                <p className="form-help">Separate skills with commas.</p>
+                <ProfessionalSkillsEdit initial={profile?.skills ?? []}/>
+              </div>
+              <div className="form-span-2 career-profile-interest-link">
+                <strong>Future sectors & work locations</strong>
+                <p>Your current profession is different from the sectors and cities where you want your next job. Those preferences are stored privately, separately from the public profile.</p>
+                <Link href="/career/preferences">Choose future sectors and cities</Link>
               </div>
               <div className="form-span-2">
                 <label htmlFor="public_summary">About / professional summary</label>
