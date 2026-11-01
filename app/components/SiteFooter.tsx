@@ -49,7 +49,7 @@ export default function SiteFooter() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Veterinary News & Views
+            The Veterinary News & Views
           </a>
         </div>
 
