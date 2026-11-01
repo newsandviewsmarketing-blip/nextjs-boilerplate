@@ -66,7 +66,7 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
       .order("created_at",{ascending:false}).limit(25),
     supabase.from("career_cv_profiles").select("full_name,headline")
       .eq("user_id",identity.userId).maybeSingle(),
-    supabase.from("professional_profiles").select("verification_status").eq("user_id",identity.userId).maybeSingle(),
+    supabase.from("professional_profiles").select("verification_status,headline,image_url").eq("user_id",identity.userId).maybeSingle(),
   ]);
 
   const applicationRows = (applicationResult.data ?? []) as ApplicationRow[];
