@@ -49,7 +49,7 @@ export const permissionOptions: ReadonlyArray<{ value: AdminPermission; label: s
 ] as const;
 
 const rolePermissions: Partial<Record<AccountRole, readonly AdminPermission[]>> = {
-  super_admin: ["admin.view","profiles.review","regulatory.review","products.manage","products.delete","jobs.manage","users.manage","audit.view","analytics.view","review.analytics","profiles.create","companies.create","clinics.manage","laboratories.manage","products.create","jobs.create","master_data.manage","directories.manage","site.manage","site_content.edit"],
+  super_admin: ["admin.view","profiles.review","regulatory.review","products.manage","products.delete","jobs.manage","users.manage","audit.view","analytics.view","review.analytics","profiles.create","companies.create","clinics.manage","laboratories.manage","products.create","jobs.create","master_data.manage","directories.manage","site.manage"],
   verification_officer: ["admin.view","profiles.review","regulatory.review","review.analytics","profiles.create","clinics.manage","laboratories.manage","directories.manage"],
   content_admin: ["admin.view","products.manage","jobs.manage","products.create","jobs.create","companies.create","directories.manage"],
   career_admin: ["admin.view","jobs.manage","jobs.create"],

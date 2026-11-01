@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { absoluteUrl } from "@/lib/seo";
 
-export const PUBLIC_INFORMATION_VERSION = "2026-11-01.3";
+export const PUBLIC_INFORMATION_VERSION = "2026-11-01.4";
 export const PUBLIC_INFORMATION_UPDATED = "2026-11-01";
 export const PUBLIC_INFORMATION_LINKS = [
   {
@@ -89,7 +89,7 @@ export const PUBLIC_INFORMATION = {
       },
       {
         "title": "Connecting farmers, pet owners and care providers",
-        "body": "Relevant connections depend on both expertise and location. VetConnect’s geographic structure supports discovery by province, district, tehsil and city or locality, alongside animal sector and service requirements. This helps farmers and pet owners find appropriate practitioners and facilities, while helping professionals reach the communities they serve. More detailed geographic matching and location-based services form part of the platform’s continuing development.",
+        "body": "Relevant connections depend on both expertise and location. VetConnect’s geographic structure supports discovery by province, district, tehsil and city or locality, alongside animal sector and service requirements. This helps farmers and pet owners find appropriate practitioners and facilities, while helping professionals reach the communities they serve. More detailed geographic matching and location-based services form part of the platform’s continuing development. Planned appointment requests will bring together the practitioner’s expertise, animal species and stated availability; a request becomes a booking only after confirmation by the provider.",
         "links": [
           {
             "label": "Clinics and hospitals",
@@ -103,7 +103,7 @@ export const PUBLIC_INFORMATION = {
       },
       {
         "title": "Companies, services and product information",
-        "body": "VetConnect gives animal-health businesses a structured way to present their identity, services and products and connect with relevant professionals and customers. Its product-reference framework covers brand and generic names, active ingredients or salts, strength, formulation, pack size, manufacturer, authorised supplier and available regulatory information, supported by identifiable sources. The aim is to help veterinarians, students, professionals and buyers understand and compare product information. Each review label applies to its stated scope; clinical use follows the current approved label and the treating practitioner’s judgement.",
+        "body": "VetConnect gives animal-health businesses a structured way to present their identity, services and products and connect with relevant professionals and customers. Its product-reference framework covers brand and generic names, active ingredients or salts, strength, formulation, pack size, manufacturer, authorised supplier and available regulatory information, supported by identifiable sources. The aim is to help veterinarians, students, professionals and buyers understand and compare product information. Each review label applies to its stated scope; clinical use follows the current approved label and the treating practitioner’s judgement. Companies and authorised representatives can submit their profiles and product information for the applicable review and publication approval. Submission alone does not make a listing public.",
         "links": [
           {
             "label": "Company directory",
@@ -117,7 +117,7 @@ export const PUBLIC_INFORMATION = {
       },
       {
         "title": "Jobs and professional opportunities",
-        "body": "The careers network connects candidates with relevant employers, vacancies and professional opportunities. Job information is organised around the employer, source, qualifications, experience, location and application requirements. Candidates can build their professional identity, explore suitable work and connect with businesses seeking relevant skills. Employers remain responsible for their advertisements, selection decisions and employment arrangements.",
+        "body": "The careers network connects candidates with relevant employers, vacancies and professional opportunities. Job information is organised around the employer, source, qualifications, experience, location and application requirements. Candidates can build their professional identity, explore suitable work and connect with businesses seeking relevant skills. Employers remain responsible for their advertisements, selection decisions and employment arrangements. The careers programme also includes CV support and the development of job preferences, relevant vacancy matching and optional email alerts. Preference-based automation and alerts will be described as available only after the relevant account workflow is enabled and verified.",
         "links": [
           {
             "label": "Jobs and careers",
@@ -137,7 +137,7 @@ export const PUBLIC_INFORMATION = {
       },
       {
         "title": "Animal records and continuity of care",
-        "body": "VetConnect’s development programme extends these connections into animal and herd management: animal identification, clinical history, veterinarian-authored prescriptions, treatment, vaccination and follow-up records. The objective is a continuous record that supports informed care and communication between owners and authorised professionals. These record-management capabilities are under development and will be introduced with defined access permissions, clinical responsibilities and privacy controls."
+        "body": "VetConnect’s development programme extends these connections into individual-animal, herd and poultry-flock management: identification, clinical history, veterinarian-authored prescriptions, treatment, vaccination and follow-up records. Owner-reported symptoms and observations will be distinguished from the treating veterinarian’s clinical findings and decisions. The objective is a continuous record that supports informed care and communication between owners and authorised professionals. These record-management capabilities are under development and will be introduced with defined access permissions, clinical responsibilities and privacy controls."
       },
       {
         "title": "Our startup journey",
@@ -230,6 +230,30 @@ export const PUBLIC_INFORMATION = {
       {
         "title": "Direct arrangements and transactions",
         "body": "Before engaging a practitioner, laboratory, employer or supplier, confirm the service, responsible provider, availability, price, payment arrangements and any cancellation or complaint terms directly. Any ordering, paid consultation or transaction service introduced within VetConnect will state the platform’s role and the applicable transaction terms before acceptance. A directory profile alone does not create such an agreement."
+      },
+      {
+        "title": "Company and product submissions",
+        "body": "Submit company information only with authority to represent the business. The submitting provider is responsible for the accuracy and lawful use of descriptions, photographs, product composition, price, currency, availability, documents and regulatory claims. Publication is subject to the applicable review and approval; submission is not approval. Company identity review does not establish the clinical or regulatory status of every product. Identify relevant sources and keep material changes current."
+      },
+      {
+        "title": "Product enquiries, quotations and fulfilment",
+        "body": "The current marketplace presents product information and supplier connections; this service does not itself process medicine checkout, payment or delivery. A product enquiry or request for quotation is not an accepted order. Confirm the seller, applicable approvals, current price, taxes, stock, delivery conditions and any product-specific handling requirements directly. The seller’s delivery, cancellation, return and refund terms must be provided before a direct purchase. If an in-platform ordering service is introduced, it will identify the responsible seller and present transaction-specific terms before purchase."
+      },
+      {
+        "title": "Appointment requests and confirmation",
+        "body": "Appointment and availability services are under development. Where a request feature is enabled, submitting a request does not confirm a booking. The provider must confirm the practitioner, species or service, location or consultation method, date, time and applicable fee. Rescheduling, cancellation, refunds and any non-attendance charge must be disclosed before acceptance. Do not assume a fee or penalty that was not stated. Unconfirmed requests are not a substitute for arranging urgent care directly."
+      },
+      {
+        "title": "CVs, profile visibility and job alerts",
+        "body": "Candidates must provide honest qualifications, experience and preferences and have authority to upload any CV or photograph. A private CV or application does not become a public profile merely because it is uploaded. Public profile information requires a separate publication choice and the applicable review. Optional job alerts, when enabled, must explain the matching preferences and provide a way to stop the alerts; registration is not automatic consent to promotional email. Contact support for privacy or visibility changes where a self-service control is not available. Job matching, notifications and reviewed listings do not guarantee an interview or employment."
+      },
+      {
+        "title": "Animal, herd and flock records",
+        "body": "Record-management services are under development. Owners and farm representatives must have authority to provide information about the animals, herd or poultry flock concerned. Owner observations and reported symptoms are distinct from professional diagnoses, treatment decisions and prescriptions. Clinical entries must identify the responsible practitioner. Viewing or sharing private records requires the relevant authority and purpose. Corrections to professional records should preserve authorship and an amendment history rather than silently replace a practitioner’s original entry. Feature-specific controls will explain access, sharing and correction when these services launch."
+      },
+      {
+        "title": "Ratings and feedback",
+        "body": "Where reviews or ratings are enabled, submissions must reflect a genuine relevant experience and distinguish fact from opinion. Do not publish fabricated reviews, undisclosed paid endorsements, harassment, confidential patient information or another person’s identity documents. Report disputed, abusive or misleading feedback through vetconnect.official@gmail.com with the relevant page link. We may seek clarification, invite a response and restrict content during review. A rating is user feedback, not a clinical finding or regulatory decision. Review moderation does not remove rights that apply under law."
       }
     ]
   },
@@ -255,11 +279,15 @@ export const PUBLIC_INFORMATION = {
       },
       {
         "title": "Recruitment",
-        "body": "A CV submitted for a particular job is for that application and the authorised receiving employer, with necessary platform-support access. Employers must not sell it, publish it or reuse it for unrelated marketing. A future talent-pool or marketing choice must be separate from the application itself."
+        "body": "A CV submitted for a particular job is for that application and the authorised receiving employer, with necessary platform-support access. Employers must not sell it, publish it or reuse it for unrelated marketing. A future talent-pool or marketing choice must be separate from the application itself. Job-preference and alert features, when enabled, may use the sectors, roles, locations and other preferences you choose. Optional alerts and public-profile visibility must be presented separately from a specific job application. Use the available preference controls or contact support to stop optional alerts or request a visibility change."
+      },
+      {
+        "title": "Appointment requests and feedback",
+        "body": "If appointment or feedback features are enabled, the workflow will explain which contact, animal/service, availability and experience details are needed and who receives them. Keep private clinical details and identity documents out of public reviews. A request may be shared with the intended provider to arrange care; it is not permission to distribute your details to unrelated suppliers or marketers."
       },
       {
         "title": "Animal and farm records: planned services",
-        "body": "Animal and herd record services are under development. Their intended information includes animal identity, owner or farm links, clinical history, treatment, prescriptions, vaccination and follow-up records. As each service becomes available, its notice will explain the responsible record author, authorised viewers, sharing choices and retention arrangements. Animal and farm information can also identify people, reveal a business’s operations or disclose a sensitive location, and will be handled accordingly."
+        "body": "Individual-animal, herd and poultry-flock record services are under development. Their intended information includes identity, owner or farm links, owner-reported symptoms, professional clinical findings, treatment, prescriptions, vaccination and follow-up records. Owner observations will be distinguished from practitioner-authored clinical entries. As each service becomes available, its notice will explain the responsible record author, authorised viewers, sharing choices and retention arrangements. Animal and farm information can identify people, reveal a business’s operations or disclose a sensitive location, and will be handled accordingly."
       },
       {
         "title": "Care-team access and sharing",
