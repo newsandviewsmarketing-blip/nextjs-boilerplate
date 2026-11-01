@@ -1,4 +1,5 @@
 import Link from "next/link";
+import "@/app/components/CareerWorkspaceFrame.css";
 import { getCurrentIdentity, type AccountRole } from "@/lib/auth";
 import { getEffectiveAdminPermissions, staffRoleLabel, type AdminPermission } from "@/lib/admin";
 
@@ -39,12 +40,11 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
     <details className="vc-sidebar-fold" open>
       <summary>Management menu</summary>
       <nav aria-label="Admin modules">
-        {groups.map(group=><div className="vc-nav-section" key={group.title}>
-          <span className="vc-nav-label">{group.title}</span>
+        {groups.map(group=><details className="vc-nav-section vc-admin-section" key={group.title} open={group.title==="Overview"}>
+          <summary className="vc-nav-label">{group.title}</summary>
           {group.title==="Overview" && review && <Link href="/admin/reviews">Approvals & review queue</Link>}
           {group.items.filter(item=>allowed(item.permission)||(item.href==="/admin/website"&&allowed("site.manage"))).map(item=><Link href={item.href} key={item.name}>{item.name}</Link>)}
-          
-        </div>)}
+        </details>)}
         {assist && <div className="vc-nav-section"><span className="vc-nav-label">Quick actions</span><Link href="/admin/create">Add new record</Link></div>}
         <div className="vc-nav-section"><Link href="/dashboard">My workspace</Link></div>
       </nav>
