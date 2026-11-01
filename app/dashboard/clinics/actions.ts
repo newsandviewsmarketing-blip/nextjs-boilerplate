@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import {clinicFocusEntries,resolveClinicFacilityType} from "@/lib/clinic-facility-options";
 
 const eligibleRoles = new Set([
   "veterinarian",
@@ -31,12 +32,6 @@ function nullableText(formData: FormData, name: string) {
   return text(formData, name) || null;
 }
 
-function list(formData: FormData, name: string) {
-  return text(formData, name)
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 function slugify(value: string) {
   return value
@@ -97,6 +92,13 @@ export async function createClinicAction(formData: FormData) {
     );
   }
 
+  const facility=resolveClinicFacilityType(formData);
+  if(facility.error){
+    redirect(routeMessage(/dashboard/clinics,"error",facility.error));
+  }
+  const focusServices=clinicFocusEntries(formData,"services");
+  const focusSpecies=clinicFocusEntries(formData,"species");
+  
   const supabase = await createClient();
   const slug = `${slugify(clinicName)}-${randomUUID().slice(0, 8)}`;
   const { data, error } = await supabase
@@ -107,8 +109,7 @@ export async function createClinicAction(formData: FormData) {
       clinic_name: clinicName,
       responsible_veterinarian_name: nullableText(formData, "responsible_veterinarian_name"),
       responsible_veterinarian_pvmc: nullableText(formData, "responsible_veterinarian_pvmc"),
-      facility_type:
-        text(formData, "facility_type") || "Veterinary Clinic",
+      facility_type: facility.value,
       description: nullableText(formData, "description"),
       province: nullableText(formData, "province"),
       district: nullableText(formData, "district"),
@@ -121,8 +122,8 @@ export async function createClinicAction(formData: FormData) {
       working_hours: null,
       emergency_service:
         formData.get("emergency_service") === "on",
-      services: list(formData, "services"),
-      species: list(formData, "species"),
+      services: focusServices,
+      species: focusSpecies,
       verification_status: "pending",
       is_published: false,
     })
@@ -170,6 +171,13 @@ export async function updateClinicAction(formData: FormData) {
     );
   }
 
+  const facility=resolveClinicFacilityType(formData);
+  if(facility.error){
+    redirect(routeMessage(path,"error",facility.error));
+  }
+  const focusServices=clinicFocusEntries(formData,"services");
+  const focusSpecies=clinicFocusEntries(formData,"species");
+  
   const supabase = await createClient();
   const { error } = await supabase
     .from("clinics")
@@ -177,8 +185,7 @@ export async function updateClinicAction(formData: FormData) {
       clinic_name: clinicName,
       responsible_veterinarian_name: nullableText(formData, "responsible_veterinarian_name"),
       responsible_veterinarian_pvmc: nullableText(formData, "responsible_veterinarian_pvmc"),
-      facility_type:
-        text(formData, "facility_type") || "Veterinary Clinic",
+      facility_type: facility.value,
       description: nullableText(formData, "description"),
       province: nullableText(formData, "province"),
       district: nullableText(formData, "district"),
@@ -190,8 +197,8 @@ export async function updateClinicAction(formData: FormData) {
       website: nullableText(formData, "website"),
       emergency_service:
         formData.get("emergency_service") === "on",
-      services: list(formData, "services"),
-      species: list(formData, "species"),
+      services: focusServices,
+      species: focusSpecies,
     })
     .eq("id", id)
     .eq("owner_id", identity.userId);
@@ -468,6 +475,15 @@ export async function addClinicServiceAction(
   const feeMin = text(formData, "fee_min");
   const feeMax = text(formData, "fee_max");
   const duration = text(formData, "duration_minutes");
+  // A fee is a public quote, not a payment or ledger entry.
+  const min=feeMin===""?null:Number(feeMin);
+  const max=feeMax===""?null:Number(feeMax);
+  const minutes=duration===""?null:Number(duration);
+  if([min,max].some(x=>x!==null&&(!Number.isFinite(x)||x<0||x>100000000||Math.round(x*100)!==x*100))
+    ||(min!==null&&max!==null&&max<min)
+    ||(minutes!==null&&(!Number.isInteger(minutes)||minutes<1||minutes>1440))){
+    redirect(routeMessage(path,"error","Enter a valid fee range and a duration between 1 and 1440 minutes."));
+  }
   const supabase = await createClient();
   const { error } = await supabase
     .from("clinic_services")
@@ -476,12 +492,10 @@ export async function addClinicServiceAction(
         clinic_id: clinicId,
         service_id: serviceId,
         description: nullableText(formData, "description"),
-        fee_min: feeMin ? Number(feeMin) : null,
-        fee_max: feeMax ? Number(feeMax) : null,
+        fee_min: min,
+        fee_max: max,
         currency: "PKR",
-        duration_minutes: duration
-          ? Number(duration)
-          : null,
+        duration_minutes: minutes,
         is_public:
           formData.get("is_public") === "on",
         is_active: true,
