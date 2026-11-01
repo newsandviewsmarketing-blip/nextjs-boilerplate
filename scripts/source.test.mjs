@@ -179,7 +179,9 @@ test("career workspace and veterinarian job application flow are active", () => 
   const dashboard = read("app/dashboard/page.tsx");
   const career = read("app/dashboard/career/page.tsx");
   const jobs = read("app/jobs/actions.ts");
-  assert.match(dashboard, /href="\/dashboard\/career"/);
+  const routes=read("lib/professional-workspace.ts");
+  assert.match(dashboard, /active="account" module="account"/);
+  assert.match(routes, /href:'\/dashboard\/career'/);
   assert.match(career, /MY APPLICATIONS/);
   assert.match(career, /job_applications/);
   assert.match(jobs, /"veterinarian"/);
@@ -676,7 +678,8 @@ test("Phase 2 dashboard links to actionable administration, reports and records"
   assert.match(exportRoute, /no-store/);
   assert.match(exportRoute, /csvCell/);
   assert.match(company, /company-applications/);
-  assert.match(account, /vc-customer-hub/);
+  assert.match(account, /CareerWorkspaceFrame/);
+  assert.match(account, /updateProfileAction/);
   for(const file of ["app/admin/jobs/page.tsx","app/admin/jobs/[id]/page.tsx","app/admin/applications/page.tsx","app/admin/clinic-affiliations/page.tsx","app/admin/reports/page.tsx"]){
     assert.ok(read(file).length>300, file+" is missing");
   }
