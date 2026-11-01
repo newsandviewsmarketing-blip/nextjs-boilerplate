@@ -1,8 +1,6 @@
-import WorkspaceNavigation from '@/app/components/WorkspaceNavigation';
+import CareerWorkspaceFrame from '@/app/components/CareerWorkspaceFrame';
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { uploadCareerCvAction } from "./actions";
@@ -68,7 +66,7 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
       .order("created_at",{ascending:false}).limit(25),
     supabase.from("career_cv_profiles").select("full_name,headline")
       .eq("user_id",identity.userId).maybeSingle(),
-    supabase.from("professional_profiles").select("verification_status").eq("user_id",identity.userId).maybeSingle(),
+    supabase.from("professional_profiles").select("verification_status,headline,image_url").eq("user_id",identity.userId).maybeSingle(),
   ]);
 
   const applicationRows = (applicationResult.data ?? []) as ApplicationRow[];
@@ -91,24 +89,17 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
   const jobMap = new Map(jobs.map((job) => [job.id, job]));
 
   return (
-    <main>
-      <SiteHeader /><WorkspaceNavigation approved={professionalResult.data?.verification_status==='approved'}/>
-      <section className="dashboard-hero">
-        <div className="shell dashboard-hero-row">
-          <div>
-            <span className="section-kicker">CAREER WORKSPACE</span>
-            <h1>Jobs, matches and applications.</h1>
-            <p>Track your VetConnect career activity from one place.</p>
-          </div>
-          <div className="dashboard-actions">
-            <Link className="button button-primary" href="/jobs">Browse jobs</Link>
-            <Link className="button button-secondary" href="/dashboard/professional">Professional profile</Link>
-            <Link className="button button-secondary" href="/dashboard">Account dashboard</Link>
-          </div>
-        </div>
-      </section>
-      <section className="section compact-section">
-        <div className="shell">
+    <CareerWorkspaceFrame
+      active="applications"
+      name={identity.profile?.full_name||identity.email}
+      headline={professionalResult.data?.headline}
+      photoUrl={professionalResult.data?.image_url}
+      location={[identity.profile?.city,identity.profile?.province].filter(Boolean).join(', ')}
+      verificationStatus={professionalResult.data?.verification_status}
+      approved={professionalResult.data?.verification_status==='approved'}
+      title="Applications and follow-ups."
+      description="Your submitted applications, saved jobs and matching opportunities in one place.">
+      <div className="vcx-application-tools"><Link className="vcx-button vcx-button-primary" href="/jobs">Browse jobs</Link><Link className="vcx-button vcx-button-outline" href="/career/preferences">Edit interests</Link></div>
           {(applicationResult.error || savedResult.error || matchResult.error) && (
             <div className="form-message form-message-error">{applicationResult.error?.message || savedResult.error?.message || matchResult.error?.message}</div>
           )}
@@ -177,9 +168,6 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
             <div className="section-heading"><span className="section-kicker">JOB MATCHES</span><h2>Profile-based opportunity matches.</h2><p>Match records are calculated from the structured career data already stored in VetConnect.</p></div>
             {matchRows.length === 0 ? <div className="empty-state"><h2>No calculated matches yet.</h2><p>Complete your professional profile so future matching has standardized education, skills and experience data.</p><Link className="button button-primary" href="/dashboard/professional">Complete professional profile</Link></div> : <div className="company-grid">{matchRows.map((match) => { const job = jobMap.get(match.job_id); return <article key={match.job_id}><span className="module-tag">{job?.sector || "Veterinary career"}</span><h3>{job?.title || "Matched opportunity"}</h3><p>{match.explanation}</p><div className="status-cluster"><span className="status-pill status-approved">{Number(match.match_score).toFixed(0)}% match</span><span className="status-pill">{[job?.city, job?.province].filter(Boolean).join(", ") || "Pakistan"}</span></div>{job?.slug && <Link className="button button-primary button-full" href={`/jobs/${job.slug}`}>View opportunity</Link>}</article>; })}</div>}
           </section>
-        </div>
-      </section>
-      <SiteFooter />
-    </main>
+    </CareerWorkspaceFrame>
   );
 }

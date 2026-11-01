@@ -12,7 +12,18 @@ export function parseCareerPreferences(form: FormData): CareerPreferences {
  const list=(key:string)=>{
   const raw=String(form.get(key)??'');
   if(raw.length>2000)throw new Error('Keep each preference list under 2,000 characters.');
-  const items=[...new Set(raw.split(/[,\n]/).map(s=>s.trim()).filter(Boolean))];
+  // JSON arrays preserve approved master-data labels containing commas.
+  // Keep legacy comma/newline submission support for existing forms and tests.
+  let entries:string[];
+  if(raw.trimStart().startsWith('[')){
+   let decoded:unknown;
+   try{decoded=JSON.parse(raw);}catch{throw new Error('Choose valid list items.');}
+   if(!Array.isArray(decoded)||decoded.some(item=>typeof item!=='string'))throw new Error('Choose valid list items.');
+   entries=decoded as string[];
+  }else{
+   entries=raw.split(/[,\n]/);
+  }
+  const items=[...new Set(entries.map(s=>s.trim()).filter(Boolean))];
   if(items.length>20||items.some(s=>s.length>100||/[<>\u0000-\u001f]/.test(s)))throw new Error('Use up to 20 entries per list, each under 100 characters.');
   return items;
  };

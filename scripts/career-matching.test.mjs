@@ -76,3 +76,18 @@ test('optional internship focus includes trainee roles and avoids confusing inte
  assert.equal(parseCareerPreferences(form).guidance_requested,true);
  assert.equal(parseCareerPreferences(form).opportunity_focus,'Internships');
 });
+
+
+test('searchable choice chips preserve approved labels with commas and do not change opt-in defaults',()=>{
+ const form=new FormData();
+ form.set('preferred_sectors',JSON.stringify(['Poultry','Feed, Nutrition','Poultry']));
+ form.set('desired_roles',JSON.stringify(['Veterinary Officer','Research Assistant']));
+ form.set('preferred_cities',JSON.stringify(['Faisalabad','Lahore']));
+ const parsed=parseCareerPreferences(form);
+ assert.deepEqual(parsed.preferred_sectors,['Poultry','Feed, Nutrition']);
+ assert.deepEqual(parsed.desired_roles,['Veterinary Officer','Research Assistant']);
+ assert.deepEqual(parsed.preferred_cities,['Faisalabad','Lahore']);
+ assert.equal(parsed.email_alerts,false);
+ form.set('preferred_cities','["Lahore",3]');
+ assert.throws(()=>parseCareerPreferences(form),/Choose valid list items/);
+});
