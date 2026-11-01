@@ -317,3 +317,14 @@
 .vcx-clinic-next-step>span{display:inline-flex;font-size:11px;font-weight:800;color:#bb6507}
 @media(max-width:940px){.vcx-clinic-focus-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.vcx-clinic-focus-grid{grid-template-columns:1fr}.vcx-clinic-focus{padding:13px}}
+
+.vcx-clinic-focus-disclosure{border:1px solid #e1e8f2;border-radius:12px;overflow:hidden;background:#fbfcfe}
+.vcx-clinic-focus-disclosure>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px}
+.vcx-clinic-focus-disclosure>summary::-webkit-details-marker{display:none}
+.vcx-clinic-focus-disclosure>summary:after{content:"+";font-size:19px;color:#c96d08}
+.vcx-clinic-focus-disclosure[open]>summary:after{content:"−"}
+.vcx-clinic-focus-disclosure>summary strong{color:#142c54;font-size:13px}
+.vcx-clinic-focus-disclosure>summary span{font-size:11px;color:#697d94}
+.vcx-clinic-focus-disclosure>.vcx-clinic-focus{border:0;border-top:1px solid #e1e8f2;border-radius:0}
+.vcx-clinic-focus-disclosure>summary:focus-visible{outline:3px solid #d87e17;outline-offset:-3px}
+@media(max-width:540px){.vcx-clinic-focus-disclosure>summary{flex-wrap:wrap}}
