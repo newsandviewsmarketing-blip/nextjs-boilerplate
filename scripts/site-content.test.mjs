@@ -5,10 +5,10 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 const read=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 function compile(path,imports) {
- const module={exports:{}};
+ const exported={exports:{}};
  const code=ts.transpileModule(read(path),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
- runInNewContext(code,{module,exports:module.exports,require:name=>{if(name in imports)return imports[name];throw new Error("Unexpected import "+name);},URL,FormData,Date,console});
- return module.exports;
+ runInNewContext(code,{module:exported,exports:exported.exports,require:name=>{if(name in imports)return imports[name];throw new Error("Unexpected import "+name);},URL,FormData,Date,console});
+ return exported.exports;
 }
 const info=compile("lib/public-information.ts",{"@/lib/seo":{absoluteUrl:p=>"https://www.vetconnect.com.pk"+p}});
 const docs=compile("lib/site-content-document.ts",{"./public-information":info});
