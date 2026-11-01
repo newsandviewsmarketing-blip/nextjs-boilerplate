@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
+import ClinicFacilityTypeField from "../ClinicFacilityTypeField";
+import ClinicFocusFields from "../ClinicFocusFields";
 import FormMessage from "../../../components/FormMessage";
 import FormSubmitButton from "../../../components/FormSubmitButton";
 import PakistanLocationFields from "../../../components/PakistanLocationFields";
@@ -447,23 +449,7 @@ export default async function ClinicManagePage({
                 />
               </div>
 
-              <div>
-                <label htmlFor="facility_type">
-                  Facility type
-                </label>
-                <select
-                  id="facility_type"
-                  name="facility_type"
-                  defaultValue={clinic.facility_type}
-                >
-                  <option>Veterinary Clinic</option>
-                  <option>Veterinary Hospital</option>
-                  <option>Pet Clinic</option>
-                  <option>Livestock Clinic</option>
-                  <option>Farm Veterinary Service</option>
-                  <option>Mobile Veterinary Service</option>
-                </select>
-              </div>
+              <ClinicFacilityTypeField defaultValue={clinic.facility_type} />
 
               <div className="form-span-2">
                 <h3>Responsible veterinarian & PVMC registration</h3>
@@ -539,31 +525,7 @@ export default async function ClinicManagePage({
                 </p>
               </div>
 
-              <div className="form-span-2">
-                <label htmlFor="services">
-                  Legacy service summary
-                </label>
-                <input
-                  id="services"
-                  name="services"
-                  defaultValue={clinic.services.join(", ")}
-                />
-                <p className="form-help">
-                  Use the standardized service catalogue below for
-                  structured listings.
-                </p>
-              </div>
-
-              <div className="form-span-2">
-                <label htmlFor="species">
-                  Species served
-                </label>
-                <input
-                  id="species"
-                  name="species"
-                  defaultValue={clinic.species.join(", ")}
-                />
-              </div>
+              <ClinicFocusFields services={clinic.services} species={clinic.species}/>
 
               <div className="form-span-2">
                 <label htmlFor="description">
@@ -810,7 +772,8 @@ export default async function ClinicManagePage({
                   name="clinic_id"
                   value={clinic.id}
                 />
-                <h3>Add or update service</h3>
+                <h3>Add or update service & consultation fee</h3>
+                <p className="form-help">Select an approved catalogue service. Set its fee and duration here; free-text expertise above is not a published bookable service.</p>
 
                 <label>
                   Service
