@@ -43,6 +43,13 @@ Readiness only means these **fields are present**. It does not mean PVMC verific
 - **Laboratory integrations**: reference a separate lab identity and service catalogue; link orders/results to patient records with access controls and explicit consent.
 - **Canonical places/entities**: store canonical location and service IDs, aliases and safe fuzzy suggestions. An unreviewed fuzzy match must never silently merge two clinics.
 
+### Confirmed read-only RLS audit (1 November 2026)
+- `public.is_account_active()` requires `profiles.account_status='active'`.
+- `public.can_manage_clinic(clinic_id)` also requires an active account and either the facility owner or an administrator.
+- `clinics` and `clinic_services` include active-account guards; `clinic_availability` is controlled by `can_manage_clinic`.
+- If a clinic-intent company account is not yet active, requiring all its service hours before registration approval creates an **onboarding deadlock**. The registration review and clinic publication statuses must be separated in the underlying workflow, so an account may complete its private facility draft without simultaneously publishing the facility.
+- Verify all direct RPC and administrative paths cannot publish incomplete clinics; only then finalize the migration/review design. Do not weaken RLS or bypass account checks just to work around the flow.
+
 ## Release and QA
 - Run source tests, TypeScript, lint, locked dependency audit and production build against the exact PR head.
 - Authenticate as owner, clinic member, employee, reviewer and unrelated user. Verify no cross-user clinical, team or appointment data is visible.
