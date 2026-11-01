@@ -137,3 +137,31 @@
  .vcx-callout{flex-direction:column;align-items:stretch}
 }
 @media(prefers-reduced-motion:reduce){.vcx-task{transition:none}}
+
+/* The outer workspace already has a sidebar: profile steps become a slim horizontal rail. */
+.vcx-primary .profile-builder{display:block;margin:0}
+.vcx-primary .builder-sidebar{position:static;border-radius:14px;margin-bottom:15px;overflow:visible}
+.vcx-primary .builder-progress{display:none}
+.vcx-primary .builder-step-list{display:flex;overflow-x:auto;scrollbar-width:thin;gap:7px;padding:10px}
+.vcx-primary .builder-step{flex:0 0 auto;min-width:120px;min-height:54px;padding:10px;border:1px solid #e1e7f0}
+.vcx-primary .builder-step small{display:none}
+.vcx-primary .builder-step.is-active{border-color:#f7c591}
+.vcx-primary .builder-main{width:100%}
+.vcx-primary .profile-builder .professional-photo-card{border-radius:14px}
+.vcx-primary .profile-builder .professional-workspace-overview{grid-template-columns:1fr}
+.vcx-primary .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vcx-embedded-card{padding:24px}
+.vcx-embedded-card h2{font-size:20px;color:var(--vcx-navy);margin:10px 0}
+.vcx-embedded-card >p{color:var(--vcx-muted);font-size:13px;line-height:1.6}
+.vcx-application-tools{display:flex;flex-wrap:wrap;gap:9px}
+.vcx-cv-body{display:grid;gap:16px}
+.vcx-career-preferences{min-width:0}
+.vcx-career-preferences .career-interests-form{display:grid;gap:16px}
+.vcx-career-preferences .career-interests-section{margin:0}
+.vcx-career-preferences .career-interests-actions{margin:0}
+@media(max-width:650px){
+ .vcx-primary .builder-step-list{display:none}
+ .vcx-primary .builder-mobile-selector{display:grid}
+ .vcx-primary .form-grid{grid-template-columns:1fr}
+ .vcx-embedded-card{padding:18px}
+}
