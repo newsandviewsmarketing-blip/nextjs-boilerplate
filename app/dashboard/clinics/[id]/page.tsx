@@ -282,7 +282,7 @@ export default async function ClinicManagePage({
        </nav>
        <section className="vcx-clinic-readiness" aria-label="Clinic publication readiness">
          <div><span className="vcx-eyebrow">FACILITY REVIEW</span><h2>{readinessIssues.length===0?"Core clinic details ready for VetConnect review":"Complete your clinic before publication"}</h2>
-          <p>Saving the clinic does not verify a veterinarian's registration. VetConnect administrators separately review credentials and facility information before publishing.</p></div>
+          <p>Saving the clinic does not verify a veterinarian&apos;s registration. VetConnect administrators separately review credentials and facility information before publishing.</p></div>
          {readinessIssues.length>0?<ul>{readinessIssues.map(issue=><li key={issue}>{issue}</li>)}</ul>:
           <p className="vcx-secondary">Core fields are present. Administrator credential verification and publication approval are still required.</p>}
        </section>
@@ -470,13 +470,13 @@ export default async function ClinicManagePage({
                 <p className="form-help">Clinical services must be linked to a registered veterinarian. The name and number are for private VetConnect administrator review, not a public PVMC-verified badge.</p>
               </div>
               <div>
-                <label htmlFor="edit-responsible-vet">Responsible veterinarian's name</label>
+                <label htmlFor="edit-responsible-vet">Responsible veterinarian&apos;s name</label>
                 <input id="edit-responsible-vet" name="responsible_veterinarian_name" maxLength={180} defaultValue={clinic.responsible_veterinarian_name??""}/>
               </div>
               <div>
                 <label htmlFor="edit-responsible-pvmc">PVMC registration number</label>
                 <input id="edit-responsible-pvmc" name="responsible_veterinarian_pvmc" maxLength={70} defaultValue={clinic.responsible_veterinarian_pvmc??""}/>
-                <p className="form-help">Check registration with <a href="https://pvmc.gov.pk/Registration/Search" target="_blank" rel="noopener noreferrer">PVMC's official registry</a>. Entering a number does not verify it.</p>
+                <p className="form-help">Check registration with <a href="https://pvmc.gov.pk/Registration/Search" target="_blank" rel="noopener noreferrer">PVMC&apos;s official registry</a>. Entering a number does not verify it.</p>
               </div>
               <PakistanLocationFields
                 defaultProvince={clinic.province ?? ""}
