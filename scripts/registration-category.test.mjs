@@ -401,3 +401,21 @@ test("Pending-number veterinarian drafts cannot invoke final submission",async()
  await assert.rejects(()=>exported.exports.completeRegistrationAction(),/Add%20your%20PVMC%20number/);
  assert.equal(rpcCalled,false);assert.equal(persistCalled,false);
 });
+
+
+test("registration evidence follows one veterinarian-only PVMC policy without requiring CNIC",()=>{
+ const page=read("app/register/complete/page.tsx");
+ const form=read("app/register/complete/RegistrationEvidenceForm.tsx");
+ const actions=read("app/register/complete/actions.ts");
+ const criteria=read("lib/registration-evidence.ts");
+ const migration=read("supabase/migrations/20261101162000_separate_clinic_publication_from_registration.sql");
+ assert.doesNotMatch(page,/cnic_number|Upload your CNIC/i);
+ assert.doesNotMatch(form,/cnic_front|cnic_back|cnicSaved/);
+ assert.doesNotMatch(actions,/cnic_front|cnic_back|isValidPakistaniCnic|saveRegistrationCnicAction/);
+ assert.match(criteria,/role === "veterinarian"[\\s\\S]*?pvmc_registration/);
+ assert.doesNotMatch(criteria,/role === "company"[\\s\\S]*?pvmc_registration/);
+ assert.match(migration,/alter column cnic_number drop not null/);
+ assert.match(migration,/FUNCTION public.complete_registration_submission/);
+ assert.equal((migration.match(/required_types := array\\[\\]::text\\[\\]/g)||[]).length,2);
+ assert.match(migration,/create or replace view public.public_clinics as/);
+});
