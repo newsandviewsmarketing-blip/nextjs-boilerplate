@@ -479,12 +479,20 @@ export async function addClinicServiceAction(
   const min=feeMin===""?null:Number(feeMin);
   const max=feeMax===""?null:Number(feeMax);
   const minutes=duration===""?null:Number(duration);
-  if([min,max].some(x=>x!==null&&(!Number.isFinite(x)||x<0||x>100000000||Math.round(x*100)!==x*100))
+  if([min,max].some(x=>x!==null&&(!Number.isFinite(x)||x<0||x>100000000||Math.abs(Math.round(x*100)-x*100)>0.000001))
     ||(min!==null&&max!==null&&max<min)
     ||(minutes!==null&&(!Number.isInteger(minutes)||minutes<1||minutes>1440))){
     redirect(routeMessage(path,"error","Enter a valid fee range and a duration between 1 and 1440 minutes."));
   }
   const supabase = await createClient();
+  // Keep service identity canonical. Reject deleted, hidden, or invented IDs
+  // rather than accepting arbitrary dropdown values from modified clients.
+  const {data:listedService,error:catalogError}=await supabase
+    .from("service_catalog").select("id")
+    .eq("id",serviceId).eq("is_active",true).maybeSingle();
+  if(catalogError||!listedService){
+    redirect(routeMessage(path,"error","Choose an active VetConnect catalogue service."));
+  }
   const { error } = await supabase
     .from("clinic_services")
     .upsert(
