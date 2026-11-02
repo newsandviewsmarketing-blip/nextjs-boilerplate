@@ -412,10 +412,10 @@ test("registration evidence follows one veterinarian-only PVMC policy without re
  assert.doesNotMatch(page,/cnic_number|Upload your CNIC/i);
  assert.doesNotMatch(form,/cnic_front|cnic_back|cnicSaved/);
  assert.doesNotMatch(actions,/cnic_front|cnic_back|isValidPakistaniCnic|saveRegistrationCnicAction/);
- assert.match(criteria,/role === "veterinarian"[\\s\\S]*?pvmc_registration/);
- assert.doesNotMatch(criteria,/role === "company"[\\s\\S]*?pvmc_registration/);
+ assert.match(criteria,/role === "veterinarian"[\s\S]*?pvmc_registration/);
+ assert.doesNotMatch(criteria,/role === "company"[\s\S]*?pvmc_registration/);
  assert.match(migration,/alter column cnic_number drop not null/);
  assert.match(migration,/FUNCTION public.complete_registration_submission/);
- assert.equal((migration.match(/required_types := array\\[\\]::text\\[\\]/g)||[]).length,2);
+ assert.equal((migration.match(/required_types := array\[\]::text\[\]/g)||[]).length,2);
  assert.match(migration,/create or replace view public.public_clinics as/);
 });
