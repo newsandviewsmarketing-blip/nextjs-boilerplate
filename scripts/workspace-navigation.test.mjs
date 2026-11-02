@@ -44,3 +44,14 @@ test('multi-company actions cannot silently default to the first employer',()=>{
  assert.match(chooser,/get_my_company_workspaces/);
  assert.match(chooser,/company\.company_id/);
 });
+
+test('multiple laboratory ownership requires an explicit selected facility',()=>{
+ const lab=readFileSync('app/dashboard/laboratory/page.tsx','utf8');
+ const actions=readFileSync('app/dashboard/laboratory/actions.ts','utf8');
+ assert.match(lab,/ownedLabs\.length===1\?ownedLabs\[0\]:messages\.lab\?/);
+ assert.match(lab,/ownedLabs\.find\(item=>item\.id===messages\.lab\)/);
+ assert.match(lab,/Choose your laboratory/);
+ assert.match(lab,/Switch laboratory/);
+ assert.match(actions,/\.eq\("id",labId\)\.eq\("owner_id",identity\.userId\)/);
+ assert.match(actions,/encodeURIComponent\(labId\)/);
+});
