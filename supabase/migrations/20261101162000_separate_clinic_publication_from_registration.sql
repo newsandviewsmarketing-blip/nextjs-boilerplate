@@ -59,7 +59,6 @@ begin
     end if;
     if new.pvmc_reviewed_at is null or new.pvmc_reviewed_by is null
        or length(btrim(coalesce(new.pvmc_review_note,''))) < 25
-       or new.verified_by is distinct from new.pvmc_reviewed_by
     then
       raise exception 'Clinic publication requires a recorded reviewer PVMC cross-check';
     end if;
@@ -86,8 +85,13 @@ before insert or update on public.clinics
 for each row
 execute function public.enforce_clinic_publication_readiness();
 
--- The existing registration RPC is retained with a *single* material change:
--- a company account's registration approval leaves its clinic pending and private.
+-- Staged changes to the existing registration RPC:
+-- 1. Account approval never publishes a clinic or attests the clinical PVMC check.
+-- 2. CNIC images are not registration evidence requirements (privacy decision).
+-- 3. Company/clinic ownership registration does not demand the owner's PVMC card;
+--    the responsible veterinary practitioner's credentials are reviewed at facility publication.
+-- NOTE: The production function still uses its previous requirements until this
+-- complete staged migration is separately tested, approved and applied.
 CREATE OR REPLACE FUNCTION public.review_registration_submission(p_user_id uuid, p_decision text, p_reason text, p_reviewer_id uuid, p_public_image_url text)
  RETURNS void
  LANGUAGE plpgsql
@@ -135,7 +139,9 @@ begin
   where details.user_id = p_user_id;
   category_details := coalesce(category_details, '{}'::jsonb);
 
-  required_types := array['cnic_front','cnic_back'];
+  -- Private identity documents are not a universal registration prerequisite.
+  -- Retain only evidence required for the selected role/registration intent.
+  required_types := array[]::text[];
   if account_role_value in ('veterinarian','candidate','professional','user') then
     required_types := array_append(required_types,'profile_photo');
   elsif account_role_value in ('company','laboratory') then
@@ -150,7 +156,7 @@ begin
   elsif account_role_value = 'professional' then
     required_types := required_types || array['qualification_certificate'];
   elsif account_role_value = 'company' then
-    if gate_row.registration_intent = 'clinic' then required_types := required_types || array['clinic_registration','pvmc_registration'];
+    if gate_row.registration_intent = 'clinic' then required_types := required_types || array['clinic_registration'];
     else required_types := required_types || array['business_registration']; end if;
   elsif account_role_value = 'laboratory' then
     required_types := required_types || array['laboratory_registration'];
