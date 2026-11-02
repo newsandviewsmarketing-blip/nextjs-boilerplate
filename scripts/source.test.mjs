@@ -487,7 +487,6 @@ test("job submission is pending with a full receipt and admin review links",()=>
   const adminActions=read("app/admin/create/actions.ts");
   const companyActions=read("app/dashboard/company/actions.ts");
   const review=read("app/admin/reviews/page.tsx");
-  const dashboard=read("app/admin/page.tsx");
   for(const page of [admin,company])assert.match(page,/<JobSubmissionReceipt/);
   assert.match(receipt,/role="dialog"/);
   assert.match(receipt,/Status:<\/strong> Pending approval/);
