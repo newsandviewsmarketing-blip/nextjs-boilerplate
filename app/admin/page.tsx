@@ -72,7 +72,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
     const isPeople=key==="vets"||key==="professionals"||key==="managedVets"||key==="managedProfessionals";
     const canSee=key==="products"?productsAllowed:key==="jobs"?jobsAllowed:isPeople?profilesAllowed:(profilesAllowed||directoryAllowed);
     if(!canSee)continue;
-    const scope=key==="managedVets"?[["profile_kind","veterinarian"]]:key==="managedProfessionals"?[["profile_kind","professional"]]:[];
+    const scope:Array<[string,string]>=key==="managedVets"?[["profile_kind","veterinarian"]]:key==="managedProfessionals"?[["profile_kind","professional"]]:[];
     requireCount(key+"New24",table,column,scope,true);
     if((key==="products"&&productsAllowed)||(key==="jobs"&&jobsAllowed)||(!["products","jobs"].includes(key)&&profilesAllowed)){
       for(const status of ["approved","pending","rejected"]){
