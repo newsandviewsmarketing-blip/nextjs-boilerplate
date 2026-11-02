@@ -487,13 +487,12 @@ test("job submission is pending with a full receipt and admin review links",()=>
   const adminActions=read("app/admin/create/actions.ts");
   const companyActions=read("app/dashboard/company/actions.ts");
   const review=read("app/admin/reviews/page.tsx");
-  const dashboard=read("app/admin/page.tsx");
   for(const page of [admin,company])assert.match(page,/<JobSubmissionReceipt/);
   assert.match(receipt,/role="dialog"/);
   assert.match(receipt,/Status:<\/strong> Pending approval/);
   assert.match(receipt,/Minimum qualification/);
   assert.match(review,/id=\{"job-"\+job\.id\}/);
-  assert.match(dashboard,/href="\/admin\/reviews#jobs-review"/);
+  assert.match(read("app/admin/components/AdminNav.tsx"),/href:"\/admin\/reviews#jobs-review"/);
   for(const action of [adminActions,companyActions]){
     assert.match(action,/proposeJobMasterTerms\(/);
     assert.match(action,/emailJobReviewNotice\(/);
@@ -663,7 +662,7 @@ test("Phase 2 dashboard links to actionable administration, reports and records"
   const company = read("app/dashboard/company/page.tsx");
   const account = read("app/dashboard/page.tsx");
   assert.match(overview, /getEffectiveAdminPermissions/);
-  assert.match(overview, /Pending profiles/);
+  assert.match(overview, /Pending review records/);
   assert.match(overview, /New registrations/);
   assert.match(overview, /admin\/reviews#profile-account-/);
   assert.match(overview, /newRegistrations24h/);
@@ -672,7 +671,7 @@ test("Phase 2 dashboard links to actionable administration, reports and records"
   assert.match(reviews, /id=\{\`credential-\$\{row\.record_source/);
   assert.match(reviews, /id=\{\`product-\$\{product.id\}/);
   assert.match(nav, /getEffectiveAdminPermissions/);
-  assert.match(nav, /Printable reports/);
+  assert.match(nav, /Reports \/ CSV/);
   assert.match(report, /PrintReportButton/);
   assert.match(exportRoute, /getEffectiveAdminPermission\(identity,"audit.view"\)/);
   assert.match(exportRoute, /no-store/);
@@ -811,4 +810,41 @@ test("clinic practice types, Other options and specialty labels reuse both clini
  assert.match(actions,/clinicFocusEntries\(formData,"species"\)/);
  assert.match(actions,/Enter a valid fee range and a duration between 1 and 1440 minutes/);
  assert.match(actions,/is_published: false/);
+});
+
+
+test("admin home visibly shows status counts across real sectors and permission-gated queues",()=>{
+ const overview=read("app/admin/page.tsx");
+ const nav=read("app/admin/components/AdminNav.tsx");
+ const css=read("app/globals.css");
+ const spec=read("docs/admin-control-v2-canonical-data-plan.md");
+ assert.match(overview,/Registrations, approvals and new activity/);
+ assert.match(overview,/sectorRows\.map\(row=>/);
+ assert.match(overview,/Approved/);
+ assert.match(overview,/Pending/);
+ assert.match(overview,/Rejected/);
+ assert.match(overview,/New 24h/);
+ assert.match(overview,/newRegistrations24h/);
+ assert.match(overview,/candidateAccounts/);
+ assert.match(overview,/registrationPending/);
+ assert.match(overview,/registration_completion_gate/);
+ assert.match(overview,/last 24 hours/i);
+ assert.match(overview,/cards\.filter\(card=>card\.attention\)/);
+ assert.ok(overview.indexOf("Registrations, approvals and new activity") < overview.indexOf("Approval and review queues"));
+ assert.ok(overview.indexOf("Approval and review queues") < overview.indexOf("Latest updates and decisions"));
+ assert.doesNotMatch(overview,/vc-admin-overview-details/);
+ assert.doesNotMatch(overview,/Operations & quick actions/);
+ for(const category of ["Registrations & people","Clinics & diagnostics","Marketplace & companies","Jobs & HR","Approvals","Governance & data"]){
+   assert.ok(nav.includes('title:"'+category+'"'),category+" navigation group");
+ }
+ assert.match(nav,/visibleGroups/);
+ assert.doesNotMatch(nav,/\/admin\/review-history/);
+ assert.match(nav,/Veterinarian PVMC checks/);
+ assert.doesNotMatch(nav,/title:"PVMC"/);
+ assert.match(css,/\.vc-admin-page \.vc-admin-layout\{display:grid/);
+ assert.match(css,/\.vc-admin-page \.vc-admin-sector-grid\{display:grid/);
+ assert.match(css,/max-width:520px/);
+ assert.match(spec,/UAF → University of Agriculture Faisalabad/);
+ assert.match(spec,/UVAS → University of Veterinary and Animal Sciences Lahore/);
+ assert.match(spec,/CSV\/PDF are outputs/);
 });
