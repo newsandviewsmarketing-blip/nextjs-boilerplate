@@ -812,3 +812,27 @@ test("clinic practice types, Other options and specialty labels reuse both clini
  assert.match(actions,/Enter a valid fee range and a duration between 1 and 1440 minutes/);
  assert.match(actions,/is_published: false/);
 });
+
+
+test("admin v2 keeps a single permission-scoped navigation and shows pending reviews before metrics",()=>{
+ const overview=read("app/admin/page.tsx");
+ const nav=read("app/admin/components/AdminNav.tsx");
+ const css=read("app/globals.css");
+ const spec=read("docs/admin-control-v2-canonical-data-plan.md");
+ assert.match(overview,/Approval and review queues/);
+ assert.match(overview,/Latest updates and decisions/);
+ assert.match(overview,/cards\.filter\(card=>card\.attention\)/);
+ assert.match(overview,/cards\.filter\(card=>!card\.attention\)/);
+ assert.ok(overview.indexOf("Approval and review queues")<overview.indexOf("Latest updates and decisions"));
+ assert.match(overview,/vc-admin-overview-details/);
+ assert.doesNotMatch(overview,/Operations & quick actions/);
+ assert.match(nav,/title:"Approvals"/);
+ assert.match(nav,/title:"Governance & data"/);
+ assert.match(nav,/visibleGroups/);
+ assert.doesNotMatch(nav,/\/admin\/review-history/);
+ assert.match(css,/\.vc-admin-page \.vc-admin-layout\{display:grid/);
+ assert.match(css,/max-width:600px/);
+ assert.match(spec,/UAF → University of Agriculture Faisalabad/);
+ assert.match(spec,/UVAS → University of Veterinary and Animal Sciences Lahore/);
+ assert.match(spec,/CSV\/PDF are outputs/);
+});
