@@ -39,7 +39,7 @@ export function coreProfilePercentage(checks:readonly CoreProfileCheck[]):number
 /** Request-scoped so the professional page and its shared layout never disagree. */
 export const getCoreProfileProgress=cache(async():Promise<CoreProfileProgress|null>=>{
  const identity=await getCurrentIdentity();
- if(!identity)return null;
+ if(!identity||!identity.roles.some(role=>['veterinarian','professional','candidate'].includes(role)))return null;
  const supabase=await createClient();
  const [profile,education,experience]=await Promise.all([
   supabase.from('professional_profiles').select('professional_type,headline,public_summary,skills').eq('user_id',identity.userId).maybeSingle(),
