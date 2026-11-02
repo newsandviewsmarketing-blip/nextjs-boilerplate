@@ -48,3 +48,11 @@ test("Staged clinic publication remains separate from account registration",()=>
  assert.match(sql,/where a\.clinic_id = new\.id and a\.is_open = true/);
  assert.match(sql,/where s\.clinic_id = new\.id and s\.is_active = true and s\.is_public = true/);
 });
+
+test("Public clinic labels distinguish facility review from a PVMC credential check",()=>{
+ const listing=read("app/clinics/page.tsx");
+ const detail=read("app/clinics/[slug]/page.tsx");
+ assert.match(listing,/Facility approved/);
+ assert.match(detail,/VETCONNECT-REVIEWED FACILITY/);
+ assert.match(detail,/does not establish that the responsible veterinarian's PVMC registration has been verified/);
+});
