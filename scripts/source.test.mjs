@@ -232,7 +232,8 @@ test("core profile progress is consistent and independent from practitioner veri
   assert.match(shared, /Basic identity/);
   assert.match(shared, /Education or work background/);
   assert.match(frame, /getCoreProfileProgress/);
-  assert.match(profile, /getCoreProfileProgress/);
+  assert.match(profile, /<CareerWorkspaceFrame active="profile"/);
+  assert.doesNotMatch(profile, /completion=\{completion\}/);
   assert.match(frame, /isVeterinaryPractitioner/);
   assert.match(frame, /pvmc\.gov\.pk\/Registration\/Search/);
   assert.match(career, /CV details are saved/);
