@@ -39,7 +39,12 @@ test("Old approvals with missing documentation remain flagged until manual reche
 
 test("Staged clinic publication remains separate from account registration",()=>{
  const sql=read("supabase/migrations/20261101162000_separate_clinic_publication_from_registration.sql");
- assert.match(sql,/required_types\s*:=\s*array\['cnic_front','cnic_back'\]/);
+ assert.match(sql,/required_types\s*:=\s*array\[\]::text\[\]/);
+ assert.doesNotMatch(sql,/required_types\s*:=\s*array\['cnic_front','cnic_back'\]/);
+ assert.match(sql,/alter column cnic_number drop not null/);
+ assert.match(sql,/FUNCTION public.complete_registration_submission\(\)/);
+ assert.match(sql,/create or replace view public.public_clinics as/);
+ assert.match(sql,/other_cities/);
  assert.match(sql,/registration_intent = 'clinic' then required_types := required_types \|\| array\['clinic_registration'\]/);
  assert.match(sql,/required_types := required_types \|\| array\['degree_certificate','pvmc_registration'\]/);
  assert.match(sql,/if gate_row\.registration_intent = 'clinic' then[\s\S]*?update public\.clinics set[\s\S]*?is_published = false/);
