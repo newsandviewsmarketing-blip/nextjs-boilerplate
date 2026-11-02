@@ -473,7 +473,7 @@ test("staff and employer job forms share optional multi-location territory data"
     assert.match(action, /minimum_experience:[^\n]*null/);
     assert.match(action, /verification_status:"pending",is_published:false/);
   }
-  assert.match(companyAction, /requireWorkspace\("jobs\.manage"\)/);
+  assert.match(companyAction, /requireWorkspace\("jobs\.manage", formData\)/);
   assert.match(company, /coverage_display/);
   assert.match(publicJobs, /matchesJobLocation/);
   assert.match(publicJobs, /locationSearchOptions\(\)/);
