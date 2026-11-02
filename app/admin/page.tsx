@@ -149,30 +149,35 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   const kinds=[...new Set(activity.map(x=>x.kind))].sort();
   return <main className="vc-admin-page">
     <SiteHeader/>
-    <section className="vc-admin-banner"><div className="shell vc-admin-banner-content">
-      <div><span className="section-kicker">VETCONNECT ADMINISTRATION</span><h1>Operations dashboard</h1><p>Review registrations, manage records and follow every pending action from one place.</p></div>
-      <div className="vc-admin-actions"><Link className="button button-secondary" href="/admin">Refresh data</Link>
-        {auditAllowed && <Link className="button button-primary" href="/admin/reports">Print / export report</Link>}
-      </div>
-    </div></section>
     <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout">
       <div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
       <div className="admin-control-content vc-admin-main">
         <div className="vc-admin-toolbar">
-          <div><span className="section-kicker">CONTROL CENTRE</span><h2>Platform at a glance</h2><p>All figures are linked to the matching management area. Dashboards update when refreshed.</p></div>
+          <div><span className="section-kicker">VETCONNECT / ADMIN CONTROL</span><h1>Administration overview</h1><p>Approvals first. Then recent updates, operational indicators and full records.</p></div>
+          <div className="vc-admin-actions">
+            <Link className="button button-secondary" href="/admin">Refresh</Link>
+            {auditAllowed&&<Link className="button button-secondary" href="/admin/reports">Reports & CSV</Link>}
+          </div>
+        </div>
+        <div className="vc-admin-toolbar vc-admin-toolbar-search">
+          <p>Choose one task from the left navigation. Every approval opens its existing permission-controlled review page.</p>
           {(directoryAllowed||usersAllowed)&&<form className="vc-admin-global-search" action={directoryAllowed?"/admin/directory":"/admin/users"} method="get" role="search">
             <label htmlFor="admin-global-search">Find a person, company or record</label>
             <div><input id="admin-global-search" name="q" placeholder="Search by name, company or city" required/><button className="button button-primary">Search</button></div>
           </form>}
         </div>
-        <div className="vc-admin-metrics" aria-label="Platform record counts">
-          {cards.map(card=><Link className={`vc-admin-metric ${card.attention?"vc-admin-metric-priority":""}`} href={card.href} key={card.label}>
-            <span>{card.label}</span><b>{card.value===null?"—":card.value.toLocaleString("en-PK")}</b><small>{card.value===null?"Count unavailable":card.note}</small>
-            <span className="vc-metric-action">Open records →</span>
-          </Link>)}
-        </div>
+        <section className="vc-admin-priority-panel" aria-labelledby="vc-pending-reviews">
+          <div className="vc-admin-section-title"><div><span className="section-kicker">ACTION REQUIRED</span><h2 id="vc-pending-reviews">Approval and review queues</h2><p>Counts are private to your assigned permissions; opening a queue does not approve anything.</p></div>
+          {profilesAllowed&&<Link href="/admin/reviews">Review centre</Link>}</div>
+          <div className="vc-admin-metrics vc-admin-priority-grid" aria-label="Review queues">
+            {cards.filter(card=>card.attention).map(card=><Link className="vc-admin-metric vc-admin-metric-priority" href={card.href} key={card.label}>
+              <span>{card.label}</span><b>{card.value===null?"—":card.value.toLocaleString("en-PK")}</b><small>{card.value===null?"Count unavailable":card.note}</small>
+              <span className="vc-metric-action">Open review queue →</span>
+            </Link>)}
+          </div>
+        </section>
         <section className="vc-admin-panel" aria-labelledby="activity-title">
-          <div className="vc-panel-header"><div><span className="section-kicker">RECENT ACTIVITY</span><h2 id="activity-title">New registrations & decisions</h2><p>Latest available events, including awaiting approvals. Select a record to open its management page.</p></div>{auditAllowed&&<Link href="/admin/audit">Full audit history →</Link>}</div>
+          <div className="vc-panel-header"><div><span className="section-kicker">RECENT ACTIVITY</span><h2 id="activity-title">Latest updates and decisions</h2><p>Recent registrations, requests and review decisions. Open a record for its relevant workflow.</p></div>{auditAllowed&&<Link href="/admin/audit">Full audit history →</Link>}</div>
           <form className="vc-admin-filter-row" method="get" action="/admin">
             <div><label htmlFor="activity-query">Search recent activity</label><input name="q" id="activity-query" placeholder="Name or activity" defaultValue={params.q??""}/></div>
             <div><label htmlFor="activity-kind">Type</label><select id="activity-kind" name="kind" defaultValue={params.kind??"all"}><option value="all">All records</option>{kinds.map(kind=><option key={kind} value={kind}>{kind.replaceAll("_"," ")}</option>)}</select></div>
@@ -192,18 +197,15 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
             {usersAllowed&&<article><Link href="/admin/clinic-affiliations"><b>{value("clinicAffiliations")===null?"—":value("clinicAffiliations")}</b><span>Pending clinic affiliations</span></Link></article>}
           </div><p className="vc-panel-footnote">The first three cards show the last rolling 24 hours. Clinic affiliations show the current pending queue.</p>
         </section>}
-        <section className="vc-admin-panel"><div className="vc-panel-header"><div><span className="section-kicker">ADMINISTRATION</span><h2>Operations & quick actions</h2><p>Separate, permission-controlled pages for review, data entry, business records and governance.</p></div></div>
-          <div className="vc-admin-shortcuts">
-            {can("profiles.review")&&<Link href="/admin/reviews#pending-profiles">Review submitted profiles →</Link>}
-            {can("jobs.manage")&&<Link href="/admin/reviews#jobs-review">Review job advertisements →</Link>}
-            {can("profiles.create")&&<Link href="/admin/create">Add new professional →</Link>}
-            {can("directories.manage")&&<Link href="/admin/directory">All organization records →</Link>}
-            {can("products.manage")&&<Link href="/admin/products">Manage products →</Link>}
-            {can("users.manage")&&<Link href="/admin/users">Users, roles & permissions →</Link>}
-            {can("master_data.manage")&&<Link href="/admin/data">Controlled categories →</Link>}
-            {auditAllowed&&<Link href="/admin/reports">Download audit records →</Link>}
+        <details className="vc-admin-panel vc-admin-overview-details">
+          <summary><strong>All platform records</strong><span>Open full counts and directories only when needed</span></summary>
+          <div className="vc-admin-metrics" aria-label="Platform record counts">
+            {cards.filter(card=>!card.attention).map(card=><Link className="vc-admin-metric" href={card.href} key={card.label}>
+              <span>{card.label}</span><b>{card.value===null?"—":card.value.toLocaleString("en-PK")}</b>
+              <small>{card.value===null?"Count unavailable":card.note}</small><span className="vc-metric-action">View records →</span>
+            </Link>)}
           </div>
-        </section>
+        </details>
       </div>
     </div></section>
     <SiteFooter/>
