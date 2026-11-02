@@ -59,10 +59,10 @@ export default async function CompanyProductEditPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; company?: string }>;
 }) {
   const [{ id }, formParams] = await Promise.all([params, searchParams]);
-  const { supabase, workspace } = await getCurrentCompanyWorkspace();
+  const { supabase, workspace } = await getCurrentCompanyWorkspace(formParams.company);
 
   if (!workspaceHasPermission(workspace, "products.manage")) {
     redirect(
@@ -109,7 +109,7 @@ export default async function CompanyProductEditPage({
             <h1>{row.product_name}</h1>
             <p>Company: {workspace.canonical_name}</p>
           </div>
-          <Link className="button button-secondary" href="/dashboard/company">
+          <Link className="button button-secondary" href={`/dashboard/company?company=${encodeURIComponent(workspace.company_id)}`}>
             Back to company
           </Link>
         </div>
@@ -128,6 +128,7 @@ export default async function CompanyProductEditPage({
 
           <form className="backend-form-card" action={updateProductAction}>
             <input type="hidden" name="product_id" value={row.id} />
+            <input type="hidden" name="company_id" value={workspace.company_id} />
             <div className="section-heading">
               <span className="section-kicker">{row.verification_status.toUpperCase()}</span>
               <h2>Edit product information.</h2>
