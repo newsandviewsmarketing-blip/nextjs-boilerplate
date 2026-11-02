@@ -26,15 +26,20 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   const jobsAllowed=can("jobs.manage");
   const auditAllowed=can("audit.view");
   const credentialAllowed=can("regulatory.review");
+  // Fresh registrations (last 24 hours) and pending approvals are different metrics.
+  // eslint-disable-next-line react-hooks/purity
+  const since24h=new Date(Date.now()-24*60*60*1000).toISOString();
   const metricCounts=new Map<string,number|null>();
-  async function countOf(key:string, table:string, column:string, conditions:Array<[string,string]>=[]) {
+  async function countOf(key:string, table:string, column:string, conditions:Array<[string,string]>=[],recent=false) {
     let query=supabase.from(table).select(column,{count:"exact",head:true});
     for(const [field,value] of conditions) query=query.eq(field,value);
+    if(recent)query=query.gte("created_at",since24h);
     const {count,error}=await query;
     metricCounts.set(key,error ? null : (count??0));
   }
-  const requirements: Array<[string,string,string,Array<[string,string]>]> = [];
-  const requireCount=(key:string,table:string,column:string,conditions:Array<[string,string]>=[])=>requirements.push([key,table,column,conditions]);
+  const requirements: Array<[string,string,string,Array<[string,string]>,boolean]> = [];
+  const requireCount=(key:string,table:string,column:string,conditions:Array<[string,string]>=[],recent=false)=>
+    requirements.push([key,table,column,conditions,recent]);
   if(profilesAllowed||usersAllowed||directoryAllowed) {
     requireCount("vets","veterinarian_profiles","user_id");
     requireCount("professionals","professional_profiles","user_id");
@@ -51,6 +56,30 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
       ]) requireCount(key,table,column,[["verification_status","pending"]]);
     }
   }
+  // Status breakdown for top-level sectors; do not interpret profile approval as PVMC approval.
+  const statusSources=[
+    ["vets","veterinarian_profiles","user_id"],
+    ["professionals","professional_profiles","user_id"],
+    ["managedVets","managed_people","id"],
+    ["managedProfessionals","managed_people","id"],
+    ["clinics","clinics","id"],
+    ["labs","laboratories","id"],
+    ["companies","companies","id"],
+    ["products","products","id"],
+    ["jobs","jobs","id"],
+  ] as const;
+  for(const [key,table,column] of statusSources){
+    const isPeople=key==="vets"||key==="professionals"||key==="managedVets"||key==="managedProfessionals";
+    const canSee=key==="products"?productsAllowed:key==="jobs"?jobsAllowed:isPeople?profilesAllowed:(profilesAllowed||directoryAllowed);
+    if(!canSee)continue;
+    const scope=key==="managedVets"?[["profile_kind","veterinarian"]]:key==="managedProfessionals"?[["profile_kind","professional"]]:[];
+    requireCount(key+"New24",table,column,scope,true);
+    if((key==="products"&&productsAllowed)||(key==="jobs"&&jobsAllowed)||(!["products","jobs"].includes(key)&&profilesAllowed)){
+      for(const status of ["approved","pending","rejected"]){
+        requireCount(key+status[0].toUpperCase()+status.slice(1),table,column,[...scope,["verification_status",status]]);
+      }
+    }
+  }
   if(credentialAllowed){
     requireCount("pvmcPending","veterinarian_profiles","user_id",[["pvmc_verification_status","pending"],["verification_status","approved"]]);
     requireCount("managedPvmcPending","managed_people","id",[["pvmc_verification_status","pending"],["verification_status","approved"],["profile_kind","veterinarian"]]);
@@ -62,6 +91,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   if(usersAllowed){
     requireCount("accounts","profiles","id");
     requireCount("customers","profiles","id",[["primary_role","user"]]);
+    requireCount("candidateAccounts","profiles","id",[["primary_role","candidate"]]);
     requireCount("newcomers","profiles","id",[["account_status","active"]]);
 
     requireCount("clinicAffiliations","clinic_members","clinic_id",[["membership_status","pending"]]);
@@ -76,10 +106,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
     requireCount("jobsPending","jobs","id",[["verification_status","pending"]]);
   }
   if(can("master_data.manage")) requireCount("suggestions","master_data_suggestions","id",[["status","pending"]]);
-  await Promise.all(requirements.map(([key,table,column,filters])=>countOf(key,table,column,filters)));
-  // Fresh 24-hour numbers are separate from all-time account totals.
-  // eslint-disable-next-line react-hooks/purity
-  const since24h=new Date(Date.now()-24*60*60*1000).toISOString();
+  await Promise.all(requirements.map(([key,table,column,filters,recent])=>countOf(key,table,column,filters,recent)));
   const [recentRegistrations,recentApplications,recentProducts,recentJobs]=await Promise.all([
     usersAllowed?supabase.from("profiles").select("id",{head:true,count:"exact"}).gte("created_at",since24h):Promise.resolve({count:null,error:null}),
     jobsAllowed?supabase.from("job_applications").select("id",{head:true,count:"exact"}).gte("applied_at",since24h):Promise.resolve({count:null,error:null}),
@@ -92,6 +119,41 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   metricCounts.set("newJobs24h",recentJobs.error?null:recentJobs.count);
   const total=(...keys:string[]):number|null => keys.some(key=>metricCounts.get(key)==null) ? null : keys.reduce((sum,key)=>sum+(metricCounts.get(key)??0),0);
   const value=(key:string)=>metricCounts.get(key)??null;
+  type SectorRow={name:string;href:string;total:number|null;approved:number|null;pending:number|null;rejected:number|null;new24:number|null;note?:string};
+  const metricOrNull=(allowed:boolean,key:string)=>allowed?value(key):null;
+  const groupStatus=(allowed:boolean,key:string,kind:"Approved"|"Pending"|"Rejected")=>
+    metricOrNull(allowed,key+kind);
+  const sector=(name:string,href:string,records:number|null,allowed:boolean,key:string,note?:string):SectorRow=>({
+    name,href,total:records,approved:groupStatus(allowed,key,"Approved"),
+    pending:groupStatus(allowed,key,"Pending"),rejected:groupStatus(allowed,key,"Rejected"),
+    new24:metricOrNull(allowed,key+"New24"),note
+  });
+  const sectorRows:SectorRow[]=[];
+  if(profilesAllowed||directoryAllowed||usersAllowed){
+    const peopleStatus=profilesAllowed;
+    const peopleRows=[
+      {key:"vets",label:"Veterinarians",url:directoryAllowed?"/admin/directory?q=veterinarian":"/admin/users?role=veterinarian",managed:"managedVets"},
+      {key:"professionals",label:"Professionals",url:directoryAllowed?"/admin/directory?q=professional":"/admin/users?role=professional",managed:"managedProfessionals"},
+    ];
+    for(const row of peopleRows){
+      const sum=(suffix:string)=>total(row.key+suffix,row.managed+suffix);
+      sectorRows.push({
+        name:row.label,href:row.url,total:total(row.key,row.managed),
+        approved:peopleStatus?sum("Approved"):null,
+        pending:peopleStatus?sum("Pending"):null,
+        rejected:peopleStatus?sum("Rejected"):null,
+        new24:peopleStatus?sum("New24"):null,
+        note:row.key==="vets"?"PVMC credential checks are separate from profile approval.":"Professional profile review, not a job application count."
+      });
+    }
+    sectorRows.push(sector("Clinics & hospitals","/admin/directory?kind=clinic",value("clinics"),profilesAllowed,"clinics","Publication is a separate decision."));
+    sectorRows.push(sector("Diagnostic laboratories","/admin/directory?kind=laboratory",value("labs"),profilesAllowed,"labs"));
+    sectorRows.push(sector("Marketplace companies","/admin/directory?kind=company",value("companies"),profilesAllowed,"companies"));
+  }
+  if(productsAllowed)sectorRows.push(sector("Products & medicines","/admin/products",value("products"),true,"products"));
+  if(jobsAllowed)sectorRows.push(sector("Jobs & vacancies","/admin/jobs",value("jobs"),true,"jobs","Applications are counted separately."));
+  const numberLabel=(num:number|null)=>num===null?"—":num.toLocaleString("en-PK");
+
   const cards:Metric[]=[];
   const add=(ok:boolean,label:string,number:number|null,href:string,note:string,attention=false)=>{if(ok)cards.push({label,value:number,href,note,attention});};
   add(usersAllowed||directoryAllowed,"Veterinarians",total("vets","managedVets"),directoryAllowed?"/admin/directory?q=veterinarian":"/admin/users?role=veterinarian","Registered and staff-assisted");
@@ -166,6 +228,34 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
             <div><input id="admin-global-search" name="q" placeholder="Search by name, company or city" required/><button className="button button-primary">Search</button></div>
           </form>}
         </div>
+        <section className="vc-admin-sector-summary" aria-labelledby="vc-platform-figures">
+          <div className="vc-admin-section-title">
+            <div><span className="section-kicker">LIVE PLATFORM FIGURES</span>
+              <h2 id="vc-platform-figures">Registrations, approvals and new activity</h2>
+              <p>All-time counts are separate from new records in the last 24 hours. Dash (—) means unavailable or outside your permission.</p>
+            </div>
+          </div>
+          <div className="vc-admin-top-figures">
+            {usersAllowed&&<Link href="/admin/users"><span>Registered accounts</span><strong>{numberLabel(value("accounts"))}</strong><small>All accounts</small></Link>}
+            {usersAllowed&&<Link href="/admin/users"><span>New accounts</span><strong>{numberLabel(value("newRegistrations24h"))}</strong><small>Last 24 hours</small></Link>}
+            {usersAllowed&&<Link href="/admin/users?role=candidate"><span>Candidate accounts</span><strong>{numberLabel(value("candidateAccounts"))}</strong><small>Primary account role only</small></Link>}
+            {jobsAllowed&&<Link href="/admin/applications"><span>Job applications</span><strong>{numberLabel(value("applications"))}</strong><small>All-time submissions</small></Link>}
+          </div>
+          <div className="vc-admin-sector-grid" aria-label="Current sector record statistics">
+            {sectorRows.map(row=><article className="vc-admin-sector-card" key={row.name}>
+              <div className="vc-admin-sector-card-top"><h3>{row.name}</h3><Link href={row.href} aria-label={"Open "+row.name+" records"}>View records →</Link></div>
+              <div className="vc-admin-sector-total"><strong>{numberLabel(row.total)}</strong><span>Total records</span></div>
+              <div className="vc-admin-sector-states">
+                <div><span>Approved</span><b>{numberLabel(row.approved)}</b></div>
+                <div><span>Pending</span><b>{numberLabel(row.pending)}</b></div>
+                <div><span>Rejected</span><b>{numberLabel(row.rejected)}</b></div>
+                <div><span>New 24h</span><b>{numberLabel(row.new24)}</b></div>
+              </div>
+              {row.note&&<p className="vc-admin-sector-note">{row.note}</p>}
+            </article>)}
+          </div>
+          <p className="vc-panel-footnote">Approved refers to the source record's review status. PVMC verification, public publication and other legal approvals are independent checks. No approval is made by opening these cards.</p>
+        </section>
         <section className="vc-admin-priority-panel" aria-labelledby="vc-pending-reviews">
           <div className="vc-admin-section-title"><div><span className="section-kicker">ACTION REQUIRED</span><h2 id="vc-pending-reviews">Approval and review queues</h2><p>Counts are private to your assigned permissions; opening a queue does not approve anything.</p></div>
           {profilesAllowed&&<Link href="/admin/reviews">Review centre</Link>}</div>
@@ -197,15 +287,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
             {usersAllowed&&<article><Link href="/admin/clinic-affiliations"><b>{value("clinicAffiliations")===null?"—":value("clinicAffiliations")}</b><span>Pending clinic affiliations</span></Link></article>}
           </div><p className="vc-panel-footnote">The first three cards show the last rolling 24 hours. Clinic affiliations show the current pending queue.</p>
         </section>}
-        <details className="vc-admin-panel vc-admin-overview-details">
-          <summary><strong>All platform records</strong><span>Open full counts and directories only when needed</span></summary>
-          <div className="vc-admin-metrics" aria-label="Platform record counts">
-            {cards.filter(card=>!card.attention).map(card=><Link className="vc-admin-metric" href={card.href} key={card.label}>
-              <span>{card.label}</span><b>{card.value===null?"—":card.value.toLocaleString("en-PK")}</b>
-              <small>{card.value===null?"Count unavailable":card.note}</small><span className="vc-metric-action">View records →</span>
-            </Link>)}
-          </div>
-        </details>
+
       </div>
     </div></section>
     <SiteFooter/>
