@@ -803,3 +803,16 @@ test("profile step navigation and visible form stay in sync without an extra scr
  assert.doesNotMatch(page,/<ProfilePhoto\s/);
  assert.doesNotMatch(page,/\{completion\}% core profile/);
 });
+
+
+test("CV and applications avoid repeat navigation and CV-library overload",()=>{
+ const frame=read("app/components/CareerWorkspaceFrame.tsx");
+ const apps=read("app/dashboard/career/page.tsx");
+ const css=read("app/components/CareerWorkspaceFrame.css");
+ assert.match(frame,/active==='cv'\?null:<section className="vcx-side-card">/);
+ assert.match(apps,/<details className="backend-form-card career-cv-library vcx-collapsible-library"/);
+ assert.match(apps,/open=\{\(cvDocumentsResult\.data\?\?\[\]\)\.length===0\}/);
+ assert.match(apps,/<summary>/);
+ assert.match(apps,/<\/details>/);
+ assert.match(css,/\.vcx-primary \.vcx-collapsible-library/);
+});
