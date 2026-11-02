@@ -782,3 +782,23 @@ test("account, professional, clinic and company use one navigation shell with se
  assert.match(admin,/vc-admin-section/);
  assert.match(read("docs/unified-workspace-design-system.md"),/Clinic publication database-migration/);
 });
+
+
+test("profile step navigation and visible form stay in sync without an extra scroll bar",()=>{
+ const stepper=read("app/dashboard/professional/ProfileBuilder.tsx");
+ const page=read("app/dashboard/professional/page.tsx");
+ const frame=read("app/components/CareerWorkspaceFrame.css");
+ assert.match(stepper,/setActive\(index\)/);
+ assert.match(stepper,/stepIndex\(initialStep\)/);
+ assert.match(stepper,/window\.addEventListener\('popstate',syncFromUrl\)/);
+ assert.match(stepper,/aria-selected=\{active===index\}/);
+ assert.match(stepper,/hidden=\{active!==index\}/);
+ assert.match(stepper,/Select profile section/);
+ assert.match(stepper,/Next: \{steps\[active\+1\]\.label\}/);
+ assert.match(frame,/\.vcx-primary \.builder-step-list\{\s*display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+ assert.match(frame,/\.vcx-primary \.builder-step-list\{display:none\}/);
+ assert.match(frame,/\.vcx-primary \.builder-mobile-selector\{display:grid/);
+ assert.match(page,/Your current photograph is shown in the profile card above/);
+ assert.doesNotMatch(page,/<ProfilePhoto\s/);
+ assert.doesNotMatch(page,/\{completion\}% core profile/);
+});
