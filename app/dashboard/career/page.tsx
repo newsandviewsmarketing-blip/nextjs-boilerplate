@@ -105,7 +105,11 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
           )}
           {alerts.error&&<p className="form-message form-message-error">{alerts.error}</p>}
           {alerts.message&&<p className="form-message form-message-success">{alerts.message}</p>}
-          <section className="backend-form-card career-cv-library" id="my-cvs">
+          <details className="backend-form-card career-cv-library vcx-collapsible-library" id="my-cvs" open={(cvDocumentsResult.data??[]).length===0}>
+            <summary>
+              <strong>My private CV library</strong>
+              <span>{(cvDocumentsResult.data??[]).length} saved CV files · Manage / upload</span>
+            </summary>
             <div className="section-heading compact-heading">
               <span className="section-kicker">MY PRIVATE CV LIBRARY</span>
               <h2>Saved CVs and CV Builder</h2>
@@ -133,8 +137,8 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
                 <Link className="button button-secondary" href="/dashboard/career/cv">Create / Edit CV</Link>
               </div>
             </div>
-          </section>
-                    <div className="admin-summary">
+          </details>
+          <div className="admin-summary">
             <article><b>{applicationRows.length}</b><span>Total applications</span></article>
             <article><b>{applicationRows.filter((row) => row.status === "shortlisted").length}</b><span>Shortlisted</span></article>
             <article><b>{applicationRows.filter((row) => row.status === "interview").length}</b><span>Interview stage</span></article>
