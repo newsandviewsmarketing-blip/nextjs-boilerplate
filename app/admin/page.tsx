@@ -254,7 +254,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
               {row.note&&<p className="vc-admin-sector-note">{row.note}</p>}
             </article>)}
           </div>
-          <p className="vc-panel-footnote">Approved refers to the source record's review status. PVMC verification, public publication and other legal approvals are independent checks. No approval is made by opening these cards.</p>
+          <p className="vc-panel-footnote">Approved refers to the source record review status. PVMC verification, public publication and other legal approvals are independent checks. No approval is made by opening these cards.</p>
         </section>
         <section className="vc-admin-priority-panel" aria-labelledby="vc-pending-reviews">
           <div className="vc-admin-section-title"><div><span className="section-kicker">ACTION REQUIRED</span><h2 id="vc-pending-reviews">Approval and review queues</h2><p>Counts are private to your assigned permissions; opening a queue does not approve anything.</p></div>
