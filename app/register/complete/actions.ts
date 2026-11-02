@@ -59,7 +59,7 @@ export async function saveRegistrationEvidenceDraftAction(formData: FormData) {
 }
 
 export async function completeRegistrationAction() {
-  const { supabase, user, gate, role, metadata } = await currentRegistration();
+  const { supabase, user, role, metadata } = await currentRegistration();
   if(role==="veterinarian" && !String(metadata.pvmc_number??"").trim()) redirect("/register/complete?error="+encodeURIComponent("Your education draft is saved. Add your PVMC number and evidence before submitting for practitioner verification."));
   const { data: profile } = await supabase.from("profiles").select("primary_role").eq("id", user.id).maybeSingle();
   const issue = await persistRegisteredCategoryDetails(supabase, user.id, user.user_metadata);
