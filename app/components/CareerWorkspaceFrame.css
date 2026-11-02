@@ -337,3 +337,23 @@
 @media(prefers-reduced-motion:reduce){.vcx-primary .builder-step{transition:none}}
 
 .vcx-profile-photo-intro{margin:0 0 13px;padding:12px 15px;border:1px solid #dfe7f1;border-radius:11px;background:#f8fbff;color:#506580;font-size:12px;line-height:1.65}
+
+
+/* Saved CV library is secondary on the Applications page, not another dashboard. */
+.vcx-primary .vcx-collapsible-library{padding:0;overflow:hidden;min-width:0}
+.vcx-primary .vcx-collapsible-library>summary{cursor:pointer;list-style:none;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;min-height:68px;color:#152d59}
+.vcx-primary .vcx-collapsible-library>summary::-webkit-details-marker{display:none}
+.vcx-primary .vcx-collapsible-library>summary strong{font-size:15px;line-height:1.4}
+.vcx-primary .vcx-collapsible-library>summary span{font-size:11px;color:#64758e;font-weight:650}
+.vcx-primary .vcx-collapsible-library>summary:after{content:"+";font-size:21px;font-weight:700;color:#d86b00}
+.vcx-primary .vcx-collapsible-library[open]>summary:after{content:"−"}
+.vcx-primary .vcx-collapsible-library[open]>summary{border-bottom:1px solid #e4e9f2;background:#f8fafc}
+.vcx-primary .vcx-collapsible-library>.section-heading,
+.vcx-primary .vcx-collapsible-library>.career-cv-grid{margin-left:20px;margin-right:20px}
+.vcx-primary .vcx-collapsible-library>.section-heading{padding-top:18px}
+.vcx-primary .vcx-collapsible-library>.career-cv-grid{padding-bottom:20px}
+@media(max-width:560px){
+ .vcx-primary .vcx-collapsible-library>summary{padding:15px}
+ .vcx-primary .vcx-collapsible-library>.section-heading,
+ .vcx-primary .vcx-collapsible-library>.career-cv-grid{margin-left:15px;margin-right:15px}
+}
