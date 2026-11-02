@@ -5,6 +5,8 @@ import ProfilePhoto from '@/app/components/ProfilePhoto';
 import {getCoreProfileProgress} from '@/lib/professional-progress';
 import {getCurrentIdentity} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {getEffectiveAdminPermission} from '@/lib/admin';
+import {workspaceCapabilities} from '@/lib/workspace-navigation';
 import {WORKSPACE_LINKS} from '@/lib/professional-workspace';
 import './CareerWorkspaceFrame.css';
 
@@ -12,7 +14,7 @@ type WorkspaceId=(typeof WORKSPACE_LINKS)[number]['id'];
 type Check={label:string;done:boolean;optional?:boolean};
 type Props={
  active:WorkspaceId;
- module?:'career'|'account'|'clinic'|'company';
+ module?:'career'|'account'|'clinic'|'company'|'laboratory';
  name:string;
  headline?:string|null;
  location?:string|null;
@@ -29,7 +31,7 @@ type Props={
 
 const SYMBOLS:Record<WorkspaceId,string>={
  overview:'▦',account:'⚙',profile:'◉',cv:'▤',preferences:'⌖',
- letter:'✉',connections:'◇',clinic:'✚',company:'▣',applications:'☷',
+ letter:'✉',connections:'◇',clinic:'✚',company:'▣',laboratory:'⚗',applications:'☷',
 };
 function profileReview(status?:string|null, practitioner=false){
  if(!practitioner)return 'Professional profile · self-managed';
@@ -44,29 +46,35 @@ export default async function CareerWorkspaceFrame({
  const current=WORKSPACE_LINKS.find(link=>link.id===active);
  const identity=await getCurrentIdentity();
  const roles=identity?.roles??[];
- const professionalRole=roles.some(role=>['veterinarian','professional','candidate'].includes(role));
- const clinicRole=roles.some(role=>['veterinarian','professional','company'].includes(role));
- const companyRole=roles.includes('company');
+ // Approved company membership can belong to a veterinarian or other professional.
+ // The RPC scopes results to the current identity; never infer access from a label.
+ const supabase=identity ? await createClient() : null;
+ const [companyMembership,canOpenAdmin]=await Promise.all([
+   supabase ? supabase.rpc('get_my_company_workspaces') : Promise.resolve(null),
+   identity ? getEffectiveAdminPermission(identity,'admin.view') : Promise.resolve(false),
+ ]);
+ const capabilities=workspaceCapabilities(roles, !companyMembership?.error && Boolean(companyMembership?.data?.length));
+ const personalWorkspace=capabilities.professional && module!=='company' && module!=='clinic' && module!=='laboratory';
  // Navigation visibility is only presentation; each destination retains its own
  // server-side authorization and ownership rules.
  const menu=WORKSPACE_LINKS.filter(link=>{
-  if(link.id==='clinic')return clinicRole;
-  if(link.id==='company')return companyRole || active==='company';
-  if(['overview','profile','cv','letter','preferences','connections','applications'].includes(link.id))return professionalRole || link.id===active;
+  if(link.id==='clinic')return capabilities.clinic;
+  if(link.id==='company')return capabilities.company || active==='company';
+  if(link.id==='laboratory')return capabilities.laboratory;
+  if(['overview','profile','cv','letter','preferences','connections','applications'].includes(link.id))return capabilities.professional || link.id===active;
   return true;
  });
- const practitioner=roles.includes('veterinarian');
- const credential=practitioner&&identity
+ const isVeterinaryPractitioner=roles.includes('veterinarian');
+ const credential=isVeterinaryPractitioner&&identity
    ? await (await createClient()).from('veterinarian_profiles')
      .select('pvmc_number,pvmc_verification_status').eq('user_id',identity.userId).maybeSingle()
    : null;
  const hasPvmcNumber=Boolean(credential?.data?.pvmc_number?.trim());
  const credentialReviewed=credential?.data?.pvmc_verification_status==='approved';
  // Ignore older route-specific checklists: use one shared core-progress calculation.
- const sharedProgress=await getCoreProfileProgress();
+ const sharedProgress=personalWorkspace ? await getCoreProfileProgress() : null;
  const completion=sharedProgress?.percent??null;
  const coreChecks=sharedProgress?.checks;
- const isVeterinaryPractitioner=sharedProgress?.isVeterinaryPractitioner??false;
  const navigation=(mobile:boolean)=><nav className="vcx-navigation" aria-label={mobile?'Mobile workspace tools':'Workspace tools'}>
   {menu.filter(link=>approved||!link.requiresApproval||link.id===active).map(link=><Link
     key={link.id} href={link.href} aria-current={link.id===active?'page':undefined}
@@ -85,6 +93,7 @@ export default async function CareerWorkspaceFrame({
     <b>One profile. Many opportunities.</b>
     <p>Manage your career, documents and company connections under your own identity.</p>
     <Link href="/dashboard">Account settings</Link>
+    {canOpenAdmin&&<Link href="/admin">Admin control centre</Link>}
    </div>
   </aside>
   <div className="vcx-workspace">
@@ -94,28 +103,28 @@ export default async function CareerWorkspaceFrame({
      {navigation(true)}
     </details>
     <div className="vcx-breadcrumb">My VetConnect <span aria-hidden="true">/</span> <b>{current?.label??'Workspace'}</b></div>
-    <div className="vcx-top-actions"><Link href="/dashboard">Account</Link><Link href="/">Visit VetConnect</Link><span className="vcx-user-mark" aria-hidden="true">{fallback}</span></div>
+    <div className="vcx-top-actions">{canOpenAdmin&&<Link href="/admin">Admin</Link>}<Link href="/dashboard">Account</Link><Link href="/">Visit VetConnect</Link><span className="vcx-user-mark" aria-hidden="true">{fallback}</span></div>
    </header>
    <div className="vcx-content">
     <div className="vcx-intro">
-     <div><span className="vcx-eyebrow">{module==='clinic'?'VETERINARY PRACTICE':module==='company'?'COMPANY WORKSPACE':module==='account'?'ACCOUNT & IDENTITY':'PROFESSIONAL WORKSPACE'}</span><h1>{title}</h1><p>{description}</p></div>
+     <div><span className="vcx-eyebrow">{module==='clinic'?'VETERINARY PRACTICE':module==='company'?'COMPANY WORKSPACE':module==='laboratory'?'LABORATORY WORKSPACE':module==='account'?'ACCOUNT & IDENTITY':'PROFESSIONAL WORKSPACE'}</span><h1>{title}</h1><p>{description}</p></div>
     {active==='overview'&&<Link className="vcx-button vcx-button-outline" href={cvStatus==='saved'?'/career/cv/print':'/career/cv'} target={cvStatus==='saved'?'_blank':undefined} rel={cvStatus==='saved'?'noopener noreferrer':undefined}>{cvStatus==='saved'?'View saved CV':'Create my CV'}</Link>}
     </div>
     <article className="vcx-identity-card">
      <div className="vcx-portrait-frame"><ProfilePhoto imageUrl={photoUrl??null} name={name} fallback={fallback}/></div>
      <div className="vcx-identity-main">
-      <span className="vcx-eyebrow">{module==='company'?'CURRENT ORGANIZATION':'YOUR PERSONAL PROFILE'}</span>
+      <span className="vcx-eyebrow">{module==='company'||module==='laboratory'?'CURRENT ORGANIZATION':'YOUR PERSONAL PROFILE'}</span>
       <h2>{name||'My professional profile'}</h2>
       <p>{headline||'Veterinary & animal-health professional'}</p>
       {location&&<p>{location}</p>}
-      <div className="vcx-pills"><span>{module==='company'?`Company review: ${verificationStatus??'pending'}`:profileReview(verificationStatus,isVeterinaryPractitioner)}</span>
+      <div className="vcx-pills"><span>{module==='company'||module==='laboratory'?`Organization review: ${verificationStatus??'pending'}`:capabilities.professional?profileReview(verificationStatus,isVeterinaryPractitioner):'Account access · assigned roles'}</span>
        {hasPvmcNumber&&<span className="vcx-credential-tag">{credentialReviewed?'PVMC credential reviewed':'PVMC number provided · verification pending'}</span>}
        {cvStatus&&<span>{cvStatus==='saved'?'CV details saved':cvStatus==='draft'?'CV draft started':'CV not saved yet'}</span>}
        {emailAlerts!==undefined&&<span>Job emails {emailAlerts?'on':'off'}</span>}
       </div>
-      {module!=='company'&&<Link className="vcx-photo-link" href="/dashboard/professional?step=photo">Edit my profile photo</Link>}
+      {capabilities.professional&&module!=='company'&&module!=='laboratory'&&<Link className="vcx-photo-link" href="/dashboard/professional?step=photo">Edit my profile photo</Link>}
      </div>
-     {module!=='company'&&module!=='clinic'&&completion!==null&&<div className="vcx-identity-progress">
+     {personalWorkspace&&completion!==null&&<div className="vcx-identity-progress">
       <strong>{completion}%</strong><small>Core profile information</small>
       <progress value={completion} max={100} aria-label="Core profile information completion"/>
      </div>}
@@ -123,7 +132,7 @@ export default async function CareerWorkspaceFrame({
     <div className="vcx-content-grid">
      <div className="vcx-primary">{children}</div>
      <aside className="vcx-right-rail" aria-label="Workspace summary">
-      {module!=='company'&&module!=='clinic'&&<section className="vcx-side-card">
+      {personalWorkspace&&<section className="vcx-side-card">
        <span className="vcx-eyebrow">YOUR PROGRESS</span><h2>Core profile checklist</h2>
        {coreChecks&&coreChecks.length?<ul className="vcx-checklist">{coreChecks.map(item=><li key={item.label}>
          <span className={item.done?'vcx-check is-done':'vcx-check'} aria-hidden="true">{item.done?'✓':'○'}</span>
@@ -137,19 +146,23 @@ export default async function CareerWorkspaceFrame({
        <p className="vcx-secondary">Your CV and profile can be saved without PVMC approval. Licensed veterinary practice requires separate credential verification. VetConnect does not automatically verify the PVMC registry.</p>
        <a href="https://pvmc.gov.pk/Registration/Search" target="_blank" rel="noopener noreferrer" className="vcx-button vcx-button-outline">Check the official PVMC register</a>
       </section>}
-      {module==='clinic'?<section className="vcx-side-card">
+      {module==='laboratory'?<section className="vcx-side-card">
+       <span className="vcx-eyebrow">LABORATORY OPERATIONS</span><h2>Tests and enquiries</h2>
+       <p className="vcx-secondary">Manage test-information requests and keep your facility details current.</p>
+       <Link className="vcx-button vcx-button-outline" href="/dashboard">Account and facility details</Link>
+      </section>:module==='clinic'?<section className="vcx-side-card">
        <span className="vcx-eyebrow">CLINIC PRACTICE</span><h2>Clinic operations</h2>
        <p className="vcx-secondary">Clinic publication requires a separate VetConnect facility review. A saved or completed personal profile is not a clinic approval.</p>
        <Link className="vcx-button vcx-button-outline" href="/dashboard/clinics">Manage my clinics</Link>
       </section>:module==='company'?<section className="vcx-side-card">
        <span className="vcx-eyebrow">SEPARATE IDENTITY</span><h2>Company workspace</h2>
        <p className="vcx-secondary">Company records and permissions remain separate from this user&apos;s professional CV and personal account.</p>
-       <Link className="vcx-button vcx-button-outline" href="/career/connections">Professional connections</Link>
-      </section>:<section className="vcx-side-card">
+       {capabilities.professional&&<Link className="vcx-button vcx-button-outline" href="/career/connections">Professional connections</Link>}
+      </section>:personalWorkspace?<section className="vcx-side-card">
        <span className="vcx-eyebrow">YOUR CV</span><h2>VetConnect CV Builder</h2>
        <div className="vcx-tiny-cv" aria-hidden="true"><div><b>VETCONNECT</b><small>PROFESSIONAL CV</small></div><i/><i/><i/><i/><i/></div>
        <Link className="vcx-button vcx-button-outline" href="/career/cv">Create or edit CV</Link>
-      </section>}
+      </section>:<section className="vcx-side-card"><h2>My account</h2><p className="vcx-secondary">Use the tools available for your account and assigned responsibilities.</p>{canOpenAdmin&&<Link className="vcx-button vcx-button-outline" href="/admin">Open admin control centre</Link>}</section>}
      </aside>
     </div>
     <p className="vcx-privacy-note"><Link href="/about">About VetConnect</Link> · <Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link>. A personal profile and a company or clinic are separate records. Qualifications and employment require their own verification. Your private CV is shared only when you choose to use it in an application.</p>

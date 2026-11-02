@@ -121,7 +121,7 @@ export default async function DashboardPage({
       active="account" module="account"
       name={identity.profile?.full_name||identity.email}
       photoUrl={portrait?.data?.image_url??(role==='company'?String(specialistProfile?.logo_url??''):null)}
-      headline={role==="veterinarian"?"Veterinarian":role==="company"?"Company account":role==="laboratory"?"Laboratory account":role==="candidate"?"Student / job seeker":"Professional account"}
+      headline={role==="veterinarian"?"Veterinarian":role==="company"?"Company account":role==="laboratory"?"Laboratory account":role==="candidate"?"Student / job seeker":isAdmin?"Platform administration":role==="user"?"Member account":"Professional account"}
       location={[identity.profile?.city,identity.profile?.province].filter(Boolean).join(", ")}
       title="Manage your account details."
       description="One place for identity and contact information. Your clinics, jobs and company relationships remain connected but separate.">

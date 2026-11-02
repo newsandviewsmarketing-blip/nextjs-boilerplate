@@ -19,5 +19,6 @@ export const WORKSPACE_LINKS=[
  {id:'connections',label:'Organization connections',href:'/career/connections',requiresApproval:false},
  {id:'clinic',label:'Clinic practice',href:'/dashboard/clinics',requiresApproval:false},
  {id:'company',label:'Company workspace',href:'/dashboard/company',requiresApproval:false},
+ {id:'laboratory',label:'Laboratory workspace',href:'/dashboard/laboratory',requiresApproval:false},
  {id:'applications',label:'Applications',href:'/dashboard/career',requiresApproval:false},
 ] as const;
