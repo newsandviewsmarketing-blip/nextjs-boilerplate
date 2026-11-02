@@ -37,10 +37,9 @@ test("Old approvals with missing documentation remain flagged until manual reche
  assert.match(rechecks,/records needing review/);
 });
 
-test("Staged clinic publication remains a separate PVMC review and not a CNIC registration gate",()=>{
+test("Staged clinic publication remains separate from account registration",()=>{
  const sql=read("supabase/migrations/20261101162000_separate_clinic_publication_from_registration.sql");
- assert.match(sql,/required_types\s*:=\s*array\[\]::text\[\]/);
- assert.doesNotMatch(sql,/['"]cnic_(front|back)['"]/i);
+ assert.match(sql,/required_types\s*:=\s*array\['cnic_front','cnic_back'\]/);
  assert.match(sql,/registration_intent = 'clinic' then required_types := required_types \|\| array\['clinic_registration'\]/);
  assert.match(sql,/required_types := required_types \|\| array\['degree_certificate','pvmc_registration'\]/);
  assert.match(sql,/if gate_row\.registration_intent = 'clinic' then[\s\S]*?update public\.clinics set[\s\S]*?is_published = false/);
