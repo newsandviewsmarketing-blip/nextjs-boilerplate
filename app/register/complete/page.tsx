@@ -23,7 +23,7 @@ export default async function CompleteRegistrationPage({
     .from("profiles").select("primary_role").eq("id", auth.user.id).maybeSingle();
   const role = profile?.primary_role ?? "";
   const { data: gate, error: gateError } = await supabase.from("registration_completion_gate")
-    .select("registration_intent, student_track, completed_at, review_status, cnic_number").eq("user_id", auth.user.id).maybeSingle();
+    .select("registration_intent, student_track, completed_at, review_status").eq("user_id", auth.user.id).maybeSingle();
   const requirements = registrationEvidenceRequirements(role, gate?.registration_intent ?? "", gate?.student_track ?? "");
   const existing = await supabase.from("registration_evidence")
     .select("document_type,original_filename,verification_status,created_at").eq("user_id", auth.user.id).order("created_at", { ascending: false });
@@ -42,7 +42,7 @@ export default async function CompleteRegistrationPage({
             <div className="section-heading">
               <span className="section-kicker">IDENTITY AND CREDENTIAL CHECK</span>
               <h1>Complete your registration</h1>
-              <p>Upload your CNIC and the documents required for your selected category. Files are saved privately as you upload them. Nothing becomes public until an administrator approves your application.</p>
+              <p>Upload the documents required for your selected category. Files are saved privately as you upload them. Nothing becomes public until an administrator approves your application.</p>
             </div>
             <FormMessage error={!registrationReady ? "Registration completion is temporarily unavailable. Please contact VetConnect support, then sign in with the same email to continue. Do not upload identity documents until this step is available." : params.error} />
             {registrationReady && ["veterinarian", "candidate", "professional"].includes(role) && <form action={saveRegistrationProfileDraftAction} className="backend-form-card">
@@ -56,8 +56,8 @@ export default async function CompleteRegistrationPage({
               </div>
               <button type="submit" className="button button-primary">Save professional draft</button>
             </form>}
-            {registrationReady && <RegistrationEvidenceForm requirements={requirements} cnic={gate?.cnic_number ?? ""} saved={existing.data ?? []} />}
-            <p className="form-help">Your CNIC and credential files are held for VetConnect identity and category verification. Do not submit another person’s documents.</p>
+            {registrationReady && <RegistrationEvidenceForm requirements={requirements} saved={existing.data ?? []} />}
+            <p className="form-help">Your submitted qualifications and business credentials are kept private for category verification. Do not submit another person’s documents.</p>
             {["candidate","professional","veterinarian"].includes(role)&&<p><a className="button button-primary" href="/career">Continue with your private CV and job interests</a></p>}
             <LinkBack />
           </div>
