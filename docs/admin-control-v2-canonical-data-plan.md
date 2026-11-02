@@ -4,10 +4,10 @@ Status: Draft design implementation, 2 November 2026. No live data or permission
 
 ## Information architecture
 - One public top navigation only for the public website. Authenticated admin workspace retains one admin menu on the left and one operational content area on the right.
-- Sidebar groups: Dashboard; Approvals; People & Organizations; Marketplace & HR; Governance & Data. Show permission-filtered links only; do not offer nonexistent review history.
-- Right side: priority review queues first, latest updates and decisions second, rolling operational activity next. Ordinary registry counts stay in a collapsed secondary details section.
+- Sidebar groups: Dashboard; Registrations & People; Clinics & Diagnostics; Marketplace & Companies; Jobs & HR; Approvals; Governance & Data. Show permission-filtered links only; do not offer nonexistent review history. PVMC is an element of veterinary credential review, not a standalone business sector.
+- Right side: always-visible subject-level totals and Approved/Pending/Rejected/New 24h figures first, pending review queues second, latest updates and decisions third, rolling operational activity next. Figures link to their existing authorized record pages; no hidden master statistics.
 - Each item opens the canonical existing action page; no duplicated review forms or autonomous approvals.
-- Profile progress is not licence, clinic, company, medicine, or publication approval. Store/label each independently.
+- Profile progress is not licence, clinic, company, medicine, or publication approval. Store/label each independently. Source verification_status=approved is not a publication decision and does not imply PVMC credential approval. 'New 24h' is a time window, independent of status. Candidate accounts by primary_role are not the total number of job seekers or job applicants.
 - Mobile: admin sidebar unfolds in a disclosure; main content is a single column, no second horizontal-scrolling navigator.
 
 ## Role distinctions
