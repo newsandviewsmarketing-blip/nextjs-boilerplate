@@ -80,6 +80,11 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
       }
     }
   }
+  if(profilesAllowed){
+    // Registration completion is a separate pending queue, not automatically
+    // included in veterinarian or professional profile review totals.
+    requireCount("registrationPending","registration_completion_gate","user_id",[["review_status","pending"]]);
+  }
   if(credentialAllowed){
     requireCount("pvmcPending","veterinarian_profiles","user_id",[["pvmc_verification_status","pending"],["verification_status","approved"]]);
     requireCount("managedPvmcPending","managed_people","id",[["pvmc_verification_status","pending"],["verification_status","approved"],["profile_kind","veterinarian"]]);
@@ -166,7 +171,8 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
   add(productsAllowed,"Marketplace products",value("products"),"/admin/products","Medicines, feed and other products");
   add(jobsAllowed,"Jobs & HR",value("jobs"),"/admin/jobs","Vacancy records");
   add(jobsAllowed,"Job applications",value("applications"),"/admin/applications","Applications recorded");
-  add(profilesAllowed,"Pending profiles",total("vetsPending","professionalsPending","companyPending","labsPending","managedPending","clinicsPending","companiesPending"),"/admin/reviews#pending-profiles","Approval queue",true);
+  add(profilesAllowed,"Pending review records",total("vetsPending","professionalsPending","companyPending","labsPending","managedPending","clinicsPending","companiesPending"),"/admin/reviews#pending-profiles","Queue entries from separate sources, some may refer to the same account",true);
+  add(profilesAllowed,"Registration checks",value("registrationPending"),"/admin/reviews#pending-profiles","New completion submissions awaiting review",true);
   add(credentialAllowed,"PVMC checks",total("pvmcPending","managedPvmcPending"),"/admin/reviews#credential-checks","Unverified submissions",true);
   add(credentialAllowed,"PVMC data rechecks",recheckCount,"/admin/credential-recheck","Approved status with missing evidence",true);
   add(productsAllowed,"Pending products",value("productsPending"),"/admin/reviews#pending-products","Publication review",true);
@@ -238,6 +244,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
           <div className="vc-admin-top-figures">
             {usersAllowed&&<Link href="/admin/users"><span>Registered accounts</span><strong>{numberLabel(value("accounts"))}</strong><small>All accounts</small></Link>}
             {usersAllowed&&<Link href="/admin/users"><span>New accounts</span><strong>{numberLabel(value("newRegistrations24h"))}</strong><small>Last 24 hours</small></Link>}
+            {profilesAllowed&&<Link href="/admin/reviews#pending-profiles"><span>Registration checks</span><strong>{numberLabel(value("registrationPending"))}</strong><small>Pending completion review</small></Link>}
             {usersAllowed&&<Link href="/admin/users?role=candidate"><span>Candidate accounts</span><strong>{numberLabel(value("candidateAccounts"))}</strong><small>Primary account role only</small></Link>}
             {jobsAllowed&&<Link href="/admin/applications"><span>Job applications</span><strong>{numberLabel(value("applications"))}</strong><small>All-time submissions</small></Link>}
           </div>
