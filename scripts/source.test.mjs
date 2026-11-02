@@ -814,24 +814,35 @@ test("clinic practice types, Other options and specialty labels reuse both clini
 });
 
 
-test("admin v2 keeps a single permission-scoped navigation and shows pending reviews before metrics",()=>{
+test("admin home visibly shows status counts across real sectors and permission-gated queues",()=>{
  const overview=read("app/admin/page.tsx");
  const nav=read("app/admin/components/AdminNav.tsx");
  const css=read("app/globals.css");
  const spec=read("docs/admin-control-v2-canonical-data-plan.md");
- assert.match(overview,/Approval and review queues/);
- assert.match(overview,/Latest updates and decisions/);
+ assert.match(overview,/Registrations, approvals and new activity/);
+ assert.match(overview,/sectorRows\.map\(row=>/);
+ assert.match(overview,/Approved/);
+ assert.match(overview,/Pending/);
+ assert.match(overview,/Rejected/);
+ assert.match(overview,/New 24h/);
+ assert.match(overview,/newRegistrations24h/);
+ assert.match(overview,/candidateAccounts/);
+ assert.match(overview,/last 24 hours/i);
  assert.match(overview,/cards\.filter\(card=>card\.attention\)/);
- assert.match(overview,/cards\.filter\(card=>!card\.attention\)/);
- assert.ok(overview.indexOf("Approval and review queues")<overview.indexOf("Latest updates and decisions"));
- assert.match(overview,/vc-admin-overview-details/);
+ assert.ok(overview.indexOf("Registrations, approvals and new activity") < overview.indexOf("Approval and review queues"));
+ assert.ok(overview.indexOf("Approval and review queues") < overview.indexOf("Latest updates and decisions"));
+ assert.doesNotMatch(overview,/vc-admin-overview-details/);
  assert.doesNotMatch(overview,/Operations & quick actions/);
- assert.match(nav,/title:"Approvals"/);
- assert.match(nav,/title:"Governance & data"/);
+ for(const category of ["Registrations & people","Clinics & diagnostics","Marketplace & companies","Jobs & HR","Approvals","Governance & data"]){
+   assert.ok(nav.includes('title:"'+category+'"'),category+" navigation group");
+ }
  assert.match(nav,/visibleGroups/);
  assert.doesNotMatch(nav,/\/admin\/review-history/);
+ assert.match(nav,/Veterinarian PVMC checks/);
+ assert.doesNotMatch(nav,/title:"PVMC"/);
  assert.match(css,/\.vc-admin-page \.vc-admin-layout\{display:grid/);
- assert.match(css,/max-width:600px/);
+ assert.match(css,/\.vc-admin-page \.vc-admin-sector-grid\{display:grid/);
+ assert.match(css,/max-width:520px/);
  assert.match(spec,/UAF → University of Agriculture Faisalabad/);
  assert.match(spec,/UVAS → University of Veterinary and Animal Sciences Lahore/);
  assert.match(spec,/CSV\/PDF are outputs/);
