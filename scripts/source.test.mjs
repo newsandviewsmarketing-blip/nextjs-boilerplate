@@ -874,7 +874,7 @@ test("CV and applications avoid repeat navigation and CV-library overload",()=>{
  const frame=read("app/components/CareerWorkspaceFrame.tsx");
  const apps=read("app/dashboard/career/page.tsx");
  const css=read("app/components/CareerWorkspaceFrame.css");
- assert.match(frame,/active==='cv'\?null:<section className="vcx-side-card">/);
+ assert.match(frame,/personalWorkspace&&active!=='cv'/);
  assert.match(apps,/<details className="backend-form-card career-cv-library vcx-collapsible-library"/);
  assert.match(apps,/open=\{\(cvDocumentsResult\.data\?\?\[\]\)\.length===0\}/);
  assert.match(apps,/<summary>/);
