@@ -1,5 +1,4 @@
 import {isPakistanLocationInProvince} from "@/lib/pakistan-locations";
-import {hasDocumentedVeterinaryQualification} from "@/lib/veterinary-verification";
 import {createClient} from "@/lib/supabase/server";
 import {PRACTICE_AREAS,SPECIALIZATIONS,PROFESSIONAL_CATEGORIES} from "@/lib/registration-categories";
 
@@ -25,12 +24,6 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     .select("category_details").eq("user_id",userId).maybeSingle();
   if(savedError)return "Unable to load your saved registration details. Please try again.";
   if(!replaceSavedDetails)meta=registrationDraftMetadata(meta,saved?.category_details);
-  if(role==="professional" || role==="candidate"){
-    const primary=role==="professional" || str(meta,"student_track")==="job_seeker" ? str(meta,"highest_qualification") : "";
-    const completedDegrees=[primary,...textList(meta,"additional_qualifications",180)];
-    if(completedDegrees.some(hasDocumentedVeterinaryQualification) && str(meta,"pvmc_number_pending")!=="true" && !/^[a-z0-9\s/\\_.-]{1,70}$/i.test(str(meta,"pvmc_number",71)))
-      return "A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number.";
-  }
   const province=str(meta,"province",120), city=str(meta,"city",120);
   if(province && city && !isPakistanLocationInProvince(city,province))
     return "Saved province and city do not match. Contact support to correct your registration.";
