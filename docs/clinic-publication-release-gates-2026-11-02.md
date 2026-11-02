@@ -1,35 +1,36 @@
-# VetConnect | Clinic publication and professional credential release gates
+# VetConnect | Unified workspace release gate (2 November 2026)
 
-**Prepared:** 2 November 2026 (Pakistan)
-**Scope:** Draft-only source corrections on top of `main`; no production migration or record changes.
+## Release principle
+**One account and one permission-aware workspace shell; linked professional, clinic, company and laboratory identities remain separate records.** Treat core-profile completion, registration review, PVMC credential verification, facility publication, jobs/CV and product moderation as separate states.
 
-## Updated in this draft
+This document describes the integrated source branch superseding the isolated clinic and profile-navigation fixes. It does **not** certify production deployment, migration readiness, or real user workflow completion.
 
-1. Clinic directory and facility detail now label an approved facility as **facility approved / VetConnect-reviewed facility**, rather than implying that the responsible veterinarian's PVMC credential has been verified.
-2. The staged migration `20261101162000_separate_clinic_publication_from_registration.sql` keeps company-account approval distinct from clinical publication. A clinic remains private and pending until separate reviewer action, active public services and opening hours, responsible-veterinarian name/PVMC number, and documented human PVMC cross-check.
-3. The staged registration review function no longer demands the clinic-owning company's **own** `pvmc_registration` evidence at the organization approval stage. This does not waive the responsible practitioner's clinical publication gate.
-4. The PVMC reviewer and facility reviewer need not be the same person, but the dedicated PVMC review evidence, reviewer identity, and date remain mandatory before new publication.
-5. New source-level regression checks cover migration boundaries and public labels.
+## Included in one proposed change set
+- Merge PR #63 profile stepper, 6-step form and focused CV/applications view into the role-aware shared shell introduced by merged PR #65. Preserve existing admin layout and permission checks.
+- Multi-company users select an authorized company explicitly; no more automatic first-company selection. Product, job, applicant and company mutations must re-check current membership on the server. The ID in a query string or form is a **requested context**, not authorization.
+- A person registered as a company or clinic owner does **not** need a PVMC practitioner number solely to own the organization. A veterinarian applying to practise clinically requires a PVMC number and evidence. The actual clinic has an independent responsible-veterinarian and human evidence-review gate before new publication.
+- The private registration form, allowed evidence types, both registration submission and review RPCs, and nullable legacy `registration_evidence.cnic_number` are updated **together** in the staged SQL so new records can proceed without mandatory CNIC documents. No historical CNIC or uploaded document is deleted or published. Historical sensitive data needs a separately authorized retention plan.
+- Public clinic directory view is extended to include existing `other_cities` data expected by the application; public facility labels distinguish VetConnect's facility profile review from independent PVMC credential verification.
+- Source regression checks cover form/migration alignment, role-based profile navigation and company-context enforcement.
 
-## Important mismatches and deployment blockers
+## Current hard blockers and required owner actions
+1. **Migration dry run is outstanding.** Run the entire staged migration and its tests against an isolated copy/compatible test database. Specifically verify clinician approval without an owner PVMC, each registration category's uploads, role-based RLS, separate clinic publication, rejected/resubmitted reviews, no accidental disclosure or loss of old evidence, and existing public directory data.
+2. **Legacy clinics require manual reconciliation.** The audit showed three published clinic rows with no PVMC number in the clinic-specific responsible-veterinarian field. This is not evidence that a practitioner is unlicensed. No automated certification or unpublishing was performed.
+3. **Email sender and cron secrets are missing.** Vercel production project `vetconnect` had no RESEND_API_KEY, VETCONNECT_NOTIFICATION_FROM, VETCONNECT_ADMIN_EMAIL, SUPABASE_SERVICE_ROLE_KEY or CRON_SECRET during the read-only review. Two queue messages remained pending with zero attempts. Owner must securely configure verified sender and secrets in Vercel settings; never paste secrets into GitHub or chat. Run controlled consent and actual delivery evidence checks.
+4. **Public database security advisories require targeted review.** Public directory views currently use definer rights and there are callable definer functions. Check explicit grants and row predicates before hardening. Do not globally revoke access and break legitimate directory/RPC access.
+5. **Vets Guide evidence-backed ingredient / species / withdrawal workflows and product-variant publication remain unverified.** Do not invent product withdrawal values or approve unreviewed medical product claims.
+6. **Vercel daily deployment rate limit** blocked the most recent production build. Multiple preview projects are not equivalent to the production custom-domain alias. No forceful deployment was attempted.
+7. **Authenticated multi-role QA** remains necessary for admin/staff-only, veterinarian, professional, student/candidate, company owner/delegate, clinic and laboratory accounts at 360px, 768px and desktop. Test keyboard and screen readers for stepper, selected company persistence, save/reload, RLS denial across companies, CV privacy and clinic appointments.
 
-- The **live** `complete_registration_submission()` RPC, the existing registration evidence form and registration evidence requirements still require `pvmc_registration` for company accounts with clinic intent. They must be reconciled together with the staged review RPC before deploying that migration. Do not ship a partial registration contract.
-- CNIC number and evidence requirements are still enforced by the current registration form, submission RPC and review RPC. Any change to these identity checks requires a separate product/privacy and applicable-compliance decision **across every dependent layer**. This draft does not bypass or alter the live checks.
-- The existing three published clinic rows were not altered; all three had an empty clinic-level `responsible_veterinarian_pvmc` value at the read-only audit snapshot. This is not evidence that their practitioners are unregistered. Require individual authorized reconciliation against evidence and the official register.
-- The staged migration protects new publications and re-publications but explicitly does **not** re-approve or unpublish legacy public clinics. A separate legacy audit plan is necessary.
-- Admin action code for recording a clinical PVMC cross-check is present, but production lacks the corresponding review columns and publication-readiness trigger. Database and UI changes must be validated as one release.
-- Production clinic/public views use elevated view privileges and require separate field/RLS policy review. Do not convert them to `security_invoker` without proving that public directory access still works and no private data leaks.
-- Career alert delivery is not proven. The two pending notifications had zero attempts and the central Vercel project lacked essential protected environment-variable keys at audit time. No email, queue replay or secret changes are included here.
-- PR #63 still requires integration with current `main` and authenticated desktop/mobile QA.
-- Vercel's custom-domain production alias was still on an older commit than merged PR #65 at audit time. GitHub merge or successful preview is not a production release.
+## One verified rollout sequence (do not reorder)
+A. Run exact-head repository audit, lint, all tests, TypeScript, build, dependency audit; reject on any failure.
 
-## Required verification before merge/deploy
+B. Dry run one coordinated migration with full rollback/checkpoint, verify trigger enforcement and visibility of `public_clinics.other_cities`, then perform authenticated staging journeys and adversarial RLS tests. Review historical clinic records individually.
 
-- Run repository audit, lint, source tests, TypeScript, production build, and dependency audit.
-- Run isolated PostgreSQL tests for clinic draft, review, publish, unpublish, republish, PVMC reviewer proof and tampering; prove that the ordinary company registration approval never publishes clinical services.
-- Reconcile both registration RPCs, actual form requirements, upload validation, private bucket policies, and reviewer permissions before applying any schema migration.
-- Verify existing published clinics individually without fabricating or automatically approving credentials.
-- Test company owner, unrelated company member, veterinarian, non-vet professional, clinic reviewer and delegated staff; include cross-entity denial and 360px/768px/desktop visual/keyboard checks.
-- Only release to production project `vetconnect` after compatible staging QA and deployment quota recovery. Compare exact deployed SHA to the custom-domain alias and keep rollback ready.
+C. Verify deployment project, domain mapping, environment availability, sender configuration and intended commit. Confirm deployment quota available.
 
-**Current label:** Source remediation prepared in a draft branch. Not ready for database migration, live release, blanket PVMC approval or production certification.
+D. Only after all gates pass, apply the tested additive/compatible migration, stage production build, test it and promote that same build to the custom domain. Keep previous Vercel deployment and data restoration procedures available.
+
+E. Check live /dashboard, /admin, /dashboard/company, /dashboard/professional, /clinics, product pages, jobs and alerts. Record exact production SHA; monitor logs and email provider delivery events.
+
+**Status:** Integrated source update prepared in PR #66. No deployment or live database/record/authorization changes have been made by this update. Any untested component remains an explicit blocker, not an implicit approval.
