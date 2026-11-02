@@ -662,7 +662,7 @@ test("Phase 2 dashboard links to actionable administration, reports and records"
   const company = read("app/dashboard/company/page.tsx");
   const account = read("app/dashboard/page.tsx");
   assert.match(overview, /getEffectiveAdminPermissions/);
-  assert.match(overview, /Pending profiles/);
+  assert.match(overview, /Pending review records/);
   assert.match(overview, /New registrations/);
   assert.match(overview, /admin\/reviews#profile-account-/);
   assert.match(overview, /newRegistrations24h/);
@@ -826,6 +826,8 @@ test("admin home visibly shows status counts across real sectors and permission-
  assert.match(overview,/New 24h/);
  assert.match(overview,/newRegistrations24h/);
  assert.match(overview,/candidateAccounts/);
+ assert.match(overview,/registrationPending/);
+ assert.match(overview,/registration_completion_gate/);
  assert.match(overview,/last 24 hours/i);
  assert.match(overview,/cards\.filter\(card=>card\.attention\)/);
  assert.ok(overview.indexOf("Registrations, approvals and new activity") < overview.indexOf("Approval and review queues"));
