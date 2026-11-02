@@ -3966,3 +3966,57 @@ textarea:focus {
  .cv-skill-selector > div,.professional-skills-pick{flex-wrap:wrap;}
  .cv-skill-selector button,.professional-skills-pick button{flex:1 1 100%; }
 }
+
+
+/* Admin Control v2: one navigation + one task-first content area. */
+.vc-admin-page .vc-admin-layout{display:grid;grid-template-columns:230px minmax(0,1fr);align-items:start;gap:22px}
+.vc-admin-page .admin-control-sidebar{min-width:0}
+.vc-admin-page .admin-navigation{top:94px;max-height:calc(100vh - 108px);overflow-y:auto}
+.vc-admin-page .vc-admin-main{min-width:0}
+.vc-admin-page .vc-admin-toolbar{margin:0 0 14px;align-items:center}
+.vc-admin-page .vc-admin-toolbar h1{font-size:clamp(1.6rem,2.6vw,2.15rem);color:#102451;letter-spacing:-.025em;margin:4px 0}
+.vc-admin-page .vc-admin-toolbar p{font-size:12px;line-height:1.65;max-width:64ch}
+.vc-admin-page .vc-admin-toolbar-search{border:1px solid #e2e8f0;background:#fff;border-radius:13px;padding:12px 16px;gap:15px;margin-bottom:20px}
+.vc-admin-page .vc-admin-toolbar-search>p{margin:0}
+.vc-admin-page .vc-admin-toolbar-search .vc-admin-global-search{flex:0 1 370px}
+.vc-admin-page .vc-admin-priority-panel{background:#fff;border:1px solid #e0e7f0;border-radius:16px;padding:21px;margin:0 0 20px}
+.vc-admin-page .vc-admin-section-title{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:17px}
+.vc-admin-page .vc-admin-section-title h2{font-size:clamp(1.2rem,1.8vw,1.55rem);color:#102451;margin:4px 0}
+.vc-admin-page .vc-admin-section-title p{font-size:12px;color:#62758b;margin:0}
+.vc-admin-page .vc-admin-section-title>a{color:#ae5905;font-size:12px;font-weight:750;white-space:nowrap}
+.vc-admin-page .vc-admin-priority-grid{grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:9px;margin:0}
+.vc-admin-page .vc-admin-priority-grid .vc-admin-metric{min-height:120px;padding:13px;border-left:3px solid #ed881f;box-shadow:none}
+.vc-admin-page .vc-admin-priority-grid .vc-admin-metric b{font-size:1.7rem}
+.vc-admin-page .vc-admin-priority-grid .vc-admin-metric>span:last-child{font-size:11px}
+.vc-admin-page .vc-admin-overview-details{padding:0;overflow:hidden}
+.vc-admin-page .vc-admin-overview-details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 21px}
+.vc-admin-page .vc-admin-overview-details>summary::-webkit-details-marker{display:none}
+.vc-admin-page .vc-admin-overview-details>summary strong{font-size:15px;color:#142c54}
+.vc-admin-page .vc-admin-overview-details>summary span{font-size:11px;color:#66778c}
+.vc-admin-page .vc-admin-overview-details>summary::after{content:"+";font-size:20px;color:#ac5d0a;font-weight:800}
+.vc-admin-page .vc-admin-overview-details[open]>summary::after{content:"−"}
+.vc-admin-page .vc-admin-overview-details[open]>summary{background:#f6f9fc;border-bottom:1px solid #e3e9f0}
+.vc-admin-page .vc-admin-overview-details .vc-admin-metrics{padding:17px;margin:0}
+.vc-admin-page .vc-admin-overview-details .vc-admin-metric{min-height:115px;box-shadow:none}
+.vc-admin-page .vc-admin-overview-details>summary:focus-visible{outline:3px solid #d97f17;outline-offset:-3px}
+.vc-admin-page .admin-navigation .vc-admin-section a{overflow-wrap:anywhere}
+@media(max-width:920px){
+ .vc-admin-page .vc-admin-layout{grid-template-columns:minmax(0,1fr)}
+ .vc-admin-page .admin-navigation{position:static;max-height:none;overflow:visible}
+ .vc-admin-page .vc-admin-toolbar-search{flex-direction:column;align-items:stretch}
+ .vc-admin-page .vc-admin-toolbar-search .vc-admin-global-search{flex:auto}
+}
+@media(max-width:600px){
+ .vc-admin-page .vc-admin-toolbar{align-items:stretch;flex-direction:column}
+ .vc-admin-page .vc-admin-actions{width:100%}
+ .vc-admin-page .vc-admin-actions .button{flex:1}
+ .vc-admin-page .vc-admin-priority-panel{padding:15px}
+ .vc-admin-page .vc-admin-section-title{align-items:start;flex-direction:column}
+ .vc-admin-page .vc-admin-priority-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vc-admin-page .vc-admin-overview-details>summary{flex-wrap:wrap;padding:15px}
+ .vc-admin-page .vc-admin-overview-details>summary span{flex:1 1 100%}
+ .vc-admin-page .vc-admin-overview-details .vc-admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}
+}
+@media(max-width:370px){
+ .vc-admin-page .vc-admin-priority-grid,.vc-admin-page .vc-admin-overview-details .vc-admin-metrics{grid-template-columns:1fr}
+}
