@@ -782,3 +782,33 @@ test("account, professional, clinic and company use one navigation shell with se
  assert.match(admin,/vc-admin-section/);
  assert.match(read("docs/unified-workspace-design-system.md"),/Clinic publication database-migration/);
 });
+
+
+test("clinic practice types, Other options and specialty labels reuse both clinic forms",()=>{
+ const types=read("lib/clinic-facility-options.ts");
+ const selector=read("app/dashboard/clinics/ClinicFacilityTypeField.tsx");
+ const focus=read("app/dashboard/clinics/ClinicFocusFields.tsx");
+ const list=read("app/dashboard/clinics/page.tsx");
+ const detail=read("app/dashboard/clinics/[id]/page.tsx");
+ const actions=read("app/dashboard/clinics/actions.ts");
+ assert.match(types,/Poultry Veterinary Clinic/);
+ assert.match(types,/Poultry Farm Veterinary Service/);
+ assert.match(types,/Poultry Veterinary Consultancy/);
+ assert.match(types,/Cat \/ Feline Clinic/);
+ assert.match(types,/Other/);
+ assert.match(selector,/value="Other"/);
+ assert.match(selector,/required maxLength=\{90\}/);
+ assert.match(focus,/kind\+"_selected"/);
+ assert.match(focus,/<OptionGroup kind="species"/);
+ assert.match(list,/<ClinicFacilityTypeField \/>/);
+ assert.match(list,/<ClinicFocusFields \/>/);
+ assert.match(detail,/<ClinicFacilityTypeField defaultValue=\{clinic.facility_type\} \/>/);
+ assert.match(detail,/<ClinicFocusFields services=\{clinic.services\} species=\{clinic.species\}\/>/);
+ assert.match(list,/Weekly hours & appointment slots/);
+ assert.doesNotMatch(list,/value="Set after clinic creation"/);
+ assert.match(actions,/resolveClinicFacilityType\(formData\)/);
+ assert.match(actions,/clinicFocusEntries\(formData,"services"\)/);
+ assert.match(actions,/clinicFocusEntries\(formData,"species"\)/);
+ assert.match(actions,/Enter a valid fee range and a duration between 1 and 1440 minutes/);
+ assert.match(actions,/is_published: false/);
+});

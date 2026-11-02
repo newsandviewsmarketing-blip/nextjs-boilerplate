@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
+import ClinicFacilityTypeField from "./ClinicFacilityTypeField";
+import ClinicFocusFields from "./ClinicFocusFields";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
@@ -133,7 +135,7 @@ export default async function ClinicWorkspacePage({
 
           <div className="section-heading">
             <span className="section-kicker">MY FACILITIES</span>
-            <h2>Clinics you own.</h2>
+            <h2>Practices and clinics you manage.</h2>
             <p>
               Each clinic has its own facility profile, weekly
               hours, appointment inbox, services and team hierarchy.
@@ -142,8 +144,8 @@ export default async function ClinicWorkspacePage({
 
           {ownedClinics.length === 0 ? (
             <div className="empty-state">
-              <h2>No owned clinic yet.</h2>
-              <p>Create your first veterinary facility below.</p>
+              <h2>No practice or clinic registered yet.</h2>
+              <p>Create your first clinic, poultry service or veterinary consultancy below.</p>
             </div>
           ) : (
             <div className="company-grid clinic-workspace-grid">
@@ -346,7 +348,7 @@ export default async function ClinicWorkspacePage({
           )}
 
           <details className="vcx-clinic-new" open={ownedClinics.length===0}>
-           <summary><strong>Register another clinic or veterinary hospital</strong><span>Begin a separate facility draft without changing your personal professional profile.</span></summary>
+           <summary><strong>Add a practice, clinic or veterinary service</strong><span>Begin a separate facility draft without changing your personal professional profile.</span></summary>
           <form
             id="new-clinic"
             className="backend-form-card workspace-section-card workspace-heading-gap"
@@ -357,7 +359,7 @@ export default async function ClinicWorkspacePage({
                 ADD FACILITY
               </span>
               <h2>
-                Create a clinic or veterinary hospital profile.
+                Create a clinic, poultry service or veterinary practice profile.
               </h2>
               <p>
                 The new facility starts pending review and
@@ -370,7 +372,7 @@ export default async function ClinicWorkspacePage({
             <div className="form-grid">
               <div>
                 <label htmlFor="clinic_name">
-                  Clinic / facility name
+                  Practice / clinic / service name
                 </label>
                 <input
                   id="clinic_name"
@@ -379,23 +381,7 @@ export default async function ClinicWorkspacePage({
                 />
               </div>
 
-              <div>
-                <label htmlFor="facility_type">
-                  Facility type
-                </label>
-                <select
-                  id="facility_type"
-                  name="facility_type"
-                  defaultValue="Veterinary Clinic"
-                >
-                  <option>Veterinary Clinic</option>
-                  <option>Veterinary Hospital</option>
-                  <option>Pet Clinic</option>
-                  <option>Livestock Clinic</option>
-                  <option>Farm Veterinary Service</option>
-                  <option>Mobile Veterinary Service</option>
-                </select>
-              </div>
+              <ClinicFacilityTypeField />
 
               <div className="form-span-2">
                 <h3>Responsible registered veterinarian</h3>
@@ -449,43 +435,13 @@ export default async function ClinicWorkspacePage({
                 />
               </div>
 
-              <div>
-                <label>Working hours</label>
-                <input
-                  value="Set after clinic creation"
-                  readOnly
-                />
-                <p className="form-help">
-                  The next screen provides Monday-Sunday calendar
-                  and clock controls.
-                </p>
+              <div className="vcx-clinic-next-step">
+                <strong>Weekly hours & appointment slots</strong>
+                <p>After saving this private clinic draft, set open days, start and end times, breaks and appointment duration in the existing schedule editor.</p>
+                <span>Next: manage opening hours <span aria-hidden="true">→</span></span>
               </div>
 
-              <div className="form-span-2">
-                <label htmlFor="services">
-                  Initial services
-                </label>
-                <input
-                  id="services"
-                  name="services"
-                  placeholder="Consultation, vaccination, surgery"
-                />
-                <p className="form-help">
-                  Separate with commas. You can add standardized
-                  services after creating the clinic.
-                </p>
-              </div>
-
-              <div className="form-span-2">
-                <label htmlFor="species">
-                  Species served
-                </label>
-                <input
-                  id="species"
-                  name="species"
-                  placeholder="Dogs, cats, cattle, buffalo, poultry"
-                />
-              </div>
+              <ClinicFocusFields />
 
               <div className="form-span-2">
                 <label htmlFor="description">
