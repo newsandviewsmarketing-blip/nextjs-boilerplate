@@ -335,3 +335,5 @@
  .vcx-primary .builder-navigation .button{flex:1 1 120px}
 }
 @media(prefers-reduced-motion:reduce){.vcx-primary .builder-step{transition:none}}
+
+.vcx-profile-photo-intro{margin:0 0 13px;padding:12px 15px;border:1px solid #dfe7f1;border-radius:11px;background:#f8fbff;color:#506580;font-size:12px;line-height:1.65}
