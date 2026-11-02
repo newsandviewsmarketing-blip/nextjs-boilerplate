@@ -493,7 +493,7 @@ test("job submission is pending with a full receipt and admin review links",()=>
   assert.match(receipt,/Status:<\/strong> Pending approval/);
   assert.match(receipt,/Minimum qualification/);
   assert.match(review,/id=\{"job-"\+job\.id\}/);
-  assert.match(dashboard,/href="\/admin\/reviews#jobs-review"/);
+  assert.match(read("app/admin/components/AdminNav.tsx"),/href:"\/admin\/reviews#jobs-review"/);
   for(const action of [adminActions,companyActions]){
     assert.match(action,/proposeJobMasterTerms\(/);
     assert.match(action,/emailJobReviewNotice\(/);
@@ -672,7 +672,7 @@ test("Phase 2 dashboard links to actionable administration, reports and records"
   assert.match(reviews, /id=\{\`credential-\$\{row\.record_source/);
   assert.match(reviews, /id=\{\`product-\$\{product.id\}/);
   assert.match(nav, /getEffectiveAdminPermissions/);
-  assert.match(nav, /Printable reports/);
+  assert.match(nav, /Reports \/ CSV/);
   assert.match(report, /PrintReportButton/);
   assert.match(exportRoute, /getEffectiveAdminPermission\(identity,"audit.view"\)/);
   assert.match(exportRoute, /no-store/);
