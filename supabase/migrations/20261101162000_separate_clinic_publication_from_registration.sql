@@ -87,11 +87,11 @@ execute function public.enforce_clinic_publication_readiness();
 
 -- Staged changes to the existing registration RPC:
 -- 1. Account approval never publishes a clinic or attests the clinical PVMC check.
--- 2. CNIC images are not registration evidence requirements (privacy decision).
--- 3. Company/clinic ownership registration does not demand the owner's PVMC card;
---    the responsible veterinary practitioner's credentials are reviewed at facility publication.
--- NOTE: The production function still uses its previous requirements until this
--- complete staged migration is separately tested, approved and applied.
+-- 2. A company/clinic owner's account does not need its own PVMC card;
+--    the responsible practitioner's credential is reviewed at clinic publication.
+-- Current CNIC evidence requirements remain unchanged by this staged patch.
+-- Any privacy-policy change to identity collection needs an integrated
+-- form, submission-RPC, evidence-storage and compliance review.
 CREATE OR REPLACE FUNCTION public.review_registration_submission(p_user_id uuid, p_decision text, p_reason text, p_reviewer_id uuid, p_public_image_url text)
  RETURNS void
  LANGUAGE plpgsql
@@ -139,9 +139,7 @@ begin
   where details.user_id = p_user_id;
   category_details := coalesce(category_details, '{}'::jsonb);
 
-  -- Private identity documents are not a universal registration prerequisite.
-  -- Retain only evidence required for the selected role/registration intent.
-  required_types := array[]::text[];
+  required_types := array['cnic_front','cnic_back'];
   if account_role_value in ('veterinarian','candidate','professional','user') then
     required_types := array_append(required_types,'profile_photo');
   elsif account_role_value in ('company','laboratory') then
