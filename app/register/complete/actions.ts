@@ -7,7 +7,6 @@ import { persistRegisteredCategoryDetails, registrationDraftMetadata } from "@/l
 import {
   REGISTRATION_EVIDENCE_BUCKET,
   isAcceptedEvidenceFile,
-  isValidPakistaniCnic,
   registrationEvidenceRequirements,
 } from "@/lib/registration-evidence";
 import { notifyRegistrationSubmitted } from "@/lib/registration-notifications";
@@ -26,7 +25,7 @@ async function currentRegistration() {
   if (error || !data.user) redirect("/login?next=/register/complete");
   const [{ data: profile }, { data: gate }, details] = await Promise.all([
     supabase.from("profiles").select("primary_role").eq("id", data.user.id).maybeSingle(),
-    supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status,cnic_number,completed_at").eq("user_id", data.user.id).maybeSingle(),
+    supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status,completed_at").eq("user_id", data.user.id).maybeSingle(),
     supabase.from("registration_profile_details").select("category_details").eq("user_id", data.user.id).maybeSingle(),
   ]);
   if (!profile?.primary_role || !gate || details.error) redirect("/register/complete?error=Registration%20record%20not%20found.");
@@ -35,22 +34,12 @@ async function currentRegistration() {
   return { supabase, user: data.user, role: profile.primary_role, gate, metadata: registrationDraftMetadata(data.user.user_metadata,details.data?.category_details) };
 }
 
-export async function saveRegistrationCnicAction(formData: FormData) {
-  const { supabase, user, gate } = await currentRegistration();
-  const cnic = String(formData.get("cnic_number") ?? "").replace(/-/g, "").trim();
-  if (!isValidPakistaniCnic(cnic)) return;
-  if (gate.completed_at && gate.review_status !== "rejected") throw new Error("Your CNIC cannot be edited while a submission is under review.");
-  const { data, error } = await supabase.from("registration_completion_gate").update({ cnic_number: cnic }).eq("user_id", user.id).select("user_id").maybeSingle();
-  if (error || !data) throw new Error("CNIC could not be saved securely. Please retry.");
-  revalidatePath("/register/complete");
-}
-
 export async function saveRegistrationEvidenceDraftAction(formData: FormData) {
   const { supabase, user, role, gate } = await currentRegistration();
   const type = String(formData.get("type") ?? ""), path = String(formData.get("path") ?? "");
   const filename = safeName(String(formData.get("filename") ?? ""));
   const requirements = registrationEvidenceRequirements(role, gate.registration_intent, gate.student_track);
-  const allowed = new Set(["cnic_front", "cnic_back", ...requirements.map((item) => item.type)]);
+  const allowed = new Set(requirements.map(item => item.type));
   if (!allowed.has(type) || !path.startsWith(user.id + "/") || !filename) throw new Error("This file does not match your registration.");
   const requirement = requirements.find((item) => item.type === type);
   const { data: blob, error: downloadError } = await supabase.storage.from(REGISTRATION_EVIDENCE_BUCKET).download(path);
@@ -62,7 +51,7 @@ export async function saveRegistrationEvidenceDraftAction(formData: FormData) {
   }
   if (!signatureMatches(contentType, new Uint8Array(await blob.arrayBuffer()))) throw new Error("The file contents do not match its file type.");
   const { error } = await supabase.from("registration_evidence").insert({
-    user_id: user.id, document_type: type, cnic_number: gate.cnic_number, storage_path: path,
+    user_id: user.id, document_type: type, storage_path: path,
     original_filename: filename, content_type: contentType, file_size: blob.size, verification_status: "draft",
   });
   if (error) throw new Error("Your draft document could not be saved. Please retry.");
@@ -72,7 +61,6 @@ export async function saveRegistrationEvidenceDraftAction(formData: FormData) {
 export async function completeRegistrationAction() {
   const { supabase, user, gate, role, metadata } = await currentRegistration();
   if(role==="veterinarian" && !String(metadata.pvmc_number??"").trim()) redirect("/register/complete?error="+encodeURIComponent("Your education draft is saved. Add your PVMC number and evidence before submitting for practitioner verification."));
-  if (!isValidPakistaniCnic(gate.cnic_number ?? "")) redirect("/register/complete?error=Please%20enter%20a%20valid%20CNIC%20number.");
   const { data: profile } = await supabase.from("profiles").select("primary_role").eq("id", user.id).maybeSingle();
   const issue = await persistRegisteredCategoryDetails(supabase, user.id, user.user_metadata);
   if (issue) redirect("/register/complete?error=" + encodeURIComponent(issue));
