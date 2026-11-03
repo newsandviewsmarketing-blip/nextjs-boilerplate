@@ -163,7 +163,7 @@ export default async function CompanyDashboardPage({
   let internalContacts: ManagementContact[] = [];
   if (canManageCompany || canViewPrivateCompany) {
     const [canonicalResult, presentationResult, contactResult] = await Promise.all([
-      supabase.from("companies").select("*").eq("id",workspace.company_id).maybeSingle(),
+      supabase.from("companies").select("canonical_name,legal_name,trade_name,business_type,registration_number,public_email,public_phone,province,district,tehsil,city,address,website,google_maps_url,logo_url,cover_image_url,description").eq("id",workspace.company_id).maybeSingle(),
       supabase.from("company_profile_content").select("*").eq("company_id",workspace.company_id).maybeSingle(),
       supabase.from("company_private_contacts").select("full_name,designation,department,office_phone,mobile_phone,email,reports_to,notes")
         .eq("company_id",workspace.company_id).order("sort_order",{ascending:true}),
