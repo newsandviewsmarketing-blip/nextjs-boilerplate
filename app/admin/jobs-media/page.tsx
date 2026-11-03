@@ -7,7 +7,7 @@ import {requireAdminPermission} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
 import {uploadExistingJobImageAction,linkExistingJobDocumentAction} from "./actions";
 export const dynamic="force-dynamic";
-export default async function AdminJobMedia({searchParams}:{searchParams:Promise<{error?:string;message?:string}>}){
+export default async function AdminJobMedia({searchParams}:{searchParams:Promise<{error?:string;message?:string;job_id?:string}>}){
  const params=await searchParams;
  const identity=await requireAdminPermission("jobs.manage","/admin/jobs-media");
  const supabase=await createClient();
@@ -30,9 +30,10 @@ export default async function AdminJobMedia({searchParams}:{searchParams:Promise
     <FormMessage error={params.error||error?.message} message={params.message}/>
     <div className="backend-form-card">
       <h2>Update advertisement of an existing job</h2>
+      {params.job_id&&<p><Link href="/admin/jobs">Back to Jobs workspace</Link></p>}
       <form className="profile-form" action={uploadExistingJobImageAction}>
        <div className="form-span-2"><label htmlFor="job-media-id">Job</label>
-        <select id="job-media-id" name="job_id" required><option value="">Select job</option>
+        <select id="job-media-id" name="job_id" defaultValue={params.job_id??""} required><option value="">Select job</option>
           {(jobs??[]).map(j=><option key={j.id} value={j.id}>{j.title} ({j.verification_status})</option>)}
         </select></div>
        <div className="form-span-2"><label htmlFor="job-media-file">Original job advertisement image</label>
