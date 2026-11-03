@@ -26,12 +26,18 @@ export const CLINIC_SERVICES = [
   "Biosecurity", "Farm Visits", "Pet Medicine", "Cat Medicine",
   "Livestock Herd Health", "Nutrition & Feed Advice",
   "Reproductive Services", "Aquaculture Health", "Laboratory Referral",
+  "Wellness Examination", "Deworming & Parasite Control", "Pet Dermatology",
+  "Pet Dentistry", "Small Animal Internal Medicine", "Diagnostic Imaging / Ultrasound",
+  "Pet Surgical Consultation", "Behaviour & Welfare Advice", "Bird & Exotic Pet Care",
+  "Poultry Vaccination Planning", "Poultry Disease Investigation",
+  "Feed & Flock Performance Review", "Mastitis & Udder Health",
+  "Herd Reproductive Health", "Farm Biosecurity Audit",
 ] as const;
 
 export const CLINIC_SPECIES = [
   "Dogs", "Cats", "Poultry", "Cattle", "Buffalo",
   "Sheep", "Goats", "Equine", "Fish / Aquaculture",
-  "Companion Animals", "Wildlife",
+  "Companion Animals", "Wildlife", "Rabbits", "Pet Birds", "Exotic Pets", "Camelids",
 ] as const;
 
 const facilitySet = new Set<string>(CLINIC_FACILITY_TYPES);
