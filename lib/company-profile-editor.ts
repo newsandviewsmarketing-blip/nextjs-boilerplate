@@ -109,3 +109,50 @@ export async function saveCompanySupplement(
 export function companyDescriptionFromForm(form: FormData) {
   return field(form,"description",6000);
 }
+
+
+export function companyCoreFromForm(form: FormData, nameField: "company_name" | "canonical_name", uploadedLogo?: string | null) {
+  const companyName = field(form,nameField,180);
+  if (!companyName) throw new Error("Company name is required.");
+  const emailField = nameField === "company_name" ? "contact_email" : "public_email";
+  const publicEmail = field(form,emailField,240);
+  if (publicEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(publicEmail)) throw new Error("Enter a valid public email.");
+  return {
+    canonical_name: companyName,
+    legal_name: field(form,"legal_name",180),
+    trade_name: field(form,"trade_name",180),
+    business_type: field(form,"business_type",150),
+    registration_number: field(form,"registration_number",100),
+    public_phone: field(form,"public_phone",60),
+    public_email: publicEmail,
+    province: field(form,"province",120),
+    district: field(form,"district",150),
+    tehsil: field(form,"tehsil",150),
+    city: field(form,"city",150),
+    address: field(form,"address",600),
+    description: companyDescriptionFromForm(form),
+    website: safeWebsite(form,"website") ?? "",
+    google_maps_url: safeWebsite(form,"google_maps_url") ?? "",
+    logo_url: uploadedLogo || safeWebsite(form,"logo_url") || "",
+    cover_image_url: safeWebsite(form,"cover_image_url") ?? "",
+  };
+}
+
+export async function saveCompleteCompanyProfile(
+  supabase: SupabaseClient,
+  companyId: string,
+  form: FormData,
+  nameField: "company_name" | "canonical_name",
+  uploadedLogo?: string | null,
+) {
+  const presentation = companyPresentationFromForm(form);
+  const contacts = companyContactsFromForm(form);
+  const core = companyCoreFromForm(form,nameField,uploadedLogo);
+  const { error } = await supabase.rpc("save_company_profile_supplement", {
+    p_company_id: companyId,
+    p_public: presentation,
+    p_contacts: contacts,
+    p_core: core,
+  });
+  if (error) throw new Error("Company profile could not be updated: "+error.message);
+}
