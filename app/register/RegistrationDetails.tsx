@@ -13,11 +13,12 @@ function visibleLocations(query: string) {
   ).slice(0, 60);
 }
 
-export function PakistanCityField({ id, name, label, required = false }: {
+export function PakistanCityField({ id, name, label, required = false, singleInput = false }: {
   id: string;
   name: string;
   label: string;
   required?: boolean;
+  singleInput?: boolean;
 }) {
   const [province, setProvince] = useState("");
   const [query, setQuery] = useState("");
@@ -37,7 +38,17 @@ export function PakistanCityField({ id, name, label, required = false }: {
     </div>
     <div>
       <label htmlFor={id}>{label}</label>
-      <label htmlFor={id + "-search"} className="form-help">Search within the selected province</label>
+      {singleInput ? <>
+        <input id={id} name={name} list={id + "-locations"} required={required}
+          disabled={!province} autoComplete="off" value={value}
+          placeholder={province ? "Type and select city / town" : "Choose province first"}
+          onChange={event => setValue(event.target.value)}/>
+        <datalist id={id + "-locations"}>
+          {PAKISTAN_LOCATION_OPTIONS.filter(option => option.province === province)
+            .map(option => <option value={option.value} label={option.label} key={option.label}/>)}
+        </datalist>
+        <small>Choose a listed locality. Changing province clears your city.</small>
+      </> : <><label htmlFor={id + "-search"} className="form-help">Search within the selected province</label>
       <input id={id + "-search"} type="search" autoComplete="off" disabled={!province}
         placeholder="Search city, town or district" value={query} onChange={event => setQuery(event.target.value)} />
       <select id={id} name={name} required={required} value={value} disabled={!province}
@@ -46,6 +57,7 @@ export function PakistanCityField({ id, name, label, required = false }: {
         {choices.map(option => <option value={option.value} key={option.label}>{option.label}</option>)}
       </select>
       <small id={id + "-help"}>Choose a listed locality in your province. Changing province clears the city. Contact support if your locality is missing.</small>
+      </>}
     </div>
   </>;
 }
@@ -68,6 +80,49 @@ function QualificationField({ id, name, label, options, onChange }: {
     {choice === "__other__" && <input name={name + "_other"} maxLength={173} required
       aria-label="Specify qualification title" placeholder="Enter the exact qualification title" onChange={event => onChange?.(event.target.value)} />}
   </div>;
+}
+
+
+const COMPANY_ACTIVITIES = [
+  "Veterinary Pharmaceuticals", "Veterinary Medicines", "Vaccines / Biologicals",
+  "Feed Manufacturing", "Feed Additives", "Animal Nutrition", "Poultry",
+  "Livestock / Dairy", "Aquaculture / Fisheries", "Pet Products / Services",
+  "Diagnostics / Laboratory", "Veterinary Equipment", "Distribution / Retail",
+  "Farm / Producer", "Research / Education", "Recruitment / HR",
+] as const;
+
+function CompanyRegistrationFields() {
+  const [selected,setSelected] = useState<string[]>([]);
+  const [custom,setCustom] = useState("");
+  const activities = [...selected, ...(custom.trim() ? [custom.trim()] : [])];
+  return <>
+    <div><label htmlFor="company-name">Registered company name *</label>
+      <input id="company-name" name="organization_name" required maxLength={180}
+        autoComplete="organization" placeholder="Legal registered company name"/></div>
+    <div><label htmlFor="company-reg">Registration / NTN number *</label>
+      <input id="company-reg" name="company_registration_number" required maxLength={180}
+        placeholder="Official registration or NTN"/></div>
+    <fieldset className="form-span-2 vc-company-activities">
+      <legend>Company business activities *</legend>
+      <p className="form-help">Select all relevant activities. Your company can later manage jobs, products and services from one account.</p>
+      <div className="service-checkbox-grid">
+        {COMPANY_ACTIVITIES.map(activity => <label className="checkbox-line" key={activity}>
+          <input type="checkbox" checked={selected.includes(activity)}
+            onChange={event=>setSelected(current=>event.target.checked
+              ? [...current,activity] : current.filter(item=>item!==activity))}/>
+          {activity}
+        </label>)}
+      </div>
+      <label htmlFor="company-activity-other">Other business activity (optional)</label>
+      <input id="company-activity-other" maxLength={100} value={custom}
+        onChange={event=>setCustom(event.target.value)} placeholder="Specify another activity"/>
+      <input type="hidden" name="company_type" value={activities[0] ?? ""}/>
+      <input type="hidden" name="industry_sector" value={activities[0] ?? ""}/>
+      {activities.map(activity=><input type="hidden" name="company_types" value={activity} key={"type-"+activity}/>)}
+      {activities.map(activity=><input type="hidden" name="industry_sectors" value={activity} key={"sector-"+activity}/>)}
+      <small>At least one activity is required. Management contacts are added after registration.</small>
+    </fieldset>
+  </>;
 }
 
 export function AcademicQualifications({ id, name, label, options, practitioner = false, completed = true }: {
@@ -203,13 +258,7 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <div><label htmlFor="clinic-vet">Responsible veterinarian full name *</label><input name="responsible_veterinarian" id="clinic-vet" maxLength={180} required /></div>
     <div><label htmlFor="clinic-pvmc">Responsible veterinarian PVMC registration number (optional at account registration)</label><input name="pvmc_number" id="clinic-pvmc" maxLength={70} /><small>This must be provided and independently reviewed before the clinic is published for veterinary practice.</small></div>
   </>;
-  if (role === "company") return <>
-    <div><label htmlFor="company-name">Company / employer registered name *</label><input name="organization_name" id="company-name" required maxLength={180} /></div>
-    <div><label htmlFor="company-type">Organization type *</label><select id="company-type" name="company_type" required><option>Veterinary Pharmaceuticals</option><option>Feed / Nutrition</option><option>Livestock / Dairy</option><option>Poultry</option><option>Distribution / Retail</option><option>Farm / Producer</option><option>Recruitment / HR</option><option>Other</option></select></div>
-    <div><label htmlFor="company-reg">Company registration / NTN *</label><input name="company_registration_number" id="company-reg" maxLength={180} required /></div>
-    <div><label htmlFor="company-sector">Business sector *</label><input name="industry_sector" id="company-sector" maxLength={180} required /></div>
-    <p className="form-help form-span-2">Job providers register their business once. After approval, the same company account can manage job listings without re-entering its business credentials.</p>
-  </>;
+  if (role === "company") return <CompanyRegistrationFields/>;
   if (role === "laboratory") return <>
     <div><label htmlFor="lab-name">Diagnostic laboratory name *</label><input name="organization_name" id="lab-name" required maxLength={180} /></div>
     <div><label htmlFor="lab-type">Laboratory type *</label><select id="lab-type" name="laboratory_type" required><option>Veterinary Diagnostic Laboratory</option><option>Poultry Diagnostic Laboratory</option><option>Animal Health / Research Laboratory</option><option>Other</option></select></div>

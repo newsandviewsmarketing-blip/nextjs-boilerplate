@@ -37,7 +37,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
     "pvmc_number","qualifications","institution","practice_areas","specializations","specialization_other",
     "student_track","highest_qualification","study_program","student_college_registration_number",
     "pvmc_student_reference","academic_year","career_interest","professional_type","professional_types",
-    "industry_sector","industry_sectors","organization_name","facility_type","company_type",
+    "industry_sector","industry_sectors","organization_name","facility_type","company_type","company_types",
     "company_registration_number","facility_address","responsible_veterinarian","clinic_cities",
     "laboratory_type","laboratory_registration_number","tests_offered","lab_location","customer_type","animal_interest"
   ];
