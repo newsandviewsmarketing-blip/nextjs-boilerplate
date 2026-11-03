@@ -90,3 +90,32 @@ export async function uploadCareerPhotoAction(formData:FormData){
  revalidatePath('/career/cv');revalidatePath('/career/cv/print');
  redirect('/career/cv?message=Your%20private%20CV%20photograph%20is%20saved.');
 }
+
+
+/** Candidate-supplied follow-up log. External phone/WhatsApp messages are not automatically tracked. */
+export async function recordJobApplicationActivityAction(formData:FormData){
+ const identity=await getCurrentIdentity();
+ if(!identity)redirect("/login?next=/dashboard/career");
+ if(!identity.roles.some(role=>["candidate","professional","veterinarian"].includes(role)))
+  redirect("/dashboard/career?error="+encodeURIComponent("Career access required."));
+ const applicationId=String(formData.get("application_id")??"").trim();
+ const kind=String(formData.get("activity_type")??"").trim();
+ const direction=String(formData.get("direction")??"").trim();
+ const details=String(formData.get("details")??"").trim();
+ const allowed=["phone_call","message","interview","follow_up","note"];
+ if(!/^[a-f0-9-]{36}$/i.test(applicationId)||!allowed.includes(kind)||
+    !["received","sent","not_applicable"].includes(direction)||details.length<1||details.length>2000)
+  redirect("/dashboard/career?error="+encodeURIComponent("Choose an activity and enter a note (up to 2,000 characters)."));
+ const supabase=await createClient();
+ const {data:application,error:ownerError}=await supabase.from("job_applications")
+  .select("id").eq("id",applicationId).eq("candidate_user_id",identity.userId).maybeSingle();
+ if(ownerError||!application)
+  redirect("/dashboard/career?error="+encodeURIComponent("Application not found in your account."));
+ const {error}=await supabase.from("job_application_activity").insert({
+  application_id:applicationId,candidate_user_id:identity.userId,
+  activity_type:kind,direction,details
+ });
+ if(error)redirect("/dashboard/career?error="+encodeURIComponent("Could not save the activity. The timeline may not yet be enabled."));
+ revalidatePath("/dashboard/career");
+ redirect("/dashboard/career?message="+encodeURIComponent("Follow-up recorded privately in your application history."));
+}
