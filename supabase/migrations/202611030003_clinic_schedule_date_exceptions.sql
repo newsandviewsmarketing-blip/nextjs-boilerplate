@@ -6,6 +6,8 @@ create table if not exists public.clinic_schedule_exceptions (
   id uuid primary key default gen_random_uuid(),
   clinic_id uuid not null references public.clinics(id) on delete cascade,
   exception_date date not null,
+  repeat_monthly boolean not null default false,
+  repeat_until date,
   is_closed boolean not null default true,
   opens_at time,
   closes_at time,
@@ -19,6 +21,9 @@ create table if not exists public.clinic_schedule_exceptions (
   ),
   constraint clinic_schedule_exceptions_closed_no_booking check (
     not is_closed or appointment_enabled = false
+  ),
+  constraint clinic_schedule_exceptions_repeat_until check (
+    repeat_until is null or repeat_until>=exception_date
   ),
   constraint clinic_schedule_exceptions_reason_length check (
     reason is null or char_length(reason)<=160
