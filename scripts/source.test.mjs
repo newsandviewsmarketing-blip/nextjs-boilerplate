@@ -185,7 +185,9 @@ test("career workspace and veterinarian job application flow are active", () => 
   assert.match(career, /MY APPLICATIONS/);
   assert.match(career, /job_applications/);
   assert.match(jobs, /"veterinarian"/);
-  assert.match(jobs, /verification_status !== "approved"/);
+  assert.match(jobs, /matchingVerifiedAccountEmail/);
+  assert.match(jobs, /public_jobs/);
+  assert.match(jobs, /inspectCvFile/);
 });
 
 test("admin directory supports standardized filters and CSV export", () => {
