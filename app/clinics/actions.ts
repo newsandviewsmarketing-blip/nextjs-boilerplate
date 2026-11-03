@@ -135,13 +135,29 @@ export async function requestClinicAppointmentAction(
   if(exceptionError){
     redirect(`${path}?error=${encodeURIComponent("Clinic availability could not be checked for the selected date.")}`);
   }
-  if(exception?.is_closed){
+  // Recurring monthly exceptions apply on the same calendar day from their
+  // start date; a one-time exception for the selected date takes priority.
+  const {data:monthlyRows,error:monthlyError}=exception
+    ?{data:[],error:null}
+    :await supabase.from("clinic_schedule_exceptions")
+      .select("is_closed,opens_at,closes_at,appointment_enabled,exception_date,repeat_until")
+      .eq("clinic_id",clinicId).eq("repeat_monthly",true)
+      .lte("exception_date",preferredDate)
+      .order("exception_date",{ascending:false}).limit(100);
+  if(monthlyError){
+    redirect(`${path}?error=${encodeURIComponent("Recurring clinic availability could not be checked.")}`);
+  }
+  const monthlyException=(monthlyRows??[]).find(row=>
+    row.exception_date.slice(8,10)===preferredDate.slice(8,10)
+    &&(!row.repeat_until||preferredDate<=row.repeat_until));
+  const effectiveException=exception??monthlyException??null;
+  if(effectiveException?.is_closed){
     redirect(`${path}?error=${encodeURIComponent("The clinic is closed on this date. Please choose another day.")}`);
   }
-  const schedule=exception
-   ?{is_open:true,is_24_hours:false,opens_at:exception.opens_at,closes_at:exception.closes_at,
+  const schedule=effectiveException
+   ?{is_open:true,is_24_hours:false,opens_at:effectiveException.opens_at,closes_at:effectiveException.closes_at,
       break_start:null as string|null,break_end:null as string|null,
-      appointment_enabled:exception.appointment_enabled}
+      appointment_enabled:effectiveException.appointment_enabled}
    :availability;
   if (
     !schedule ||
