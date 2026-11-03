@@ -24,6 +24,12 @@ const SERVICE_GROUPS=[
   {title:"General clinical services",items:["Consultation","Vaccination","Diagnostics","Surgery","Preventive Care","Emergency Care","Biosecurity","Aquaculture Health","Laboratory Referral"]},
  ]},
 ] as const;
+const ANIMAL_GROUPS=[
+ {title:"Pets & companion animals",items:["Dogs","Cats","Rabbits","Pet Birds","Exotic Pets","Companion Animals"]},
+ {title:"Poultry production",items:["Poultry","Broiler Flocks","Layer Flocks","Breeder Flocks","Hatchery / Chicks"]},
+ {title:"Dairy, beef & small ruminants",items:["Cattle","Buffalo","Sheep","Goats","Dairy Cattle","Beef Cattle","Dairy Buffalo"]},
+ {title:"Equine & other animals",items:["Equine","Horses","Donkeys","Camelids","Fish / Aquaculture","Wildlife"]},
+] as const;
 type Tab="pet"|"poultry"|"livestock"|"equine"|"other"|"all";
 
 function CheckboxCard({label,kind,checked}:{label:string;kind:"services"|"species";checked:boolean}){
@@ -47,7 +53,10 @@ export default function ClinicFocusFields({services=[],species=[]}:Props){
    <div className="vcx-clinic-choice-title"><span className="vcx-clinic-choice-number">01</span><div><h4 id="clinic-species-title">Animals you care for</h4><p>Select one or more animal groups. You can change these later.</p></div></div>
    <fieldset className="vcx-clinic-focus">
     <legend className="vcx-visually-hidden">Animal groups and species served</legend>
-    <div className="vcx-clinic-focus-grid">{CLINIC_SPECIES.map(label=><CheckboxCard key={label} label={label} kind="species" checked={species.includes(label)}/>)}</div>
+    {ANIMAL_GROUPS.map(group=><div className="vcx-clinic-service-subgroup" key={group.title}>
+      <h6>{group.title}</h6>
+      <div className="vcx-clinic-focus-grid">{group.items.map(label=><CheckboxCard key={label} label={label} kind="species" checked={species.includes(label)}/>)}</div>
+    </div>)}
     <label htmlFor="clinic_species_extra">Other species (optional)</label>
     <input id="clinic_species_extra" name="species_extra" defaultValue={extras.species} maxLength={350} placeholder="e.g. Camel, exotic pets"/>
    </fieldset>
