@@ -9,13 +9,8 @@ export default function SectorJobSlider({jobs}:{jobs:CurrentJobSlide[]}){
  return <section aria-labelledby="current-jobs-title" className="current-jobs-panel">
   <div className="section-heading compact-heading">
    <span className="section-kicker">LATEST VERIFIED OPENINGS</span>
-   <h2 id="current-jobs-title">Current jobs by sector</h2>
-   <p>Only approved, published jobs with a current deadline and an approved sector are shown. No sample or expired vacancies.</p>
-  </div>
-  <div className="job-sector-filters" aria-label="Filter open jobs by sector">
-   {sectors.map(name=><button type="button" key={name}
-     className={"job-sector-pill"+(sector===name?" active":"")}
-     aria-pressed={sector===name} onClick={()=>setSector(name)}>{name}</button>)}
+   <h2 id="current-jobs-title">10 latest job opportunities</h2>
+   <p>The newest approved and published vacancies are shown first. Browse by sector below.</p>
   </div>
   {current.length===0?<div className="empty-state">No verified active jobs are currently available in this sector.</div>:
    <div className="current-jobs-track" role="region" aria-label="Current jobs, scroll horizontally">
@@ -27,6 +22,13 @@ export default function SectorJobSlider({jobs}:{jobs:CurrentJobSlide[]}){
       <Link className="button button-primary" href={"/jobs/"+j.slug}>View job & apply →</Link>
      </article>)}
    </div>}
+  <div className="section-heading compact-heading"><h3>Browse by sector</h3><p>Explore Poultry, Dairy, Livestock, Sales &amp; Marketing and other fields.</p></div>
+  <div className="job-sector-filters" aria-label="Filter open jobs by sector">
+   {sectors.map(name=><button type="button" key={name}
+     className={"job-sector-pill"+(sector===name?" active":"")}
+     aria-pressed={sector===name} onClick={()=>setSector(name)}>{name}</button>)}
+  </div>
+
   <div className="current-jobs-footer"><Link href="/jobs">Browse all available jobs →</Link></div>
  </section>;
 }
