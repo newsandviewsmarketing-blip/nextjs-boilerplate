@@ -403,13 +403,20 @@ export async function saveClinicScheduleExceptionAction(formData: FormData) {
   if(!isClosed&&(openMinutes===null||closeMinutes===null||openMinutes>=closeMinutes)){
     redirect(routeMessage(path,"error","Adjusted hours require valid opening and closing times."));
   }
+  const repeatMonthly=formData.get("repeat_monthly")==="on";
+  const repeatUntil=repeatMonthly?nullableText(formData,"repeat_until"):null;
+  if(repeatUntil){
+    const parsedUntil=/^\d{4}-\d{2}-\d{2}$/.test(repeatUntil)?new Date(repeatUntil+"T00:00:00Z"):null;
+    if(!parsedUntil||Number.isNaN(parsedUntil.getTime())||parsedUntil.toISOString().slice(0,10)!==repeatUntil||repeatUntil<date)
+      redirect(routeMessage(path,"error","Choose a valid monthly recurrence end date after the start date."));
+  }
   const reason=nullableText(formData,"reason");
   if(reason&&reason.length>160){
     redirect(routeMessage(path,"error","The closure or special-hours note must be 160 characters or fewer."));
   }
   const supabase=await createClient();
   const {error}=await supabase.from("clinic_schedule_exceptions").upsert({
-    clinic_id:clinicId,exception_date:date,is_closed:isClosed,
+    clinic_id:clinicId,exception_date:date,repeat_monthly:repeatMonthly,repeat_until:repeatUntil,is_closed:isClosed,
     opens_at:opens,closes_at:closes,reason,
     appointment_enabled:!isClosed&&formData.get("appointment_enabled")==="on"
   },{onConflict:"clinic_id,exception_date"});
