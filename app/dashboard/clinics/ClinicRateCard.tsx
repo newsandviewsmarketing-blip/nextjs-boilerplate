@@ -42,6 +42,16 @@ export default function ClinicRateCard({clinicId,catalogue,offerings,addAction,r
   const group=grouped.get(item.category)??[];
   group.push(item);grouped.set(item.category,group);
  }
+ const consultationModes=[
+  {key:"clinic",title:"At-clinic consultation",detail:"Physical examination at the clinic",category:"consultation"},
+  {key:"remote",title:"Remote / video consultation",detail:"Advice by call or video. No physical examination",category:"telemedicine"},
+  {key:"visit",title:"Home / farm visit",detail:"Field visits and travel charges may apply",category:"farm_service"}
+ ];
+ const offeringsByService=new Map(offerings.map(row=>[row.service_id,row]));
+ const consultationCards=consultationModes.map(mode=>{
+  const catalogueRow=catalogue.find(item=>item.category===mode.category);
+  return {...mode,offering:catalogueRow?offeringsByService.get(catalogueRow.id):undefined};
+ });
  const sorted=[...offerings].sort((a,b)=>{
   const aCategory=byId.get(a.service_id)?.category??"other";
   const bCategory=byId.get(b.service_id)?.category??"other";
@@ -51,9 +61,21 @@ export default function ClinicRateCard({clinicId,catalogue,offerings,addAction,r
  return <div className="vcx-rate-card-manager">
   <div className="vcx-rate-intro"><div><span className="section-kicker">CLINIC RATE CARD</span>
    <h2 id="clinic-services">Your services & consultation fees</h2>
-   <p>Add, update or remove services. Each service has its own quoted fee, duration and booking option. Start with your general consultation fee.</p></div>
+   <p>Set your basic consultation fee for clinic, remote and field visits separately. Extra tests and procedures can have individual optional rates.</p></div>
    <span className="vcx-rate-count">{sorted.length} services</span>
   </div>
+  <section className="vcx-consultation-modes" aria-label="General consultation types">
+   <h3>1. Basic consultation fees</h3>
+   <p>These are separately priced visit types, not a combined fee. Enter an amount only for the types you actually provide.</p>
+   <div className="vcx-consultation-mode-grid">
+    {consultationCards.map(mode=><div className="vcx-consultation-mode" key={mode.key}>
+     <strong>{mode.title}</strong>
+     <span>{mode.offering?feeLabel(mode.offering):"Not configured"}</span>
+     <small>{mode.detail}</small>
+    </div>)}
+   </div>
+  </section>
+  <h3 className="vcx-rate-extras-title">2. Services, procedures & additional fees</h3>
   {sorted.length>0?<div className="vcx-rate-list">
    {sorted.map(row=>{
     const details=byId.get(row.service_id);
@@ -83,7 +105,7 @@ export default function ClinicRateCard({clinicId,catalogue,offerings,addAction,r
    })}
   </div>:<div className="empty-state"><p>No rate card entries yet. Add a consultation or clinical service below.</p></div>}
   <details className="vcx-rate-add" open={sorted.length===0}>
-   <summary>+ Add a service & fee</summary>
+   <summary>+ Add consultation type or extra service</summary>
    <form action={addAction} className="vcx-rate-editor-form">
     <input type="hidden" name="clinic_id" value={clinicId}/>
     <label>Choose a service
@@ -98,6 +120,6 @@ export default function ClinicRateCard({clinicId,catalogue,offerings,addAction,r
     {submitButton}
    </form>
   </details>
-  <p className="form-help">Fees are estimates supplied by the clinic, not payments collected by VetConnect. Specialties in the profile are informational until they are available in the approved service catalogue. Booking requests depend on your published clinic hours and review status.</p>
+  <p className="form-help">Extra service charges may be additional to consultation fees. Explain what is included in each quote, and do not add the basic fee twice. Fees are estimates supplied by the clinic, not payments collected by VetConnect. Specialties in the profile are informational until they are available in the approved service catalogue. Booking requests depend on your published clinic hours and review status.</p>
  </div>;
 }
