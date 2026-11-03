@@ -4,12 +4,27 @@ import {CLINIC_SERVICES,CLINIC_SPECIES} from "@/lib/clinic-facility-options";
 
 type Props={services?:string[];species?:string[]};
 const SERVICE_GROUPS=[
- {id:"pet",title:"Pet & companion animal care",description:"Small-animal clinical care, diagnostics and preventive services",items:["Pet Medicine","Cat Medicine","Wellness Examination","Deworming & Parasite Control","Pet Dermatology","Pet Dentistry","Small Animal Internal Medicine","Diagnostic Imaging / Ultrasound","Pet Surgical Consultation","Behaviour & Welfare Advice","Bird & Exotic Pet Care"]},
- {id:"poultry",title:"Poultry & flock health",description:"Flock-level care, disease prevention and consultancy",items:["Poultry Health","Poultry Farm Consultancy","Flock Health Monitoring","Poultry Vaccination Planning","Poultry Disease Investigation","Feed & Flock Performance Review"]},
- {id:"livestock",title:"Livestock & farm practice",description:"Herd health, reproduction, nutrition and farm visits",items:["Livestock Herd Health","Mastitis & Udder Health","Herd Reproductive Health","Reproductive Services","Farm Visits","Farm Biosecurity Audit","Nutrition & Feed Advice"]},
- {id:"other",title:"General & specialized services",description:"Broader practice and referral options",items:["Consultation","Vaccination","Diagnostics","Surgery","Preventive Care","Emergency Care","Biosecurity","Aquaculture Health","Laboratory Referral"]},
+ {id:"pet",title:"Pet & companion animal practice",description:"Choose consultation, diagnostics, treatment or specialist referral services",sections:[
+  {title:"General & preventive pet care",items:["Pet Medicine","Cat Medicine","Wellness Examination","Deworming & Parasite Control","Behaviour & Welfare Advice","Pet Grooming / Hygiene Advice","Pet Microchipping","Bird & Exotic Pet Care"]},
+  {title:"Pet diagnostics & laboratory",items:["Diagnostic Imaging / Ultrasound","Pet Ultrasound","Pet X-ray / Radiography","Pet ECG","Pet Echocardiography","In-house Blood Tests","Clinical Pathology / Laboratory","External Laboratory Referral"]},
+  {title:"Pet treatments & clinical specialties",items:["Pet Dermatology","Pet Dentistry","Small Animal Internal Medicine","Pet Surgical Consultation","Pet Soft Tissue Surgery","Pet Spay / Neuter","Pet Ear Examination & Care","Pet Ophthalmology","Pet Orthopaedic Consultation","Pet Cardiology Consultation","Pet Neurology Consultation","Pet Physiotherapy / Rehabilitation"]},
+ ]},
+ {id:"poultry",title:"Poultry, breeder & hatchery practice",description:"Broiler, layer and breeder care with preventive flock health and management",sections:[
+  {title:"Flock & production consultancy",items:["Poultry Health","Broiler Farm Health","Layer Farm Health","Breeder Flock Health","Poultry Farm Consultancy","Flock Health Monitoring","Broiler Growth Performance Monitoring","Layer Egg Production Monitoring","Feed & Flock Performance Review"]},
+  {title:"Poultry disease, diagnostics & biosecurity",items:["Poultry Vaccination Planning","Poultry Disease Investigation","Poultry Necropsy & Sample Collection","Poultry Laboratory Testing","Hatchery Health & Hygiene"]},
+ ]},
+ {id:"livestock",title:"Livestock, dairy & farm practice",description:"Dairy, beef, farm herd health and reproductive support",sections:[
+  {title:"Herd & farm health",items:["Livestock Herd Health","Dairy Herd Health","Beef Cattle Health","Mastitis & Udder Health","Farm Visits","Farm Biosecurity Audit","Nutrition & Feed Advice"]},
+  {title:"Reproduction & diagnostics",items:["Herd Reproductive Health","Reproductive Services","Pregnancy Diagnosis","Artificial Insemination Services","Livestock Ultrasound","Livestock Laboratory Diagnostics"]},
+ ]},
+ {id:"equine",title:"Equine & field practice",description:"Horses and other equids, field visits and focused care",sections:[
+  {title:"Equine services",items:["Equine General Practice","Equine Lameness Assessment","Equine Dentistry","Equine Ultrasound","Equine Reproductive Services"]},
+ ]},
+ {id:"other",title:"General & shared services",description:"Only choose services actually available at this facility",sections:[
+  {title:"General clinical services",items:["Consultation","Vaccination","Diagnostics","Surgery","Preventive Care","Emergency Care","Biosecurity","Aquaculture Health","Laboratory Referral"]},
+ ]},
 ] as const;
-type Tab="pet"|"poultry"|"livestock"|"other"|"all";
+type Tab="pet"|"poultry"|"livestock"|"equine"|"other"|"all";
 
 function CheckboxCard({label,kind,checked}:{label:string;kind:"services"|"species";checked:boolean}){
  return <label className="vcx-clinic-focus-pill" key={label}>
@@ -38,16 +53,19 @@ export default function ClinicFocusFields({services=[],species=[]}:Props){
    </fieldset>
   </section>
   <section className="vcx-clinic-choice-section" aria-labelledby="clinic-services-title">
-   <div className="vcx-clinic-choice-title"><span className="vcx-clinic-choice-number">02</span><div><h4 id="clinic-services-title">Expertise & services</h4><p>Choose a practice focus to make the list easier to read. Selections in other categories remain saved.</p></div></div>
+   <div className="vcx-clinic-choice-title"><span className="vcx-clinic-choice-number">02</span><div><h4 id="clinic-services-title">Expertise & services</h4><p>Choose pet, poultry, livestock or equine services. Options in other categories remain selected when you switch tabs.</p></div></div>
    <div className="vcx-clinic-service-tabs" role="group" aria-label="Filter service categories">
-    {([{id:"pet",label:"Pets"},{id:"poultry",label:"Poultry"},{id:"livestock",label:"Livestock"},{id:"other",label:"General"},{id:"all",label:"All"}] as const).map(tab=>
+    {([{id:"pet",label:"Pets"},{id:"poultry",label:"Poultry"},{id:"livestock",label:"Livestock"},{id:"equine",label:"Equine"},{id:"other",label:"General"},{id:"all",label:"All"}] as const).map(tab=>
      <button key={tab.id} type="button" onClick={()=>setActive(tab.id)} aria-pressed={active===tab.id} className={active===tab.id?"is-active":""}>{tab.label}</button>)}
    </div>
    <fieldset className="vcx-clinic-focus">
     <legend className="vcx-visually-hidden">Choose expertise and services</legend>
     {SERVICE_GROUPS.map(group=><div key={group.id} className="vcx-clinic-service-group" style={{display:active==="all"||active===group.id?"block":"none"}}>
       <h5>{group.title}</h5><p>{group.description}</p>
-      <div className="vcx-clinic-focus-grid">{group.items.map(label=><CheckboxCard key={label} label={label} kind="services" checked={services.includes(label)}/>)}</div>
+      {group.sections.map(section=><div className="vcx-clinic-service-subgroup" key={section.title}>
+        <h6>{section.title}</h6>
+        <div className="vcx-clinic-focus-grid">{section.items.map(label=><CheckboxCard key={label} label={label} kind="services" checked={services.includes(label)}/>)}</div>
+      </div>)}
     </div>)}
     <label htmlFor="clinic_services_extra">Other expertise or service (optional)</label>
     <input id="clinic_services_extra" name="services_extra" defaultValue={extras.services} maxLength={350} placeholder="e.g. Equine field consultancy"/>
