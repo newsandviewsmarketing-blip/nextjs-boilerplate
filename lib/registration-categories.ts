@@ -150,8 +150,19 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     if(cities.length>20||cities.some(city=>!isPakistanLocation(city)))return {error:"Choose up to 20 clinic service cities from the Pakistan locations list.",data:{}};
     data.clinic_cities=cities;
   }else if(role==="company"){
-    for(const k of ["organization_name","company_type","company_registration_number","industry_sector"])
-      if(!required(k,180))return {error:"Company name, registration / NTN and business sector are required.",data:{}};
+    for(const k of ["organization_name","company_registration_number"])
+      if(!required(k,180))return {error:"Company name and registration / NTN are required.",data:{}};
+    const types=values(form,"company_types");
+    if(!types.length||types.length>17||types.some(x=>!clean(x,100)))
+      return {error:"Choose between 1 and 17 valid company activities.",data:{}};
+    const primary=field(form,"company_type"), sector=field(form,"industry_sector");
+    if(primary!==types[0]||sector!==types[0]||
+       values(form,"industry_sectors").join("|")!==types.join("|"))
+      return {error:"Company business activities do not match. Select them again.",data:{}};
+    data.company_type=types[0];
+    data.industry_sector=types[0];
+    data.company_types=types;
+    data.industry_sectors=types;
   }else if(role==="laboratory"){
     for(const k of ["organization_name","laboratory_type","laboratory_registration_number","tests_offered","lab_location"])
       if(!required(k,250))return {error:"Laboratory name, registration, services and address are required.",data:{}};
