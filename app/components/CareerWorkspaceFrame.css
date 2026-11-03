@@ -439,3 +439,17 @@
 .vcx-clinic-workflow-item strong{font-size:12px;color:#21385b}
 .vcx-clinic-workflow-item small{font-size:11px;line-height:1.5;color:#657993}
 @media(max-width:650px){.vcx-clinic-workflow{padding:14px}.vcx-clinic-workflow-grid{grid-template-columns:1fr}.vcx-clinic-workflow-heading{flex-wrap:wrap}}
+
+/* Holiday/date exception manager: keep normal clinic schedule compact. */
+.vcx-clinic-special-dates{display:grid;gap:14px;margin:16px 0}
+.vcx-special-date-records{display:grid;gap:8px}
+.vcx-special-date-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e2e8f2;background:#f8fafd;border-radius:10px;padding:12px;flex-wrap:wrap}
+.vcx-special-date-row strong{font-size:12px;color:#203b5f}
+.vcx-special-date-row p{font-size:11px;color:#637890;line-height:1.5;margin:5px 0 0}
+.vcx-special-date-add{border:1px solid #f2cda2;border-radius:10px;background:#fff9f1;padding:14px}
+.vcx-special-date-add summary{font-size:12px;color:#a65a11;cursor:pointer;font-weight:800}
+.vcx-special-date-form{display:grid;gap:12px;margin-top:13px;min-width:0}
+.vcx-special-date-form>label{display:grid;gap:6px;font-size:11px;font-weight:700}
+.vcx-special-date-form>label input{width:100%}
+.vcx-special-date-form .checkbox-line{display:flex;flex-direction:row;align-items:center;gap:8px;font-size:11px}
+.vcx-special-date-form input[type="checkbox"]{width:18px;height:18px;min-width:18px;min-height:18px;margin:0;accent-color:#f47a00}
