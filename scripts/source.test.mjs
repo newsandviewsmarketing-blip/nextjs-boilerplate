@@ -476,7 +476,7 @@ test("staff and employer job forms share optional multi-location territory data"
   assert.match(companyAction, /requireWorkspace\("jobs\.manage", formData\)/);
   assert.match(company, /coverage_display/);
   assert.match(publicJobs, /matchesJobLocation/);
-  assert.match(publicJobs, /locationSearchOptions\(\)/);
+  // Public filters offer locations found in published jobs, not every administrative subdivision.\n  assert.match(publicJobs, /jobs\.flatMap\(job/);\n  assert.doesNotMatch(publicJobs, /locationSearchOptions\(\)/);
   assert.match(locationLogic, /scope==="nationwide"/);
 });
 
