@@ -216,10 +216,10 @@ export default async function ClinicManagePage({
   // This page must remain readable if the additive migration has not run yet.
   const {data:exceptionRows,error:exceptionLoadError}=await supabase
     .from("clinic_schedule_exceptions")
-    .select("id,exception_date,is_closed,opens_at,closes_at,reason,appointment_enabled")
+    .select("id,exception_date,repeat_monthly,repeat_until,is_closed,opens_at,closes_at,reason,appointment_enabled")
     .eq("clinic_id",id).order("exception_date",{ascending:true}).limit(100);
   type ClinicDateException={
-    id:string;exception_date:string;is_closed:boolean;opens_at:string|null;
+    id:string;exception_date:string;repeat_monthly:boolean;repeat_until:string|null;is_closed:boolean;opens_at:string|null;
     closes_at:string|null;reason:string|null;appointment_enabled:boolean;
   };
   const exceptions=(exceptionRows??[]) as ClinicDateException[];
@@ -738,7 +738,7 @@ export default async function ClinicManagePage({
                  exceptions.map(row=><article className="vcx-special-date-row" key={row.id}>
                    <div><strong>{row.exception_date}</strong>
                     <p>{row.is_closed?"Closed / holiday":`Special hours: ${row.opens_at?.slice(0,5)}–${row.closes_at?.slice(0,5)}`}
-                      {row.reason?` · ${row.reason}`:""}</p>
+                      {row.reason?` · ${row.reason}`:""}{row.repeat_monthly?` · Repeats monthly${row.repeat_until?` until ${row.repeat_until}`:""}`:""}</p>
                    </div>
                    <form action={removeClinicScheduleExceptionAction}>
                     <input type="hidden" name="clinic_id" value={clinic.id}/>
@@ -762,6 +762,8 @@ export default async function ClinicManagePage({
                     <label>Special opening time (if adjusted)<input type="time" name="opens_at"/></label>
                     <label>Special closing time (if adjusted)<input type="time" name="closes_at"/></label>
                   </div>
+                  <label className="checkbox-line"><input type="checkbox" name="repeat_monthly"/>Repeat on this day of each month</label>
+                  <label>End monthly repetition (optional)<input type="date" name="repeat_until"/></label>
                   <label>Reason or notice (optional)<input name="reason" maxLength={160} placeholder="e.g. Public holiday, monthly stocktake"/></label>
                   <label className="checkbox-line"><input type="checkbox" name="appointment_enabled"/>Accept appointment requests on this special date (only when open)</label>
                   <FormSubmitButton pendingLabel="Saving special date...">Save special date</FormSubmitButton>
