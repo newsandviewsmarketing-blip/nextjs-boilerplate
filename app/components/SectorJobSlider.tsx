@@ -29,6 +29,6 @@ export default function SectorJobSlider({jobs}:{jobs:CurrentJobSlide[]}){
      aria-pressed={sector===name} onClick={()=>setSector(name)}>{name}</button>)}
   </div>
 
-  <div className="current-jobs-footer"><Link href="/jobs">Browse all available jobs →</Link></div>
+  <div className="current-jobs-footer"><Link href={sector==="All sectors"?"/jobs":"/jobs?sector="+encodeURIComponent(sector)+"#jobs"}>Browse all {sector==="All sectors"?"available":sector} jobs →</Link></div>
  </section>;
 }
