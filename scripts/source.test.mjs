@@ -527,7 +527,7 @@ test("CV applications require an owned saved CV or a builder snapshot",()=>{
  const employer=read("app/dashboard/company/page.tsx");
  const privateRoute=read("app/api/career/documents/[id]/route.ts");
  assert.match(page,/name="cv_choice"/);
- assert.match(page,/Create or edit CV/);
+ assert.match(page,/Upload a new CV with this application/);
  assert.match(apply,/professional_user_id",identity.userId/);
  assert.match(apply,/career_cv_profiles/);
  assert.match(apply,/cv_snapshot: snapshot/);
@@ -565,18 +565,20 @@ test("homepage job slider never displays mock expired or unapproved-sector jobs"
 });
 
 
-test("applicant eligibility guidance reflects role, profile review and existing applications",()=>{
+test("applicant eligibility permits direct CV submission without profile approval while retaining role restrictions",()=>{
  const page=read("app/jobs/[slug]/page.tsx");
  const actions=read("app/jobs/actions.ts");
  assert.match(page,/Job seeker account required/);
  assert.match(page,/Create job seeker account|Register a job seeker account/);
- assert.match(page,/Profile awaiting approval/);
- assert.match(page,/Profile needs corrections/);
- assert.match(page,/href="\/dashboard\/professional"/);
+ assert.doesNotMatch(page,/profileApproved/);
+ assert.match(page,/Upload a new CV with this application/);
  assert.match(page,/Application already submitted/);
- assert.match(page,/profileApproved && !hasApplied && hasCv/);
+ assert.match(page,/canApply && !hasApplied/);
  assert.match(page,/name="cv_choice"/);
  assert.match(actions,/This account cannot apply/);
+ assert.match(actions,/inspectCvFile/);
+ assert.match(actions,/owner_only/);
+ assert.doesNotMatch(actions,/careerProfile\?\.verification_status !== "approved"/);
 });
 
 test("all CV uploads and job applications require an authenticated verified account email",()=>{
