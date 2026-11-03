@@ -130,7 +130,7 @@ export default async function RegisterPage({
             <div className="section-heading">
               <span className="section-kicker">SELECTED REGISTRATION PATHWAY</span>
               <h2>{clinicIntent ? "Clinic / Veterinary Hospital" : roles.find(item=>item[0]===selectedRole)?.[1]} registration</h2>
-              <p>Only fields relevant to your category are shown. Choose another card above to change your registration pathway. After email confirmation, upload your CNIC and the documents required for this category to complete registration.</p>
+              <p>Only fields relevant to your category are shown. Choose another card above to change your registration pathway. After email confirmation, complete the documents and verification steps required for your category. Company management details can be added in the dashboard.</p>
             </div>
             <FormMessage error={params.error} message={params.message}/>
             <RegistrationPathwaySelect value={clinicIntent ? "clinic" : selectedRole}/>
@@ -138,10 +138,10 @@ export default async function RegisterPage({
             <input type="hidden" name="role" value={selectedRole}/>
             {clinicIntent&&<input type="hidden" name="registration_intent" value="clinic"/>}
             <div className="form-grid">
-              <div><label htmlFor="full_name">{clinicIntent?"Clinic owner / authorized representative *":"Full name *"}</label><input id="full_name" name="full_name" autoComplete="name" required maxLength={120}/></div>
-              <div><label htmlFor="email">Email address *</label><input id="email" name="email" type="email" autoComplete="email" required maxLength={254}/></div>
+              <div><label htmlFor="full_name">{clinicIntent?"Clinic owner / authorized representative *":selectedRole === "company"?"Authorized company representative *":"Full name *"}</label><input id="full_name" name="full_name" autoComplete="name" required maxLength={120}/></div>
+              <div><label htmlFor="email">{selectedRole === "company" && !clinicIntent ? "Official company email (registration & verification) *" : "Email address *"}</label><input id="email" name="email" type="email" autoComplete="email" required maxLength={254}/></div>
               <div><label htmlFor="phone">Phone number</label><input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={35}/></div>
-              <PakistanCityField id="city" name="city" label="City / town *" required/>
+              <PakistanCityField id="city" name="city" label="City / town *" required singleInput={selectedRole === "company" && !clinicIntent}/>
               <RegistrationDetails role={selectedRole} clinic={clinicIntent} key={clinicIntent ? "clinic" : selectedRole}/>
             </div>
             <p className="form-help">Email confirmation is the first step. Your registration remains incomplete until you upload your CNIC and category-specific identity, degree, licence, or business evidence. Files are collected in a private verification area and are not shown on public profiles.</p>
