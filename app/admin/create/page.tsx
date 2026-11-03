@@ -11,6 +11,7 @@ import JobMasterChoice from "../../components/JobMasterChoice";
 import PakistanLocationFields from "../../components/PakistanLocationFields";
 import AdminNav from "../components/AdminNav";
 import PersistentForm from "./PersistentForm";
+import CompanyProfileFields from "../../components/CompanyProfileFields";
 import JobTerritoryFields from "./JobTerritoryFields";
 import JobSubmissionReceipt from "../../components/JobSubmissionReceipt";
 import { requireAdminPermission } from "@/lib/admin";
@@ -91,19 +92,11 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create assisted profile</FormSubmitButton>
       </PersistentForm></>}
 
-      {kind === "company" && <PersistentForm className="profile-form" action={createCompanyAction} storageKey="vetconnect-admin-create-company" clearSaved={Boolean(params.message)}>
-        <div><label>Company name</label><input name="canonical_name" required /></div><MasterDataInput category="business_type" name="business_type" label="Business type" />
-        <div><label>Legal name</label><input name="legal_name" /></div><div><label>Trade name</label><input name="trade_name" /></div>
-        <div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div>
-        <div><label>Website</label><input name="website" /></div><div><label>Logo URL (optional fallback)</label><input name="logo_url" type="url" /></div>
-        <div><label>Upload company logo</label><input name="logo_file" type="file" accept="image/jpeg,image/png,image/webp" /></div>
-        <div><label>Registration / NTN evidence</label><input name="supporting_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /></div>
-        <PakistanLocationFields />
-        <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
-        <div className="form-span-2"><label>Description</label><textarea name="description" rows={4} /></div>
-        <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now" /> Approve and publish now (authorized directory admins only)</label>
-        <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create company</FormSubmitButton>
-      </PersistentForm>}
+      {kind === "company" && <form className="profile-form" action={createCompanyAction}>
+        <CompanyProfileFields mode="admin-create"/>
+        <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now"/> Approve and publish now (authorized directory admins only)</label>
+        <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create Company Profile</FormSubmitButton>
+      </form>}
 
       {kind === "clinic" && <PersistentForm className="profile-form" action={createClinicAction} storageKey="vetconnect-admin-create-clinic" clearSaved={Boolean(params.message)}>
         <div><label>Clinic / hospital name</label><input name="clinic_name" required /></div><MasterDataInput category="facility_type" name="facility_type" label="Facility type" defaultValue="Veterinary Clinic" />
