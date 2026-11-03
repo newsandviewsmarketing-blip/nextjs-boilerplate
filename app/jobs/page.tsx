@@ -41,11 +41,13 @@ async function loadJobs(): Promise<PublicJob[]> {
   const open=data.filter(x=>!x.deadline||x.deadline>=today);
   if(!open.length)return [];
   const ids = open.map(job => job.id).filter(Boolean) as string[];
-  const [{data: coverage}, {data: areas}] = await Promise.all([
+  const [{data: coverage}, {data: areas}, {data: posted}] = await Promise.all([
     supabase.from("job_coverage").select("job_id,scope,province,display_text").in("job_id",ids),
-    supabase.from("job_coverage_areas").select("job_id,label,city,district,province").in("job_id",ids)
+    supabase.from("job_coverage_areas").select("job_id,label,city,district,province").in("job_id",ids),
+    supabase.from("jobs").select("id,created_at").in("id",ids)
   ]);
-  return open.map(job => ({
+  const created = new Map((posted??[]).map(row=>[row.id,row.created_at]));
+  return open.sort((a,b)=>String(created.get(b.id)||"").localeCompare(String(created.get(a.id)||""))).map(job => ({
     ...job,
     sector: job.sector && valid.has(job.sector.toLowerCase()) ? job.sector : "Sector pending classification",
     coverage: coverage?.find(c => c.job_id===job.id) ?? null,
@@ -56,7 +58,7 @@ async function loadJobs(): Promise<PublicJob[]> {
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; city?: string; sector?: string }>;
+  searchParams: Promise<{ q?: string; city?: string; sector?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const jobs = await loadJobs();
@@ -68,10 +70,18 @@ export default async function JobsPage({
       matchesJobLocation(job, params.city ?? "") &&
       (!params.sector || params.sector==="All sectors" || job.sector===params.sector),
   );
+  const requestedPage = Math.max(1,Math.min(100,Number.parseInt(params.page??"1",10)||1));
+  const pageSize = 10;
+  const pages = Math.max(1,Math.ceil(visibleJobs.length/pageSize));
+  const page = Math.min(requestedPage,pages);
+  const shownJobs = visibleJobs.slice((page-1)*pageSize,page*pageSize);
+  const pageUrl=(next:number)=>"/jobs?"+new URLSearchParams({...(params.q?{q:params.q}:{}),...(params.city&&params.city!=="All cities"?{city:params.city}:{}),...(params.sector&&params.sector!=="All sectors"?{sector:params.sector}:{}),page:String(next)}).toString()+"#jobs";
   const cities = [...new Set([
     ...jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]),
   ].filter((name):name is string=>Boolean(name)))].sort((a,b)=>a.localeCompare(b));
   const sectors=[...new Set(jobs.map(j=>j.sector).filter((x):x is string=>Boolean(x)))].sort();
+  const preferredSectors=["Poultry","Dairy","Livestock","Sales & Marketing","Veterinary Services","Feed & Nutrition","Pharmaceutical / Industry","Animal Health","Fisheries / Aquaculture","Academia / Research","Laboratory / Diagnostics","Pets / Companion Animals","Agriculture","Food Safety","Wildlife / Conservation"];
+  const browseSectors=[...new Set([...preferredSectors,...sectors])];
   return (
     <main>
       <SiteHeader />
@@ -138,7 +148,7 @@ export default async function JobsPage({
         <div className="shell">
           <div className="directory-top">
             <div>
-              <b>{visibleJobs.length} opportunities</b>
+              <b>{visibleJobs.length} opportunities · Latest first</b>
               <span>Approved employer vacancies currently open for applications</span>
             </div>
             <form className="market-search" method="get">
@@ -172,10 +182,10 @@ export default async function JobsPage({
             </div>
           ) : (
             <div className="job-board">
-              {visibleJobs.map((job, index) => (
+              {shownJobs.map((job, index) => (
                 <article key={job.slug}>
                   <div className="job-logo">
-                    {String(index + 1).padStart(2, "0")}
+                    {String((page-1)*pageSize+index + 1).padStart(2, "0")}
                   </div>
                   <div className="job-main">
                     <span>{job.sector || "Animal health"}</span>
@@ -201,6 +211,20 @@ export default async function JobsPage({
               ))}
             </div>
           )}
+          {visibleJobs.length>pageSize&&<nav aria-label="Job results pages" className="job-sector-filters">
+            {page>1&&<Link className="button button-secondary" href={pageUrl(page-1)}>Previous</Link>}
+            <span>Page {page} of {pages}</span>
+            {page<pages&&<Link className="button button-secondary" href={pageUrl(page+1)}>Next 10 jobs</Link>}
+          </nav>}
+          <div className="section-heading compact-heading" id="jobs-by-sector">
+            <span className="section-kicker">EXPLORE BY SPECIALTY</span>
+            <h2>Browse jobs by sector</h2>
+            <p>Choose Poultry, Dairy, Livestock, Marketing or another field to view relevant vacancies.</p>
+          </div>
+          <nav className="job-sector-filters" aria-label="Browse jobs by sector">
+            <Link href="/jobs#jobs" className="job-sector-pill">All sectors ({jobs.length})</Link>
+            {browseSectors.map(name=><Link key={name} className={"job-sector-pill"+(params.sector===name?" active":"")} href={"/jobs?sector="+encodeURIComponent(name)+"#jobs"}>{name} ({jobs.filter(j=>j.sector===name).length})</Link>)}
+          </nav>
         </div>
       </section>
       <section className="section">
