@@ -5,12 +5,23 @@ import SiteFooter from "../components/SiteFooter";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { type PublicJob } from "@/lib/jobs";
-import { matchesJobLocation, locationSearchOptions } from "@/lib/job-location";
+import { matchesJobLocation } from "@/lib/job-location";
 
 export const metadata: Metadata = {
   title: "Veterinary Jobs in Pakistan",
   description: "Find veterinary, livestock, poultry, dairy, animal-health, feed and allied jobs in Pakistan.",
   alternates: { canonical: "/jobs" },
+  openGraph: {
+    title: "Veterinary & Animal Health Jobs in Pakistan | VetConnect",
+    description: "Find current veterinary, poultry, livestock, dairy, feed and animal-health opportunities across Pakistan.",
+    url: "/jobs",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Veterinary & Animal Health Jobs in Pakistan",
+    description: "Browse current veterinary and animal-health employment opportunities on VetConnect Pakistan.",
+  },
 };
 
 export const dynamic = "force-dynamic";
@@ -49,7 +60,8 @@ export default async function JobsPage({
 }) {
   const params = await searchParams;
   const jobs = await loadJobs();
-  const query = (params.q ?? "").toLowerCase();
+  const query = (params.q ?? "").trim().toLowerCase();
+  const hasFilters = Boolean(query || (params.city && params.city !== "All cities") || (params.sector && params.sector !== "All sectors"));
   const visibleJobs = jobs.filter(
     job => (!query || 
       [job.title,job.company_name,job.sector ?? "",job.coverage?.display_text ?? ""].join(" ").toLowerCase().includes(query)) &&
@@ -57,7 +69,6 @@ export default async function JobsPage({
       (!params.sector || params.sector==="All sectors" || job.sector===params.sector),
   );
   const cities = [...new Set([
-    ...locationSearchOptions(),
     ...jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]),
   ].filter((name):name is string=>Boolean(name)))].sort((a,b)=>a.localeCompare(b));
   const sectors=[...new Set(jobs.map(j=>j.sector).filter((x):x is string=>Boolean(x)))].sort();
@@ -78,7 +89,7 @@ export default async function JobsPage({
             </Link>
             <Link
               className="button button-secondary"
-              href="/login?next=/dashboard"
+              href={"/login?next=" + encodeURIComponent("/dashboard/company")}
             >
               Post a job
             </Link>
@@ -128,19 +139,23 @@ export default async function JobsPage({
           <div className="directory-top">
             <div>
               <b>{visibleJobs.length} opportunities</b>
-              <span>Verified, current and sector-classified employer job board</span>
+              <span>Approved employer vacancies currently open for applications</span>
             </div>
             <form className="market-search" method="get">
+              <label className="sr-only" htmlFor="jobs-search-query">Search by job title or company</label>
               <input
+                id="jobs-search-query"
                 name="q"
                 defaultValue={params.q ?? ""}
                 placeholder="Search role or company"
               />
-              <select name="city" defaultValue={params.city ?? "All cities"}>
+              <label className="sr-only" htmlFor="jobs-search-city">Location</label>
+              <select id="jobs-search-city" name="city" defaultValue={params.city ?? "All cities"}>
                 <option>All cities</option>
                 {cities.map((city) => <option key={city}>{city}</option>)}
               </select>
-              <select name="sector" defaultValue={params.sector??"All sectors"}>
+              <label className="sr-only" htmlFor="jobs-search-sector">Job sector</label>
+              <select id="jobs-search-sector" name="sector" defaultValue={params.sector??"All sectors"}>
                 <option>All sectors</option>
                 {sectors.map(sector=><option key={sector}>{sector}</option>)}
               </select>
@@ -151,8 +166,9 @@ export default async function JobsPage({
           </div>
           {visibleJobs.length === 0 ? (
             <div className="empty-state">
-              <h2>No jobs match this search.</h2>
-              <Link href="/jobs#jobs">Clear search</Link>
+              <h2>{hasFilters ? "No jobs match your search." : "No current vacancies are listed."}</h2>
+              <p>{hasFilters ? "Try removing a filter or searching another role or location." : "Employers can submit vacancies through their verified company workspace. Please check again for new opportunities."}</p>
+              {hasFilters ? <Link href="/jobs#jobs">Clear filters</Link> : <Link href="/login?next=%2Fdashboard%2Fcompany">Employer: post a job</Link>}
             </div>
           ) : (
             <div className="job-board">
@@ -169,7 +185,7 @@ export default async function JobsPage({
                     </p>
                     <div className="profile-chips">
                       <span>{job.employment_type}</span>
-                      <span>Profile matching</span>
+                      <span>Employer vacancy</span>
                     </div>
                   </div>
                   <div className="job-apply">
@@ -191,10 +207,9 @@ export default async function JobsPage({
         <div className="shell">
           <div className="section-heading">
             <span className="section-kicker">MATCHING LOGIC</span>
-            <h2>Job matching should be structured, not just a notice board.</h2>
+            <h2>Build a career profile and explore opportunities.</h2>
             <p>
-              Candidate profiles, employer requirements and application tracking
-              will share the same secure account system.
+              Browse current job advertisements, create your professional profile and manage your applications in your account.
             </p>
           </div>
           <div className="feature-columns">
