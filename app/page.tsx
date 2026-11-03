@@ -127,13 +127,13 @@ async function loadVerifiedCurrentJobs():Promise<CurrentJobSlide[]>{
  if(error||!listed?.length)return [];
  const approvedSectors=new Set((sectors??[]).map(s=>s.label.toLowerCase()));
  const today=new Date().toISOString().slice(0,10);
- const filtered=listed.filter(job=>job.sector&&approvedSectors.has(job.sector.toLowerCase())&&(!job.deadline||job.deadline>=today));
+ const filtered=listed.filter(job=>!job.deadline||job.deadline>=today);
  if(!filtered.length)return [];
  const {data:dates}=await supabase.from("jobs").select("id,created_at").in("id",filtered.map(j=>j.id));
  const timestamps=new Map((dates??[]).map(x=>[x.id,x.created_at]));
  return filtered.sort((a,b)=>String(timestamps.get(b.id)||"").localeCompare(String(timestamps.get(a.id)||"")))
   .slice(0,18).map(job=>({
-   id:job.id,slug:job.slug,title:job.title,sector:job.sector!,
+   id:job.id,slug:job.slug,title:job.title,sector:job.sector && approvedSectors.has(job.sector.toLowerCase()) ? job.sector : "Sector pending classification",
    company_name:job.company_name,location:job.city||job.province||"Pakistan",
    employment_type:job.employment_type
   }));
