@@ -31,9 +31,7 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
       {name:"Products & medicines",href:"/admin/products",permission:"products.manage"},
     ]},
     {title:"Jobs & HR",items:[
-      {name:"Job advertisements",href:"/admin/jobs",permission:"jobs.manage"},
-      {name:"Applications",href:"/admin/applications",permission:"jobs.manage"},
-      {name:"Job images",href:"/admin/jobs-media",permission:"jobs.manage"},
+      {name:"Jobs workspace",href:"/admin/jobs",permission:"jobs.manage"},
     ]},
     {title:"Approvals",items:[
       {name:"Profile & organization reviews",href:"/admin/reviews",permission:"profiles.review"},
