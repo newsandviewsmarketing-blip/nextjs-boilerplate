@@ -69,20 +69,6 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     : identity?.roles.includes("professional") ? "professional"
     : identity?.roles.includes("candidate") ? "candidate" : null;
   const canApply=Boolean(careerRole);
-  let profileStatus: string|null=null;
-  let profileExists=false;
-  if(identity && careerRole){
-    const supabase=await createClient();
-    const table=careerRole==="veterinarian"?"veterinarian_profiles":"professional_profiles";
-    const {data:profile,error:profileError}=await supabase.from(table)
-      .select("verification_status").eq("user_id",identity.userId).maybeSingle();
-    if(!profileError){
-      profileExists=Boolean(profile);
-      profileStatus=profile?.verification_status??null;
-    }
-  }
-  const profileApproved=canApply && profileStatus==="approved";
-  const hasCv=Boolean(builder?.full_name || (cvDocuments??[]).length>0);
   const closed=Boolean(job.deadline && job.deadline<new Date().toISOString().slice(0,10));
   const imageUrl=job.id && job.image_available ? "/api/jobs/"+job.id+"/advertisement":null;
   // Structured data is restricted to real, public, open jobs with a verified posting date.
@@ -125,6 +111,7 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     <section className="page-hero job-detail-hero"><div className="shell">
       <span className="section-kicker">{job.sector==="Punjab"?"VETERINARY CAREER":job.sector||"VETERINARY CAREER"}</span>
       <h1>{job.title}</h1>
+      <p><a href={absoluteUrl("/jobs/"+job.slug)} className="text-link">Job link: {absoluteUrl("/jobs/"+job.slug)}</a></p>
       <p>{job.company_name} • {job.coverage?.display_text || job.city || job.province || "Pakistan"} • {job.employment_type}</p>
       <div className="profile-chips">
         {job.minimum_qualification&&<span>{job.minimum_qualification}</span>}
@@ -169,7 +156,7 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
           <>
             {!identity && <div className="job-eligibility-box" role="status">
               <h3>Sign in to apply</h3>
-              <p>Login is mandatory to upload a CV and apply. Use your own verified email and approved career profile.</p>
+              <p>Sign in with your verified VetConnect account to choose a saved CV or upload a new one and apply.</p>
               <div className="job-cv-actions">
                 <Link className="button button-primary" href={"/login?next="+encodeURIComponent("/jobs/"+job.slug+"#apply-job")}>Sign in as a candidate</Link>
                 <Link className="button button-secondary" href="/register?role=candidate#registration">Create job seeker account</Link>
@@ -184,56 +171,39 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
                 <Link className="button button-secondary" href="/dashboard">Account dashboard</Link>
               </div>
             </div>}
-            {identity && canApply && !profileApproved && <div className="job-eligibility-box" role="status">
-              <h3>{!profileExists?"Complete your career profile":
-                profileStatus==="rejected"?"Profile needs corrections":
-                profileStatus==="pending"?"Profile awaiting approval":"Check profile verification"}</h3>
-              <p>{!profileExists?
-                "Save the required professional information so your profile can enter the VetConnect review process.":
-                profileStatus==="rejected"?
-                "Your profile requires changes before you can apply. Review the feedback in your professional workspace.":
-                "Your career profile must be approved by VetConnect before applications can be submitted."}</p>
-              <div className="job-cv-actions">
-                <Link className="button button-primary" href="/dashboard/professional">Complete / Review profile</Link>
-                <Link className="button button-secondary" href="/dashboard/career">View saved CVs</Link>
-              </div>
-            </div>}
-            {identity && profileApproved && hasApplied && <div className="job-eligibility-box" role="status">
+            {identity && canApply && hasApplied && <div className="job-eligibility-box" role="status">
               <h3>Application already submitted</h3>
-              <p>You have applied to this job. See its status and selected CV in your Career Workspace.</p>
+              <p>Your application is saved in VetConnect. See its status in your Career Workspace.</p>
               <Link className="button button-primary" href="/dashboard/career">View my applications</Link>
             </div>}
-            {identity && profileApproved && !hasApplied && !hasCv && <div className="job-eligibility-box" role="status">
-              <h3>Choose or create your CV</h3>
-              <p>Your profile is approved. Save a CV before submitting this application.</p>
+            {identity && canApply && !hasApplied && <>
+              <p>Apply with your saved VetConnect CV, a CV from your private library, or upload a new CV here.</p>
               <div className="job-cv-actions">
-                <Link className="button button-primary" href="/dashboard/career#my-cvs">Upload a CV</Link>
-                <Link className="button button-secondary" href="/dashboard/career/cv">Create / Edit CV</Link>
+                <Link className="button button-secondary" href="/dashboard/career#my-cvs">My CV library</Link>
+                <Link className="button button-secondary" href="/dashboard/career/cv">Build or edit CV</Link>
               </div>
-            </div>}
-            {identity && profileApproved && !hasApplied && hasCv && <>
-              <p>Select a saved CV or your VetConnect CV Builder profile. Your CV will accompany this job application.</p>
-              <div className="job-cv-actions">
-                <Link className="button button-secondary" href="/dashboard/career#my-cvs">Manage saved CVs</Link>
-                <Link className="button button-secondary" href="/dashboard/career/cv">Create or edit CV</Link>
-              </div>
-              <form action={applyToJobAction} className="job-application-form">
+              <form action={applyToJobAction} className="job-application-form" encType="multipart/form-data">
                 <input type="hidden" name="slug" value={job.slug}/>
                 <input type="hidden" name="job_id" value={job.id}/>
-                <label htmlFor="cv_choice">Select CV for this application *</label>
-                <select id="cv_choice" name="cv_choice" required defaultValue="">
-                  <option value="">Choose your CV</option>
+                <label htmlFor="cv_choice">Select your CV method *</label>
+                <select id="cv_choice" name="cv_choice" required defaultValue={!(builder?.full_name) && !(cvDocuments??[]).length ? "upload_cv" : ""}>
+                  <option value="">Choose saved CV or upload</option>
                   {builder?.full_name&&<option value="profile_cv">My VetConnect CV: {builder.full_name}</option>}
                   {(cvDocuments??[]).map((doc,index)=>
                     <option key={doc.id} value={"saved:"+doc.id}>Saved CV {index+1} · {new Date(doc.created_at).toLocaleDateString("en-PK")}{doc.is_current?" (Current)":""}</option>)}
+                  <option value="upload_cv">Upload a new CV with this application</option>
                 </select>
-                <label className="checkbox-line"><input type="checkbox" name="use_saved_letter"/>Use my saved cover letter instead of the note below</label><p className="form-help"><a href="/career/cover-letter" target="_blank" rel="noopener noreferrer">Review my cover letter for this employer</a> before selecting it. This is optional.</p><label htmlFor="cover_note">Short application note (optional)</label>
-                <textarea id="cover_note" name="cover_note" maxLength={3000}
-                  placeholder="Briefly explain your fit for this role."/>
+                <label htmlFor="job-cv-upload">New CV file (required only for Upload a new CV)</label>
+                <input id="job-cv-upload" name="cv_file" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"/>
+                <p className="form-help">PDF, Word, JPG or PNG; maximum 5 MB. Your CV is stored privately and shared only with authorized recruiting staff through VetConnect.</p>
+                <label className="checkbox-line"><input type="checkbox" name="use_saved_letter"/>Use my saved cover letter instead of the note below</label>
+                <p className="form-help"><Link href="/career/cover-letter">Review saved cover letter</Link> before selecting it.</p>
+                <label htmlFor="cover_note">Short application note (optional)</label>
+                <textarea id="cover_note" name="cover_note" maxLength={3000} placeholder="Briefly explain your interest in this role."/>
                 <label htmlFor="apply_confirm_email">Confirm your verified VetConnect login email *</label>
                 <input id="apply_confirm_email" type="email" name="confirm_email" autoComplete="email" required maxLength={254} placeholder={identity.email||"Verified account email"}/>
-                <p className="form-help">Enter your own registered account email. Other addresses are not accepted.</p>
-                <FormSubmitButton pendingLabel="Submitting application...">Submit application with CV</FormSubmitButton>
+                <p className="form-help">The application is recorded first; an email notice is then sent to the approved employer contact when email delivery is configured. No CV is attached to email.</p>
+                <FormSubmitButton pendingLabel="Submitting application...">Apply now with CV</FormSubmitButton>
               </form>
             </>}
             {identity && <form action={toggleSavedJobAction} className="save-job-form">
