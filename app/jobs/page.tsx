@@ -142,19 +142,19 @@ export default async function JobsPage({
               <span>Approved employer vacancies currently open for applications</span>
             </div>
             <form className="market-search" method="get">
-              <label className="sr-only" htmlFor="jobs-search-query">Search by job title or company</label>
+              <label className="builder-sr-only" htmlFor="jobs-search-query">Search by job title or company</label>
               <input
                 id="jobs-search-query"
                 name="q"
                 defaultValue={params.q ?? ""}
                 placeholder="Search role or company"
               />
-              <label className="sr-only" htmlFor="jobs-search-city">Location</label>
+              <label className="builder-sr-only" htmlFor="jobs-search-city">Location</label>
               <select id="jobs-search-city" name="city" defaultValue={params.city ?? "All cities"}>
                 <option>All cities</option>
                 {cities.map((city) => <option key={city}>{city}</option>)}
               </select>
-              <label className="sr-only" htmlFor="jobs-search-sector">Job sector</label>
+              <label className="builder-sr-only" htmlFor="jobs-search-sector">Job sector</label>
               <select id="jobs-search-sector" name="sector" defaultValue={params.sector??"All sectors"}>
                 <option>All sectors</option>
                 {sectors.map(sector=><option key={sector}>{sector}</option>)}
