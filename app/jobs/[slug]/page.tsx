@@ -67,7 +67,7 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     : {data:null};
   const {data:employerContact}=job.company_id ? await (await createClient()).from("companies").select("public_phone,verification_status,is_published").eq("id",job.company_id).maybeSingle() : {data:null};
   const publicPhone=employerContact?.verification_status==="approved" && employerContact?.is_published ? employerContact.public_phone : null;
-  const callNumber=publicPhone?.replace(/[^+0-9]/g,"")||"";
+  const callNumber=publicPhone?.split(/[–—]/)[0].replace(/[^+0-9]/g,"")||"";
   const canonicalJobUrl=absoluteUrl("/jobs/"+job.slug);
   const shareText=job.title+" at "+job.company_name;
   const whatsappHref="https://wa.me/?text="+encodeURIComponent(shareText+" "+canonicalJobUrl);
