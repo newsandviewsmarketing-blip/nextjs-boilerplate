@@ -127,10 +127,26 @@ export async function requestClinicAppointmentAction(
     );
   }
 
+  // Date-specific closures or adjusted hours override the regular weekly schedule.
+  const {data:exception,error:exceptionError}=await supabase
+    .from("clinic_schedule_exceptions")
+    .select("is_closed,opens_at,closes_at,appointment_enabled")
+    .eq("clinic_id",clinicId).eq("exception_date",preferredDate).maybeSingle();
+  if(exceptionError){
+    redirect(`${path}?error=${encodeURIComponent("Clinic availability could not be checked for the selected date.")}`);
+  }
+  if(exception?.is_closed){
+    redirect(`${path}?error=${encodeURIComponent("The clinic is closed on this date. Please choose another day.")}`);
+  }
+  const schedule=exception
+   ?{is_open:true,is_24_hours:false,opens_at:exception.opens_at,closes_at:exception.closes_at,
+      break_start:null as string|null,break_end:null as string|null,
+      appointment_enabled:exception.appointment_enabled}
+   :availability;
   if (
-    !availability ||
-    !availability.is_open ||
-    !availability.appointment_enabled
+    !schedule ||
+    !schedule.is_open ||
+    !schedule.appointment_enabled
   ) {
     redirect(
       `${path}?error=${encodeURIComponent(
@@ -139,12 +155,12 @@ export async function requestClinicAppointmentAction(
     );
   }
 
-  if (!availability.is_24_hours) {
-    const openMinutes = availability.opens_at
-      ? timeToMinutes(availability.opens_at)
+  if (!schedule.is_24_hours) {
+    const openMinutes = schedule.opens_at
+      ? timeToMinutes(schedule.opens_at)
       : null;
-    const closeMinutes = availability.closes_at
-      ? timeToMinutes(availability.closes_at)
+    const closeMinutes = schedule.closes_at
+      ? timeToMinutes(schedule.closes_at)
       : null;
 
     if (
@@ -160,12 +176,12 @@ export async function requestClinicAppointmentAction(
       );
     }
 
-    if (availability.break_start && availability.break_end) {
+    if (schedule.break_start && schedule.break_end) {
       const breakStart = timeToMinutes(
-        availability.break_start,
+        schedule.break_start,
       );
       const breakEnd = timeToMinutes(
-        availability.break_end,
+        schedule.break_end,
       );
 
       if (
