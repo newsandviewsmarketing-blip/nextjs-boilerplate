@@ -5,7 +5,7 @@ import AdminNav from "../components/AdminNav";
 import {requireAdminPermission,getEffectiveAdminPermissions} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
 export const dynamic="force-dynamic";
-type Params={q?:string;status?:string};
+type Params={q?:string;status?:string;job_id?:string};
 type AppRow={id:string;job_id:string;candidate_user_id:string;status:string;applied_at:string};
 export default async function AdminApplicationsPage({searchParams}:{searchParams:Promise<Params>}){
   const params=await searchParams;
@@ -18,13 +18,13 @@ export default async function AdminApplicationsPage({searchParams}:{searchParams
   const {data:jobRows}=jobIds.length?await supabase.from("jobs").select("id,title").in("id",jobIds):{data:[]};
   const names=new Map((jobRows??[]).map(r=>[r.id,r.title]));
   const term=(params.q??"").trim().toLowerCase();
-  const visible=applications.filter(item=>(!term || (names.get(item.job_id)||"").toLowerCase().includes(term) || item.id.toLowerCase().includes(term)) && (!params.status || params.status==="all" || item.status===params.status));
+  const visible=applications.filter(item=>(!params.job_id || item.job_id===params.job_id) && (!term || (names.get(item.job_id)||"").toLowerCase().includes(term) || item.id.toLowerCase().includes(term)) && (!params.status || params.status==="all" || item.status===params.status));
   return <main className="vc-admin-page"><SiteHeader/>
     <section className="vc-admin-banner"><div className="shell"><span className="section-kicker">RECRUITMENT OPERATIONS</span><h1>Job applications</h1><p>Recent applications and employer recruitment references, subject to authorized access.</p></div></section>
     <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout"><div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
       <div className="admin-control-content vc-admin-main"><section className="vc-admin-panel">
-        <div className="vc-panel-header"><div><h2>Applications register</h2><p>Latest 200 accessible applications. Applicant CV access remains restricted to the correct employer or another explicitly authorized role.</p></div></div>
-        <form method="get" className="vc-admin-filter-row"><div><label htmlFor="app-search">Search job or reference</label><input id="app-search" name="q" defaultValue={params.q??""}/></div>
+        <div className="vc-panel-header"><div><h2>Applications register</h2><p>Latest 200 accessible applications. Applicant CV access remains restricted to the correct employer or another explicitly authorized role.</p>{params.job_id&&<p>Filtering by job record · <Link href="/admin/applications">Show all applications</Link></p>}</div></div>
+        <form method="get" className="vc-admin-filter-row">{params.job_id&&<input type="hidden" name="job_id" value={params.job_id}/>}<div><label htmlFor="app-search">Search job or reference</label><input id="app-search" name="q" defaultValue={params.q??""}/></div>
           <div><label htmlFor="app-status">Status</label><select id="app-status" name="status" defaultValue={params.status??"all"}><option value="all">All statuses</option><option value="applied">Applied</option><option value="reviewing">Reviewing</option><option value="shortlisted">Shortlisted</option><option value="rejected">Rejected</option></select></div><button className="button button-primary">Filter</button><Link href="/admin/applications">Clear</Link>
         </form>
         {error?<p role="alert">Applications could not be loaded.</p>:<div className="admin-directory-table-wrap"><table className="admin-directory-table"><thead><tr><th>Applied</th><th>Job</th><th>Application ID</th><th>Status</th><th>Record</th></tr></thead>
