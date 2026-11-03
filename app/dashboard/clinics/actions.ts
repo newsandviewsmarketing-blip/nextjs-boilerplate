@@ -381,6 +381,57 @@ export async function saveClinicAvailabilityAction(
   );
 }
 
+export async function saveClinicScheduleExceptionAction(formData: FormData) {
+  const clinicId=text(formData,"clinic_id");
+  const path=`/dashboard/clinics/${clinicId}`;
+  await requireClinicUser(path);
+  const date=text(formData,"exception_date");
+  const valid=/^\d{4}-\d{2}-\d{2}$/.test(date);
+  const parsed=valid?new Date(date+"T00:00:00Z"):null;
+  if(!parsed||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==date){
+    redirect(routeMessage(path,"error","Enter a valid exception date."));
+  }
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Karachi",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  if(date<today){
+    redirect(routeMessage(path,"error","Add today or a future date for a clinic closure or schedule change."));
+  }
+  const isClosed=text(formData,"schedule_type")!=="adjusted";
+  const opens=isClosed?null:nullableText(formData,"opens_at");
+  const closes=isClosed?null:nullableText(formData,"closes_at");
+  const openMinutes=opens?timeToMinutes(opens):null;
+  const closeMinutes=closes?timeToMinutes(closes):null;
+  if(!isClosed&&(openMinutes===null||closeMinutes===null||openMinutes>=closeMinutes)){
+    redirect(routeMessage(path,"error","Adjusted hours require valid opening and closing times."));
+  }
+  const reason=nullableText(formData,"reason");
+  if(reason&&reason.length>160){
+    redirect(routeMessage(path,"error","The closure or special-hours note must be 160 characters or fewer."));
+  }
+  const supabase=await createClient();
+  const {error}=await supabase.from("clinic_schedule_exceptions").upsert({
+    clinic_id:clinicId,exception_date:date,is_closed:isClosed,
+    opens_at:opens,closes_at:closes,reason,
+    appointment_enabled:!isClosed&&formData.get("appointment_enabled")==="on"
+  },{onConflict:"clinic_id,exception_date"});
+  if(error)redirect(routeMessage(path,"error",error.message));
+  revalidatePath(path);revalidatePath("/clinics");
+  redirect(routeMessage(path,"message","Special date saved. Weekly opening hours remain unchanged."));
+}
+
+export async function removeClinicScheduleExceptionAction(formData:FormData){
+  const clinicId=text(formData,"clinic_id");
+  const path=`/dashboard/clinics/${clinicId}`;
+  await requireClinicUser(path);
+  const exceptionId=text(formData,"exception_id");
+  if(!exceptionId)redirect(routeMessage(path,"error","Choose a valid scheduled exception."));
+  const supabase=await createClient();
+  const {error}=await supabase.from("clinic_schedule_exceptions")
+    .delete().eq("id",exceptionId).eq("clinic_id",clinicId);
+  if(error)redirect(routeMessage(path,"error",error.message));
+  revalidatePath(path);revalidatePath("/clinics");
+  redirect(routeMessage(path,"message","Special date removed. Normal weekly hours apply."));
+}
+
 export async function uploadClinicMediaAction(
   formData: FormData,
 ) {
