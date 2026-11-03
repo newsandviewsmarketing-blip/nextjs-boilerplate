@@ -304,11 +304,12 @@
 .vcx-clinic-focus legend{font-size:14px;font-weight:800;color:#172d55;padding:0 7px}
 .vcx-clinic-focus .form-help{margin:0 0 13px;font-size:12px}
 .vcx-clinic-focus-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 15px}
-.vcx-clinic-focus-pill{display:flex;gap:9px;align-items:center;cursor:pointer;min-width:0;min-height:43px;
+.vcx-clinic-focus-pill{display:flex;flex-direction:row;gap:9px;align-items:center;cursor:pointer;min-width:0;min-height:43px;margin:0;
  background:#f7f9fd;border:1px solid #dfe7f1;border-radius:10px;padding:8px 10px;font-size:11px;line-height:1.45;color:#203757}
 .vcx-clinic-focus-pill:has(input:checked){background:#fff0e3;border-color:#f9bf87;color:#924a08}
-.vcx-clinic-focus-pill input{accent-color:#f27606;flex:0 0 auto}
-.vcx-clinic-focus-pill span{overflow-wrap:anywhere}
+.vcx-clinic-focus-pill input[type="checkbox"]{display:block;width:18px;min-width:18px;max-width:18px;height:18px;min-height:18px;flex:0 0 18px;margin:0;padding:0;border-radius:4px;accent-color:#f27606;box-shadow:none}
+.vcx-clinic-focus-pill span{display:block;flex:1 1 auto;min-width:0;overflow-wrap:anywhere;white-space:normal}
+.vcx-clinic-focus-pill:focus-within{outline:2px solid #eb9c42;outline-offset:2px}
 .vcx-clinic-focus>label[for]{display:block;font-size:11px;font-weight:750;margin:10px 0 7px}
 .vcx-clinic-focus>input{max-width:100%}
 .vcx-clinic-next-step{border:1px solid #d7e3f3;background:#f4f8ff;border-radius:12px;padding:16px}
