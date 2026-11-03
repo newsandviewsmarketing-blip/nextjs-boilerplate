@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin";
 import {registrationExtraFields,PRACTICE_AREAS,SPECIALIZATIONS} from "@/lib/registration-categories";
 import { createClient } from "@/lib/supabase/server";
+import { saveCompanySupplement, companyDescriptionFromForm, companyContactsFromForm, companyPresentationFromForm, safeWebsite } from "@/lib/company-profile-editor";
 import {
   recordUploadedDocument,
   uploadPrivateDocument,
@@ -116,24 +117,46 @@ export async function createCompanyAction(formData: FormData) {
   const identity = await requireAdminPermission("companies.create", "/admin/create?type=company");
   const publish = formData.get("publish_now") === "on";
   if (publish) await requireAdminPermission("directories.manage", "/admin/create?type=company");
-  const name = text(formData,"canonical_name");
+  const name = text(formData, "canonical_name");
   if (!name) createError("company", "Company name is required.");
+  let description: string, website: string | null, maps: string | null, logoFallback: string | null, cover: string | null;
+  try {
+    description = companyDescriptionFromForm(formData);
+    companyPresentationFromForm(formData);
+    companyContactsFromForm(formData);
+    website = safeWebsite(formData,"website");
+    maps = safeWebsite(formData,"google_maps_url");
+    logoFallback = safeWebsite(formData,"logo_url");
+    cover = safeWebsite(formData,"cover_image_url");
+  } catch (error) {
+    createError("company", error instanceof Error ? error.message : "Invalid company details.");
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.from("companies").insert({
     canonical_name: name, legal_name: optional(formData,"legal_name"), trade_name: optional(formData,"trade_name"), slug: uniqueSlug(name),
-    business_type: optional(formData,"business_type"), description: optional(formData,"description"), province: optional(formData,"province"), district: optional(formData,"district"), tehsil: optional(formData,"tehsil"), city: optional(formData,"city"), address: optional(formData,"address"), public_phone: optional(formData,"public_phone"), public_email: optional(formData,"public_email"), website: optional(formData,"website"), google_maps_url: optional(formData,"google_maps_url"), logo_url: optional(formData,"logo_url"),
-    verification_status: publish ? "approved" : "pending", is_published: publish, created_by: identity.userId, verified_by: publish ? identity.userId : null, verified_at: publish ? new Date().toISOString() : null,
+    business_type: optional(formData,"business_type"), registration_number: optional(formData,"registration_number"),
+    description, province: optional(formData,"province"), district: optional(formData,"district"), tehsil: optional(formData,"tehsil"),
+    city: optional(formData,"city"), address: optional(formData,"address"),
+    public_phone: optional(formData,"public_phone"), public_email: optional(formData,"public_email"),
+    website, google_maps_url:maps, logo_url:logoFallback, cover_image_url:cover,
+    verification_status: publish ? "approved" : "pending", is_published: publish,
+    created_by: identity.userId, verified_by: publish ? identity.userId : null,
+    verified_at: publish ? new Date().toISOString() : null,
   }).select("id").single();
   if (error || !data) createError("company", error?.message ?? "Could not create company.");
   try {
+    await saveCompanySupplement(supabase,String(data.id),formData);
     const logoUrl = await uploadPublicImage(supabase, uploadedFile(formData, "logo_file"), identity.userId, "company");
-    if (logoUrl) await supabase.from("companies").update({ logo_url: logoUrl }).eq("id", data.id);
+    if (logoUrl) {
+      const {error:logoError}=await supabase.from("companies").update({logo_url:logoUrl}).eq("id",data.id);
+      if (logoError) throw logoError;
+    }
     await saveDocument(formData, "supporting_document", "company_registration_evidence", "company", String(data.id), identity.userId, supabase);
   } catch (uploadError) {
-    createError("company", `Company saved, but upload failed: ${uploadError instanceof Error ? uploadError.message : "Unknown upload error"}`);
+    createError("company", "Company created, but additional details need attention. Record ID: "+data.id+"; "+(uploadError instanceof Error ? uploadError.message : "Unknown save error"));
   }
   revalidatePath("/admin/directory"); revalidatePath("/companies");
-  redirect("/admin/create?type=company&message=Company%20record%20created.");
+  redirect("/admin/directory/company/"+data.id+"?message=Company%20record%20created.");
 }
 
 export async function createClinicAction(formData: FormData) {
