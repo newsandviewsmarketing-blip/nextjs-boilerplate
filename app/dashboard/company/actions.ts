@@ -5,6 +5,8 @@ import {proposeJobMasterTerms,emailJobReviewNotice} from "@/lib/job-review-helpe
 import {jobAdvertFile,saveJobAdvertImage} from "@/lib/job-advert-image";
 
 import { randomUUID } from "node:crypto";
+import { companyContactsFromForm, companyPresentationFromForm, companyCoreFromForm, saveCompleteCompanyProfile } from "@/lib/company-profile-editor";
+import { uploadPublicImage, uploadedFile } from "@/lib/admin-uploads";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -87,73 +89,27 @@ async function requireWorkspace(permission: CompanyPermission, formData: FormDat
 }
 
 export async function updateCompanyProfileAction(formData: FormData) {
-  const { supabase, workspace } = await requireWorkspace("company.manage", formData);
-
-  const companyName = requireText(formData, "company_name", "Company name");
-  const yearEstablishedRaw = value(formData, "year_established");
-  const yearEstablished = yearEstablishedRaw
-    ? Number.parseInt(yearEstablishedRaw, 10)
-    : null;
-
-  if (
-    yearEstablished !== null &&
-    (!Number.isInteger(yearEstablished) ||
-      yearEstablished < 1800 ||
-      yearEstablished > new Date().getFullYear())
-  ) {
-    redirect(message("error", "Enter a valid year established."));
+  const { identity, supabase, workspace } = await requireWorkspace("company.manage", formData);
+  const target = COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id);
+  // Validate first; no database writes on invalid public or private form fields.
+  try {
+    companyCoreFromForm(formData,"company_name");
+    companyPresentationFromForm(formData);
+    companyContactsFromForm(formData);
+  } catch(error) {
+    redirect(target+"&error="+encodeURIComponent(error instanceof Error ? error.message : "Invalid company profile."));
   }
-
-  const { error } = await supabase
-    .from("company_profiles")
-    .update({
-      company_name: companyName,
-      legal_name: value(formData, "legal_name") || null,
-      trade_name: value(formData, "trade_name") || null,
-      business_type: value(formData, "business_type") || null,
-      registration_number: value(formData, "registration_number") || null,
-      owner_name: value(formData, "owner_name") || null,
-      chief_executive_name: value(formData, "chief_executive_name") || null,
-      year_established: yearEstablished,
-      country: value(formData, "country") || "Pakistan",
-      city: value(formData, "city") || null,
-      address: value(formData, "address") || null,
-      description: value(formData, "description") || null,
-      short_description: value(formData, "short_description") || null,
-      website: value(formData, "website") || null,
-      contact_email: value(formData, "contact_email") || null,
-      logo_url: value(formData, "logo_url") || null,
-      cover_image_url: value(formData, "cover_image_url") || null,
-    })
-    .eq("user_id", workspace.legacy_company_user_id);
-
-  if (error) {
-    redirect(message("error", error.message));
+  let uploadedLogo: string | null = null;
+  try {
+    uploadedLogo = await uploadPublicImage(supabase,uploadedFile(formData,"logo_file"),identity.userId,"company");
+    await saveCompleteCompanyProfile(supabase,workspace.company_id,formData,"company_name",uploadedLogo);
+  } catch(error) {
+    redirect(target+"&error="+encodeURIComponent(error instanceof Error ? error.message : "Company update failed."));
   }
-
-  const { error: canonicalError } = await supabase
-    .from("companies")
-    .update({
-      canonical_name: companyName,
-      legal_name: value(formData, "legal_name") || null,
-      trade_name: value(formData, "trade_name") || null,
-      business_type: value(formData, "business_type") || null,
-      registration_number: value(formData, "registration_number") || null,
-      city: value(formData, "city") || null,
-      address: value(formData, "address") || null,
-      description: value(formData, "description") || null,
-      website: value(formData, "website") || null,
-      public_email: value(formData, "contact_email") || null,
-      logo_url: value(formData, "logo_url") || null,
-      cover_image_url: value(formData, "cover_image_url") || null,
-    })
-    .eq("id", workspace.company_id);
-  if (canonicalError) {
-    redirect(message("error", canonicalError.message));
-  }
-
   revalidatePath(COMPANY_PATH);
-  redirect(COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id)+"&message="+encodeURIComponent("Company profile saved successfully."));
+  revalidatePath("/companies");
+  revalidatePath("/companies/"+workspace.company_id);
+  redirect(target+"&message="+encodeURIComponent("Company profile and private management records saved."));
 }
 
 export async function createProductAction(formData: FormData) {
