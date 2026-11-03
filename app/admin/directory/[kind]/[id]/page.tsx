@@ -96,7 +96,7 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
         </div>)}</div>:<p>No staff-managed attachments are linked to this record. Media supplied through other owner workflows may be stored separately.</p>}
       </section>
       <section className="vc-admin-panel" id="record-actions"><div className="vc-panel-header"><div><span className="section-kicker">EDITORIAL CONTROL</span><h2>Edit, review and manage</h2></div></div>
-        {canEdit&&<details className="vc-editor-action" open><summary>Edit this {kind.replaceAll("_"," ")} record</summary>
+        {canEdit&&kind!=="company"&&<details className="vc-editor-action" open><summary>Edit this {kind.replaceAll("_"," ")} record</summary>
           <form action={correctDirectoryRecordAction} className="vc-editor-form"><input type="hidden" name="record_kind" value={kind}/><input type="hidden" name="record_id" value={id}/>
           {primary.map(field=><div key={field}><label htmlFor={`dir-${field}`}>{field.replaceAll("_"," ")}</label>
              {field==="description"||field==="public_summary"?<textarea id={`dir-${field}`} name={field} maxLength={1800} defaultValue={String(data[field]??"")}/>:<input id={`dir-${field}`} name={field} maxLength={250} defaultValue={String(data[field]??"")}/>}
