@@ -275,6 +275,38 @@ export default async function ClinicManagePage({
          <Link className="vcx-button vcx-button-outline" href="/career/connections">All my connections</Link>
         </div>
        </div>
+       <section className="vcx-clinic-workflow" aria-label="Clinic setup progress">
+        <div className="vcx-clinic-workflow-heading">
+          <div><span className="vcx-eyebrow">NEXT STEPS</span><h2>Set up your practice for bookings and public listing</h2>
+          <p>Complete your service details, opening hours and team information. The public listing is enabled only after VetConnect approval.</p></div>
+          <span className="vcx-clinic-workflow-count">{[
+            Boolean(clinic.clinic_name && clinic.city && clinic.address),
+            availability.some(day=>day.is_open),
+            clinicServices.some(service=>service.is_active&&service.is_public),
+            clinic.verification_status==="approved"&&clinic.is_published
+          ].filter(Boolean).length} / 4 steps</span>
+        </div>
+        <div className="vcx-clinic-workflow-grid">
+          <a href="#clinic-identity" className="vcx-clinic-workflow-item">
+            <span className="vcx-clinic-workflow-number">01</span><strong>Clinic details</strong>
+            <small>{clinic.clinic_name && clinic.city && clinic.address?"Basic details entered":"Complete location and identity"}</small>
+          </a>
+          <a href="#clinic-hours" className="vcx-clinic-workflow-item">
+            <span className="vcx-clinic-workflow-number">02</span><strong>Timings & slots</strong>
+            <small>{availability.some(day=>day.is_open)?"Opening days saved":"Set weekdays, breaks and booking slots"}</small>
+          </a>
+          <a href="#clinic-services" className="vcx-clinic-workflow-item">
+            <span className="vcx-clinic-workflow-number">03</span><strong>Services & fees</strong>
+            <small>{clinicServices.some(service=>service.is_active&&service.is_public)?"Public service offering saved":"Select catalogue service, fee and duration"}</small>
+          </a>
+          <a href="#clinic-team" className="vcx-clinic-workflow-item">
+            <span className="vcx-clinic-workflow-number">04</span><strong>Review & public page</strong>
+            <small>{clinic.verification_status==="approved"&&clinic.is_published?"Public listing active":"Team, PVMC and VetConnect approval"}</small>
+          </a>
+        </div>
+        <p className="form-help">Service focus choices in the clinic profile are not automatically bookable. To accept online requests, add an active catalogue service below, enable booking for it, and activate appointment hours.</p>
+        {clinic.is_published&&<Link className="vcx-button vcx-button-outline" href={`/clinics/${clinic.slug}`}>View public clinic profile</Link>}
+       </section>
        <nav className="vcx-clinic-jump" aria-label="Clinic setup sections">
         <a href="#clinic-identity">01 · Details & PVMC</a>
         <a href="#clinic-hours">02 · Hours</a>
@@ -685,7 +717,7 @@ export default async function ClinicManagePage({
             <section className="backend-form-card workspace-section-card">
               <div className="section-heading">
                 <span className="section-kicker">SERVICES</span>
-                <h2 id="clinic-services">Standardized service catalogue.</h2>
+                <h2 id="clinic-services">Services, fees & booking options</h2><p>Add each service customers can request. Your chosen focus areas above are profile information; booking requires an active catalogue offering and opening hours.</p>
               </div>
 
               <div className="workspace-record-list">
@@ -772,7 +804,7 @@ export default async function ClinicManagePage({
                   name="clinic_id"
                   value={clinic.id}
                 />
-                <h3>Add or update service & consultation fee</h3>
+                <h3>Add a service to your clinic</h3>
                 <p className="form-help">Select an approved catalogue service. Set its fee and duration here; free-text expertise above is not a published bookable service.</p>
 
                 <label>
@@ -843,11 +875,11 @@ export default async function ClinicManagePage({
                     name="booking_enabled"
                     type="checkbox"
                   />{" "}
-                  Booking can be enabled for this service
+                  Allow appointment requests for this service
                 </label>
 
                 <FormSubmitButton pendingLabel="Saving service...">
-                  Save service
+                  Save service & booking preferences
                 </FormSubmitButton>
               </form>
             </section>
