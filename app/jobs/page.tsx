@@ -27,7 +27,7 @@ async function loadJobs(): Promise<PublicJob[]> {
     .eq("category","job_sector").eq("is_active",true);
   const valid=new Set((categories??[]).map(x=>x.label.toLowerCase()));
   const today=new Date().toISOString().slice(0,10);
-  const open=data.filter(x=>x.sector&&valid.has(x.sector.toLowerCase())&&(!x.deadline||x.deadline>=today));
+  const open=data.filter(x=>!x.deadline||x.deadline>=today);
   if(!open.length)return [];
   const ids = open.map(job => job.id).filter(Boolean) as string[];
   const [{data: coverage}, {data: areas}] = await Promise.all([
@@ -36,6 +36,7 @@ async function loadJobs(): Promise<PublicJob[]> {
   ]);
   return open.map(job => ({
     ...job,
+    sector: job.sector && valid.has(job.sector.toLowerCase()) ? job.sector : "Sector pending classification",
     coverage: coverage?.find(c => c.job_id===job.id) ?? null,
     coverage_areas: areas?.filter(a => a.job_id===job.id) ?? []
   })) as PublicJob[];
