@@ -19,7 +19,7 @@ async function loadJob(slug: string): Promise<PublicJob | null> {
   const sample = sampleJobs.find((item) => item.slug === slug);
   if (!isSupabaseConfigured()) return sample ?? null;
   const supabase = await createClient();
-  const { data } = await supabase.from("public_jobs").select("id, slug, title, description, sector, city, province, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_name").eq("slug", slug).maybeSingle();
+  const { data } = await supabase.from("public_jobs").select("id, slug, title, description, sector, city, province, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_id, company_name").eq("slug", slug).maybeSingle();
   if (!data?.id) return sample ?? null;
   const { data: coverage } = await supabase.from("job_coverage").select("job_id,scope,province,display_text").eq("job_id",data.id).maybeSingle();
   const {data:media}=await supabase.from("jobs").select("advert_image_path,advert_image_mime,country,work_mode,salary_min,salary_max,salary_currency,salary_period,created_at").eq("id",data.id).maybeSingle();
@@ -65,6 +65,13 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     ? await (await createClient()).from("career_cv_profiles")
       .select("full_name").eq("user_id",identity.userId).maybeSingle()
     : {data:null};
+  const {data:employerContact}=job.company_id ? await (await createClient()).from("companies").select("public_phone,verification_status,is_published").eq("id",job.company_id).maybeSingle() : {data:null};
+  const publicPhone=employerContact?.verification_status==="approved" && employerContact?.is_published ? employerContact.public_phone : null;
+  const callNumber=publicPhone?.replace(/[^+0-9]/g,"")||"";
+  const canonicalJobUrl=absoluteUrl("/jobs/"+job.slug);
+  const shareText=job.title+" at "+job.company_name;
+  const whatsappHref="https://wa.me/?text="+encodeURIComponent(shareText+" "+canonicalJobUrl);
+  const emailHref="mailto:?subject="+encodeURIComponent(shareText)+"&body="+encodeURIComponent("View this job: "+canonicalJobUrl);
   const careerRole=identity?.roles.includes("veterinarian") ? "veterinarian"
     : identity?.roles.includes("professional") ? "professional"
     : identity?.roles.includes("candidate") ? "candidate" : null;
@@ -111,7 +118,12 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     <section className="page-hero job-detail-hero"><div className="shell">
       <span className="section-kicker">{job.sector==="Punjab"?"VETERINARY CAREER":job.sector||"VETERINARY CAREER"}</span>
       <h1>{job.title}</h1>
-      <p><a href={absoluteUrl("/jobs/"+job.slug)} className="text-link">Job link: {absoluteUrl("/jobs/"+job.slug)}</a></p>
+      <nav className="hero-actions" aria-label="Job contact and sharing">
+        <a className="button button-secondary" href={whatsappHref} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
+        <a className="button button-secondary" href={emailHref}>Share by email</a>
+        {publicPhone && callNumber.length>=10 && <a className="button button-secondary" href={"tel:"+callNumber}>Call employer: {publicPhone}</a>}
+      </nav>
+      <p><a href={canonicalJobUrl} className="text-link">Permanent job link</a></p>
       <p>{job.company_name} • {job.coverage?.display_text || job.city || job.province || "Pakistan"} • {job.employment_type}</p>
       <div className="profile-chips">
         {job.minimum_qualification&&<span>{job.minimum_qualification}</span>}
@@ -135,6 +147,7 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
           {job.deadline&&<div><dt>Deadline</dt><dd>{job.deadline}</dd></div>}
         </dl>
         {imageUrl&&<figure className="job-advertisement">
+          <h3>Original employer job advertisement</h3>
           <Image src={imageUrl} unoptimized width={960} height={1180}
             alt={"Approved job advertisement for "+job.title+" by "+job.company_name}/>
           <figcaption>Original approved job advertisement image</figcaption>
