@@ -35,7 +35,8 @@ create index if not exists company_private_contacts_order_idx
 
 alter table public.company_profile_content enable row level security;
 alter table public.company_private_contacts enable row level security;
-revoke all on public.company_private_contacts from anon;
+revoke all on table public.company_profile_content from anon, authenticated;
+revoke all on table public.company_private_contacts from anon, authenticated;
 grant select on public.company_profile_content to anon;
 grant select,insert,update,delete on public.company_profile_content to authenticated;
 grant select,insert,update,delete on public.company_private_contacts to authenticated;
