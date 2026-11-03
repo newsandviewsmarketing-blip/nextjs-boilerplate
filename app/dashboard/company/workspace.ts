@@ -34,7 +34,7 @@ export function workspaceHasPermission(
   );
 }
 
-export async function getCurrentCompanyWorkspace() {
+export async function getCurrentCompanyWorkspace(requestedCompanyId?: string) {
   const identity = await getCurrentIdentity();
   if (!identity) {
     redirect("/login?next=/dashboard/company");
@@ -51,21 +51,26 @@ export async function getCurrentCompanyWorkspace() {
     );
   }
 
-  const workspace = ((data ?? [])[0] ?? null) as CompanyWorkspace | null;
-
-  if (!workspace) {
-    redirect(
-      `/dashboard?error=${encodeURIComponent(
-        "No active approved company workspace is assigned to this account.",
-      )}`,
-    );
+  // Never silently act on the first company when a user belongs to several.
+  // Company membership RPC and target RLS remain the source of authority.
+  const workspaces = (data ?? []) as CompanyWorkspace[];
+  if (workspaces.length === 0) {
+    redirect("/dashboard?error=No%20approved%20company%20workspace%20is%20assigned.");
   }
-
-  return { identity, supabase, workspace };
+  if (workspaces.length > 1 && !requestedCompanyId) {
+    redirect("/dashboard/company/select");
+  }
+  const workspace = requestedCompanyId
+    ? workspaces.find(item => item.company_id === requestedCompanyId)
+    : workspaces[0];
+  if (!workspace) {
+    redirect("/dashboard/company/select?error=Company%20access%20not%20available.");
+  }
+  return { identity, supabase, workspace, workspaces };
 }
 
-export async function requireCompanyPermission(permission: CompanyPermission) {
-  const context = await getCurrentCompanyWorkspace();
+export async function requireCompanyPermission(permission: CompanyPermission, companyId?: string) {
+  const context = await getCurrentCompanyWorkspace(companyId);
 
   if (!workspaceHasPermission(context.workspace, permission)) {
     redirect(

@@ -76,7 +76,7 @@ export default async function AdminPage({
   const supabase = await createClient();
   const canReviewProfiles = effectivePermissions.has("profiles.review");
   const { data: registrationRows } = canReviewProfiles
-    ? await supabase.from("registration_completion_gate").select("user_id,registration_intent,student_track,cnic_number,submitted_at,review_status").eq("review_status","pending").order("submitted_at")
+    ? await supabase.from("registration_completion_gate").select("user_id,registration_intent,student_track,submitted_at,review_status").eq("review_status","pending").order("submitted_at")
     : { data: [] };
   const registrationIds=(registrationRows??[]).map(row=>row.user_id);
   const [{data:registrationProfiles},{data:registrationEvidence},{data:registrationDetailRows}] = registrationIds.length ? await Promise.all([
@@ -282,7 +282,7 @@ export default async function AdminPage({
           return <article className="admin-review-card" key={row.user_id}>
             <h3>{profile?.full_name??profile?.email??"Registrant"} — {profile?.primary_role??"member"}</h3>
             <p>{profile?.email} · Submitted {row.submitted_at?new Date(row.submitted_at).toLocaleString():""}</p>
-            <p>CNIC: {row.cnic_number??"Not recorded"} · Track: {row.registration_intent||row.student_track||"standard"}</p>
+            <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
             {detailEntries.length>0&&<dl className="review-details">
               {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
             </dl>}

@@ -439,7 +439,7 @@ export async function reviewRegistrationSubmissionAction(formData: FormData) {
   const supabase=await createClient();
   const [{data:profile},{data:gate},{data:docs}] = await Promise.all([
     supabase.from("profiles").select("primary_role,full_name,email").eq("id",userId).maybeSingle(),
-    supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status,cnic_number").eq("user_id",userId).maybeSingle(),
+    supabase.from("registration_completion_gate").select("registration_intent,student_track,review_status").eq("user_id",userId).maybeSingle(),
     supabase.from("registration_evidence").select("document_type,storage_path,content_type,verification_status").eq("user_id",userId).eq("verification_status","pending").order("created_at",{ascending:false}),
   ]);
   if(!profile||!gate||gate.review_status!=="pending") redirect("/admin/reviews?error=This%20registration%20is%20not%20waiting%20for%20review.");

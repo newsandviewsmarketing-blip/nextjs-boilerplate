@@ -41,8 +41,10 @@ function productMessage(
   productId: string,
   kind: "error" | "message",
   text: string,
+  companyId?: string,
 ) {
-  return `${COMPANY_PATH}/products/${encodeURIComponent(productId)}?${kind}=${encodeURIComponent(text)}`;
+  const selected = companyId ? `company=${encodeURIComponent(companyId)}&` : "";
+  return `${COMPANY_PATH}/products/${encodeURIComponent(productId)}?${selected}${kind}=${encodeURIComponent(text)}`;
 }
 
 function slugBase(input: string) {
@@ -79,12 +81,13 @@ function ensureApprovedCompany(status: string) {
   }
 }
 
-async function requireWorkspace(permission: CompanyPermission) {
-  return requireCompanyPermission(permission);
+async function requireWorkspace(permission: CompanyPermission, formData: FormData) {
+  const companyId = value(formData, "company_id");
+  return requireCompanyPermission(permission, companyId || undefined);
 }
 
 export async function updateCompanyProfileAction(formData: FormData) {
-  const { supabase, workspace } = await requireWorkspace("company.manage");
+  const { supabase, workspace } = await requireWorkspace("company.manage", formData);
 
   const companyName = requireText(formData, "company_name", "Company name");
   const yearEstablishedRaw = value(formData, "year_established");
@@ -150,12 +153,12 @@ export async function updateCompanyProfileAction(formData: FormData) {
   }
 
   revalidatePath(COMPANY_PATH);
-  redirect(message("message", "Company profile saved successfully."));
+  redirect(COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id)+"&message="+encodeURIComponent("Company profile saved successfully."));
 }
 
 export async function createProductAction(formData: FormData) {
   const { identity, supabase, workspace } =
-    await requireWorkspace("products.manage");
+    await requireWorkspace("products.manage", formData);
 
   ensureApprovedCompany(workspace.company_verification_status);
 
@@ -254,12 +257,12 @@ export async function createProductAction(formData: FormData) {
 
   revalidatePath(COMPANY_PATH);
   revalidatePath("/marketplace");
-  redirect(message("message", "Product submitted for review."));
+  redirect(COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id)+"&message="+encodeURIComponent("Product submitted for review."));
 }
 
 export async function updateProductAction(formData: FormData) {
   const { identity, supabase, workspace } =
-    await requireWorkspace("products.manage");
+    await requireWorkspace("products.manage", formData);
 
   const productId = requireText(formData, "product_id", "Product ID");
   const productName = requireText(formData, "product_name", "Product name");
@@ -275,11 +278,11 @@ export async function updateProductAction(formData: FormData) {
     .maybeSingle();
 
   if (existingError) {
-    redirect(productMessage(productId, "error", existingError.message));
+    redirect(productMessage(productId, "error", existingError.message, workspace.company_id));
   }
 
   if (!existing) {
-    redirect(productMessage(productId, "error", "Product not found or access denied."));
+    redirect(productMessage(productId, "error", "Product not found or access denied.", workspace.company_id));
   }
 
   const { error: updateError } = await supabase
@@ -323,7 +326,7 @@ export async function updateProductAction(formData: FormData) {
     .eq("company_user_id", workspace.legacy_company_user_id);
 
   if (updateError) {
-    redirect(productMessage(productId, "error", updateError.message));
+    redirect(productMessage(productId, "error", updateError.message, workspace.company_id));
   }
 
   const regulatoryNumber = value(formData, "regulatory_number");
@@ -344,18 +347,18 @@ export async function updateProductAction(formData: FormData) {
       );
 
     if (regulatoryError) {
-      redirect(productMessage(productId, "error", regulatoryError.message));
+      redirect(productMessage(productId, "error", regulatoryError.message, workspace.company_id));
     }
   }
 
   revalidatePath(COMPANY_PATH);
   revalidatePath(`${COMPANY_PATH}/products/${productId}`);
   revalidatePath("/marketplace");
-  redirect(productMessage(productId, "message", "Product saved successfully."));
+  redirect(productMessage(productId, "message", "Product saved successfully.", workspace.company_id));
 }
 
 export async function deletePendingProductAction(formData: FormData) {
-  const { supabase, workspace } = await requireWorkspace("products.manage");
+  const { supabase, workspace } = await requireWorkspace("products.manage", formData);
   const productId = requireText(formData, "product_id", "Product ID");
 
   const { data, error } = await supabase
@@ -381,11 +384,11 @@ export async function deletePendingProductAction(formData: FormData) {
   }
 
   revalidatePath(COMPANY_PATH);
-  redirect(message("message", "Product removed."));
+  redirect(COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id)+"&message="+encodeURIComponent("Product removed."));
 }
 
 export async function updateInquiryStatusAction(formData: FormData) {
-  const { supabase, workspace } = await requireWorkspace("products.manage");
+  const { supabase, workspace } = await requireWorkspace("products.manage", formData);
   const inquiryId = requireText(formData, "inquiry_id", "Inquiry ID");
   const status = value(formData, "status");
   const allowed = new Set(["reviewing", "responded", "closed"]);
@@ -411,11 +414,11 @@ export async function updateInquiryStatusAction(formData: FormData) {
   }
 
   revalidatePath(COMPANY_PATH);
-  redirect(message("message", "Inquiry status updated."));
+  redirect(COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id)+"&message="+encodeURIComponent("Inquiry status updated."));
 }
 
 export async function createJobAction(formData: FormData) {
-  const {supabase,workspace,identity} = await requireWorkspace("jobs.manage");
+  const {supabase,workspace,identity} = await requireWorkspace("jobs.manage", formData);
   ensureApprovedCompany(workspace.company_verification_status);
 
   let advert:File|null=null;
@@ -525,11 +528,11 @@ export async function createJobAction(formData: FormData) {
   revalidatePath("/admin/reviews");
   revalidatePath("/admin/data");
   revalidatePath("/jobs");
-  redirect(COMPANY_PATH+"?submitted="+encodeURIComponent(jobId));
+  redirect(COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id)+"&submitted="+encodeURIComponent(jobId));
 }
 
 export async function deletePendingJobAction(formData: FormData) {
-  const { supabase, workspace } = await requireWorkspace("jobs.manage");
+  const { supabase, workspace } = await requireWorkspace("jobs.manage", formData);
   const jobId = requireText(formData, "job_id", "Job ID");
 
   const { data, error } = await supabase
@@ -555,5 +558,5 @@ export async function deletePendingJobAction(formData: FormData) {
   }
 
   revalidatePath(COMPANY_PATH);
-  redirect(message("message", "Job removed."));
+  redirect(COMPANY_PATH+"?company="+encodeURIComponent(workspace.company_id)+"&message="+encodeURIComponent("Job removed."));
 }

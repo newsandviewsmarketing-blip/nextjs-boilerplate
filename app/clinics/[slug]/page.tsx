@@ -364,7 +364,7 @@ export default async function ClinicDetailPage({
             <span className="section-kicker">
               {clinic.is_sample
                 ? "SAMPLE FACILITY"
-                : "VETCONNECT VERIFIED FACILITY"}
+                : "VETCONNECT-REVIEWED FACILITY"}
             </span>
 
             <h1>{clinic.clinic_name}</h1>
@@ -494,7 +494,7 @@ export default async function ClinicDetailPage({
             <h3>Verification</h3>
             <p>
               {clinic.profile_verified
-                ? "Facility profile verified by VetConnect."
+                ? "VetConnect reviewed this facility profile. This does not establish that the responsible veterinarian's PVMC registration has been verified."
                 : clinic.is_sample
                   ? "This is a sample profile."
                   : "Verification review is pending."}

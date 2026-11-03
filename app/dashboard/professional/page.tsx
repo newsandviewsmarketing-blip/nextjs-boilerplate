@@ -1,6 +1,5 @@
 import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import ProfileBuilder from "./ProfileBuilder";
-import {getCoreProfileProgress} from "@/lib/professional-progress";
 import ProfilePhotoStudio from "./ProfilePhotoStudio";
 import ProfessionalSkillsEdit from "./ProfessionalSkillsEdit";
 import {PROFESSIONAL_TITLE_SUGGESTIONS} from "@/lib/career-options";
@@ -8,10 +7,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
-import ProfilePhoto from "../../components/ProfilePhoto";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { initials } from "@/lib/directories";
 import {
   addCredentialAction,
   addEducationAction,
@@ -160,8 +157,6 @@ export default async function ProfessionalWorkspacePage({
 
   // Keep the progress identical to the one in the shared workspace header.
   // Optional photo, work experience and credentials never reduce core completion.
-  const sharedProgress = await getCoreProfileProgress();
-  const completion = sharedProgress?.percent ?? 0;
 
   const errors = [
     profileResult.error,
@@ -197,29 +192,12 @@ export default async function ProfessionalWorkspacePage({
             </div>
           )}
 
-          <ProfileBuilder key={messages.step??"photo"} initialStep={messages.step} completion={completion} completed={{photo:Boolean(profile?.image_url),about:Boolean(profile?.headline&&profile?.public_summary),experience:experience.length>0,education:education.length>0,credentials:credentials.length>0,documents:signedDocuments.length>0}} panels={{
+          <ProfileBuilder key={messages.step??"photo"} initialStep={messages.step} completed={{photo:Boolean(profile?.image_url),about:Boolean(profile?.headline&&profile?.public_summary),experience:experience.length>0,education:education.length>0,credentials:credentials.length>0,documents:signedDocuments.length>0}} panels={{
 photo:(<div className="professional-workspace-overview">
-            <article className="professional-photo-card">
-              <div className="professional-photo-large">
-                <ProfilePhoto
-                  imageUrl={profile?.image_url ?? null}
-                  name={identity.profile?.full_name || identity.email}
-                  fallback={initials(identity.profile?.full_name || identity.email)}
-                />
-              </div>
-              <div>
-                <span className="section-kicker">PROFILE PHOTO</span>
-                <h2>{identity.profile?.full_name || identity.email}</h2>
-                <p>{profile?.headline || profile?.professional_type || "Professional profile"}</p>
-                <div className="status-cluster">
-                  <span className={`status-pill status-${profile?.verification_status ?? "pending"}`}>
-                    {profile?.verification_status ?? "pending"}
-                  </span>
-                  <span className="status-pill">{completion}% core profile</span>
-                </div>
-              </div>
-            </article>
-
+            <p className="vcx-profile-photo-intro">
+              Your current photograph is shown in the profile card above.
+              Upload a new image below only if you want to change it.
+            </p>
             <ProfilePhotoStudio />
           </div>),
 about:(<form className="backend-form-card workspace-section-card" action={updateProfessionalProfileAction}>

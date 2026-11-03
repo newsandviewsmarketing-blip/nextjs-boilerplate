@@ -115,10 +115,10 @@ function permissionLabel(permission: string) {
 export default async function CompanyDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string; submitted?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; submitted?: string; company?: string }>;
 }) {
   const params = await searchParams;
-  const { supabase, workspace } = await getCurrentCompanyWorkspace();
+  const { supabase, workspace, workspaces } = await getCurrentCompanyWorkspace(params.company);
 
   const canManageCompany = workspaceHasPermission(workspace, "company.manage");
   const canViewPrivateCompany = workspaceHasPermission(
@@ -256,7 +256,8 @@ export default async function CompanyDashboardPage({
       description="An approved organization has its own profile, jobs, products and team permissions. Your personal account stays separate.">
        <div className="vcx-company-body">
           <FormMessage {...params} />
-          {submittedJob && <JobSubmissionReceipt closeHref="/dashboard/company"
+           {workspaces.length>1&&<div className="management-links"><strong>Current company: {workspace.canonical_name}</strong><Link className="button button-secondary" href="/dashboard/company/select">Switch company</Link></div>}
+          {submittedJob && <JobSubmissionReceipt closeHref={`/dashboard/company?company=${encodeURIComponent(workspace.company_id)}`}
             job={{id:submittedJob.id,title:submittedJob.title,sector:submittedJob.sector,
               company:workspace.canonical_name,description:submittedJob.description,
               employment_type:submittedJob.employment_type,minimum_qualification:submittedJob.minimum_qualification,
@@ -354,7 +355,7 @@ export default async function CompanyDashboardPage({
           </div>
 
           {canManageCompany && (
-            <form id="company-details" className="backend-form-card vc-review-target" action={updateCompanyProfileAction}>
+            <form id="company-details" className="backend-form-card vc-review-target" action={updateCompanyProfileAction}><input type="hidden" name="company_id" value={workspace.company_id} />
               <div className="section-heading">
                 <span className="section-kicker">COMPANY PROFILE</span>
                 <h2>Edit company information.</h2>
@@ -446,7 +447,7 @@ export default async function CompanyDashboardPage({
 
           {canManageProducts && (
             <div className="company-workspace-grid">
-              <form className="backend-form-card" action={createProductAction}>
+              <form className="backend-form-card" action={createProductAction}><input type="hidden" name="company_id" value={workspace.company_id} />
                 <div className="section-heading">
                   <span className="section-kicker">PRODUCT SUBMISSION</span>
                   <h2>Add a structured product.</h2>
@@ -517,11 +518,11 @@ export default async function CompanyDashboardPage({
                           {product.rejection_reason && <small>{product.rejection_reason}</small>}
                         </div>
                         <div className="management-links">
-                          <Link href={`/dashboard/company/products/${product.id}`}>Edit</Link>
+                          <Link href={`/dashboard/company/products/${product.id}?company=${encodeURIComponent(workspace.company_id)}`}>Edit</Link>
                           {product.verification_status === "approved" ? (
                             <Link href={`/marketplace/${product.slug}`}>View listing</Link>
                           ) : (
-                            <form action={deletePendingProductAction}>
+                            <form action={deletePendingProductAction}><input type="hidden" name="company_id" value={workspace.company_id} />
                               <input type="hidden" name="product_id" value={product.id} />
                               <button className="text-button" type="submit">Remove</button>
                             </form>
@@ -537,7 +538,7 @@ export default async function CompanyDashboardPage({
 
           {canManageJobs && (
             <div className="company-workspace-grid">
-              <form className="backend-form-card" action={createJobAction}>
+              <form className="backend-form-card" action={createJobAction}><input type="hidden" name="company_id" value={workspace.company_id} />
                 <div className="section-heading">
                   <span className="section-kicker">JOB POSTING</span>
                   <h2>Publish a structured opportunity.</h2>
@@ -578,7 +579,7 @@ export default async function CompanyDashboardPage({
                         {job.verification_status === "approved" ? (
                           <Link href={`/jobs/${job.slug}`}>View listing</Link>
                         ) : (
-                          <form action={deletePendingJobAction}>
+                          <form action={deletePendingJobAction}><input type="hidden" name="company_id" value={workspace.company_id} />
                             <input type="hidden" name="job_id" value={job.id} />
                             <button className="text-button" type="submit">Remove</button>
                           </form>
@@ -614,7 +615,7 @@ export default async function CompanyDashboardPage({
                       {inquiry.contact_phone && <p>{inquiry.contact_phone}</p>}
                       {inquiry.organization && <p>{inquiry.organization}</p>}
                       <p>{inquiry.message}</p>
-                      <form className="inline-status-form" action={updateInquiryStatusAction}>
+                      <form className="inline-status-form" action={updateInquiryStatusAction}><input type="hidden" name="company_id" value={workspace.company_id} />
                         <input type="hidden" name="inquiry_id" value={inquiry.id} />
                         <select name="status" defaultValue={inquiry.status === "new" ? "reviewing" : inquiry.status}>
                           <option value="reviewing">Reviewing</option>

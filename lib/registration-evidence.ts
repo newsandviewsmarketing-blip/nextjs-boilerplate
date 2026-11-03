@@ -42,7 +42,6 @@ export function registrationEvidenceRequirements(
     ? [
       organizationLogo,
       { type: "clinic_registration", label: "Clinic / hospital registration or business evidence" },
-      { type: "pvmc_registration", label: "Responsible veterinarian's PVMC registration proof" },
     ]
     : [
       organizationLogo,

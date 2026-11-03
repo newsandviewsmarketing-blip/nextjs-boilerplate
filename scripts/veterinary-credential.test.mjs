@@ -36,3 +36,28 @@ test("Old approvals with missing documentation remain flagged until manual reche
  assert.match(actions,/audit_logs/);
  assert.match(rechecks,/records needing review/);
 });
+
+test("Staged clinic publication remains separate from account registration",()=>{
+ const sql=read("supabase/migrations/20261101162000_separate_clinic_publication_from_registration.sql");
+ assert.match(sql,/required_types\s*:=\s*array\[\]::text\[\]/);
+ assert.doesNotMatch(sql,/required_types\s*:=\s*array\['cnic_front','cnic_back'\]/);
+ assert.match(sql,/alter column cnic_number drop not null/);
+ assert.match(sql,/FUNCTION public.complete_registration_submission\(\)/);
+ assert.match(sql,/create or replace view public.public_clinics as/);
+ assert.match(sql,/other_cities/);
+ assert.match(sql,/registration_intent = 'clinic' then required_types := required_types \|\| array\['clinic_registration'\]/);
+ assert.match(sql,/required_types := required_types \|\| array\['degree_certificate','pvmc_registration'\]/);
+ assert.match(sql,/if gate_row\.registration_intent = 'clinic' then[\s\S]*?update public\.clinics set[\s\S]*?is_published = false/);
+ assert.match(sql,/create trigger clinics_publication_readiness/);
+ assert.match(sql,/new\.pvmc_reviewed_at is null or new\.pvmc_reviewed_by is null/);
+ assert.match(sql,/where a\.clinic_id = new\.id and a\.is_open = true/);
+ assert.match(sql,/where s\.clinic_id = new\.id and s\.is_active = true and s\.is_public = true/);
+});
+
+test("Public clinic labels distinguish facility review from a PVMC credential check",()=>{
+ const listing=read("app/clinics/page.tsx");
+ const detail=read("app/clinics/[slug]/page.tsx");
+ assert.match(listing,/Facility approved/);
+ assert.match(detail,/VETCONNECT-REVIEWED FACILITY/);
+ assert.match(detail,/does not establish that the responsible veterinarian's PVMC registration has been verified/);
+});

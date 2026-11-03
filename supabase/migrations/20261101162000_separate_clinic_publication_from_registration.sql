@@ -4,6 +4,9 @@
 -- publications or returning an unpublished clinic to published.
 begin;
 
+-- Allow new role-specific evidence without CNIC; preserve legacy private data.
+alter table public.registration_evidence alter column cnic_number drop not null;
+
 alter table public.clinics
   add column if not exists pvmc_review_note text,
   add column if not exists pvmc_reviewed_by uuid,
@@ -59,7 +62,6 @@ begin
     end if;
     if new.pvmc_reviewed_at is null or new.pvmc_reviewed_by is null
        or length(btrim(coalesce(new.pvmc_review_note,''))) < 25
-       or new.verified_by is distinct from new.pvmc_reviewed_by
     then
       raise exception 'Clinic publication requires a recorded reviewer PVMC cross-check';
     end if;
@@ -86,8 +88,124 @@ before insert or update on public.clinics
 for each row
 execute function public.enforce_clinic_publication_readiness();
 
--- The existing registration RPC is retained with a *single* material change:
--- a company account's registration approval leaves its clinic pending and private.
+-- Submission and review have one category-specific evidence contract.
+CREATE OR REPLACE FUNCTION public.complete_registration_submission()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'auth'
+AS $function$
+declare
+  current_user_id uuid := auth.uid();
+  account_role_value text;
+  gate_intent text;
+  gate_student_track text;
+  required_types text[];
+  gate_row public.registration_completion_gate%rowtype;
+  missing_type text;
+begin
+  if current_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select * into gate_row
+  from public.registration_completion_gate
+  where user_id = current_user_id
+  for update;
+
+  if not found then
+    raise exception 'Registration review record is missing';
+  end if;
+  if gate_row.review_status = 'approved' then
+    raise exception 'An approved registration cannot be changed';
+  end if;
+  if gate_row.completed_at is not null and gate_row.review_status = 'pending' then
+    raise exception 'This registration is already awaiting administrator review';
+  end if;
+  select primary_role into account_role_value
+  from public.profiles where id = current_user_id;
+  if account_role_value is null then
+    raise exception 'Registration profile is missing';
+  end if;
+
+  gate_intent := gate_row.registration_intent;
+  gate_student_track := gate_row.student_track;
+
+  required_types := array[]::text[];
+  if account_role_value in ('veterinarian','candidate','professional','user') then
+    required_types := array_append(required_types,'profile_photo');
+  elsif account_role_value in ('company','laboratory') then
+    required_types := array_append(required_types,'company_logo');
+  end if;
+
+  if account_role_value = 'veterinarian' then
+    required_types := required_types || array['degree_certificate','pvmc_registration'];
+  elsif account_role_value = 'candidate' then
+    if gate_student_track = 'job_seeker' then
+      required_types := required_types || array['qualification_certificate'];
+    else
+      required_types := required_types || array['student_enrollment'];
+    end if;
+  elsif account_role_value = 'professional' then
+    required_types := required_types || array['qualification_certificate'];
+  elsif account_role_value = 'company' then
+    if gate_intent = 'clinic' then
+      required_types := required_types || array['clinic_registration'];
+    else
+      required_types := required_types || array['business_registration'];
+    end if;
+  elsif account_role_value = 'laboratory' then
+    required_types := required_types || array['laboratory_registration'];
+  end if;
+
+  foreach missing_type in array required_types loop
+    if not exists (
+      select 1
+      from (
+        select distinct on (e.document_type) e.document_type, e.verification_status
+        from public.registration_evidence e
+        where e.user_id = current_user_id
+        order by e.document_type, e.created_at desc
+      ) latest
+      where latest.document_type = missing_type
+        and latest.verification_status in ('draft','rejected')
+    ) then
+      raise exception 'Required document is missing: %', missing_type;
+    end if;
+  end loop;
+
+  update public.registration_evidence e
+  set verification_status = 'pending'
+  where e.id in (
+    select latest.id from (
+      select distinct on (document_type) id, document_type, created_at, verification_status
+      from public.registration_evidence
+      where user_id = current_user_id
+      order by document_type, created_at desc
+    ) latest
+    where latest.document_type = any(required_types)
+  );
+
+  update public.registration_completion_gate
+  set completed_at = now(),
+      submitted_at = now(),
+      review_status = 'pending',
+      review_note = null,
+      reviewed_at = null,
+      reviewed_by = null
+  where user_id = current_user_id;
+end;
+$function$
+;
+revoke all on function public.complete_registration_submission() from public;
+grant execute on function public.complete_registration_submission() to authenticated;
+
+-- Staged changes to the existing registration RPC:
+-- 1. Account approval never publishes a clinic or attests the clinical PVMC check.
+-- 2. A company/clinic owner's account does not need its own PVMC card;
+--    the responsible practitioner's credential is reviewed at clinic publication.
+-- Category evidence is required, but identity-card images are not.
+-- Existing private historical records remain stored pending retention review.
 CREATE OR REPLACE FUNCTION public.review_registration_submission(p_user_id uuid, p_decision text, p_reason text, p_reviewer_id uuid, p_public_image_url text)
  RETURNS void
  LANGUAGE plpgsql
@@ -135,7 +253,7 @@ begin
   where details.user_id = p_user_id;
   category_details := coalesce(category_details, '{}'::jsonb);
 
-  required_types := array['cnic_front','cnic_back'];
+  required_types := array[]::text[];
   if account_role_value in ('veterinarian','candidate','professional','user') then
     required_types := array_append(required_types,'profile_photo');
   elsif account_role_value in ('company','laboratory') then
@@ -150,7 +268,7 @@ begin
   elsif account_role_value = 'professional' then
     required_types := required_types || array['qualification_certificate'];
   elsif account_role_value = 'company' then
-    if gate_row.registration_intent = 'clinic' then required_types := required_types || array['clinic_registration','pvmc_registration'];
+    if gate_row.registration_intent = 'clinic' then required_types := required_types || array['clinic_registration'];
     else required_types := required_types || array['business_registration']; end if;
   elsif account_role_value = 'laboratory' then
     required_types := required_types || array['laboratory_registration'];
@@ -361,6 +479,34 @@ begin
 end;
 $function$
 ;
+
+-- Include the existing clinic's alternative service cities expected by the public directory.
+-- Preserve the existing approved+published predicate and column order.
+create or replace view public.public_clinics as
+ SELECT id,
+    slug,
+    clinic_name,
+    facility_type,
+    description,
+    city,
+    province,
+    address,
+    public_phone,
+    public_email,
+    website,
+    working_hours,
+    emergency_service,
+    services,
+    species,
+    true AS profile_verified,
+    district,
+    tehsil,
+    logo_url,
+    cover_image_url,
+    google_maps_url,
+    other_cities
+   FROM clinics
+  WHERE verification_status = 'approved'::approval_status AND is_published;;
 
 revoke all on function public.review_registration_submission(uuid,text,text,uuid,text) from public;
 grant execute on function public.review_registration_submission(uuid,text,text,uuid,text) to authenticated;

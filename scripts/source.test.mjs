@@ -232,7 +232,8 @@ test("core profile progress is consistent and independent from practitioner veri
   assert.match(shared, /Basic identity/);
   assert.match(shared, /Education or work background/);
   assert.match(frame, /getCoreProfileProgress/);
-  assert.match(profile, /getCoreProfileProgress/);
+  assert.match(profile, /<CareerWorkspaceFrame active="profile"/);
+  assert.doesNotMatch(profile, /completion=\{completion\}/);
   assert.match(frame, /isVeterinaryPractitioner/);
   assert.match(frame, /pvmc\.gov\.pk\/Registration\/Search/);
   assert.match(career, /CV details are saved/);
@@ -472,7 +473,7 @@ test("staff and employer job forms share optional multi-location territory data"
     assert.match(action, /minimum_experience:[^\n]*null/);
     assert.match(action, /verification_status:"pending",is_published:false/);
   }
-  assert.match(companyAction, /requireWorkspace\("jobs\.manage"\)/);
+  assert.match(companyAction, /requireWorkspace\("jobs\.manage", formData\)/);
   assert.match(company, /coverage_display/);
   assert.match(publicJobs, /matchesJobLocation/);
   assert.match(publicJobs, /locationSearchOptions\(\)/);
@@ -847,4 +848,36 @@ test("admin home visibly shows status counts across real sectors and permission-
  assert.match(spec,/UAF → University of Agriculture Faisalabad/);
  assert.match(spec,/UVAS → University of Veterinary and Animal Sciences Lahore/);
  assert.match(spec,/CSV\/PDF are outputs/);
+});
+
+test("profile step navigation and visible form stay in sync without an extra scroll bar",()=>{
+ const stepper=read("app/dashboard/professional/ProfileBuilder.tsx");
+ const page=read("app/dashboard/professional/page.tsx");
+ const frame=read("app/components/CareerWorkspaceFrame.css");
+ assert.match(stepper,/setActive\(index\)/);
+ assert.match(stepper,/stepIndex\(initialStep\)/);
+ assert.match(stepper,/window\.addEventListener\('popstate',syncFromUrl\)/);
+ assert.match(stepper,/aria-selected=\{active===index\}/);
+ assert.match(stepper,/hidden=\{active!==index\}/);
+ assert.match(stepper,/Select profile section/);
+ assert.match(stepper,/Next: \{steps\[active\+1\]\.label\}/);
+ assert.match(frame,/\.vcx-primary \.builder-step-list\{\s*display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+ assert.match(frame,/\.vcx-primary \.builder-step-list\{display:none\}/);
+ assert.match(frame,/\.vcx-primary \.builder-mobile-selector\{display:grid/);
+ assert.match(page,/Your current photograph is shown in the profile card above/);
+ assert.doesNotMatch(page,/<ProfilePhoto\s/);
+ assert.doesNotMatch(page,/\{completion\}% core profile/);
+});
+
+
+test("CV and applications avoid repeat navigation and CV-library overload",()=>{
+ const frame=read("app/components/CareerWorkspaceFrame.tsx");
+ const apps=read("app/dashboard/career/page.tsx");
+ const css=read("app/components/CareerWorkspaceFrame.css");
+ assert.match(frame,/personalWorkspace&&active!=='cv'/);
+ assert.match(apps,/<details className="backend-form-card career-cv-library vcx-collapsible-library"/);
+ assert.match(apps,/open=\{\(cvDocumentsResult\.data\?\?\[\]\)\.length===0\}/);
+ assert.match(apps,/<summary>/);
+ assert.match(apps,/<\/details>/);
+ assert.match(css,/\.vcx-primary \.vcx-collapsible-library/);
 });

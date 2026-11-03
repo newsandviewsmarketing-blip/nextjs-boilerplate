@@ -201,7 +201,7 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <div><label htmlFor="clinic-address">Primary facility address *</label><input name="facility_address" id="clinic-address" maxLength={250} required /></div>
     <ClinicCityField />
     <div><label htmlFor="clinic-vet">Responsible veterinarian full name *</label><input name="responsible_veterinarian" id="clinic-vet" maxLength={180} required /></div>
-    <div><label htmlFor="clinic-pvmc">Responsible veterinarian PVMC registration number *</label><input name="pvmc_number" id="clinic-pvmc" required maxLength={70} /></div>
+    <div><label htmlFor="clinic-pvmc">Responsible veterinarian PVMC registration number (optional at account registration)</label><input name="pvmc_number" id="clinic-pvmc" maxLength={70} /><small>This must be provided and independently reviewed before the clinic is published for veterinary practice.</small></div>
   </>;
   if (role === "company") return <>
     <div><label htmlFor="company-name">Company / employer registered name *</label><input name="organization_name" id="company-name" required maxLength={180} /></div>

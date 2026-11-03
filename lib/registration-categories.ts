@@ -1,5 +1,4 @@
 import {registrationInstitution} from "@/lib/registration-institutions";
-import { hasDocumentedVeterinaryQualification } from "@/lib/veterinary-verification";
 import { isPakistanLocation, isPakistanLocationInProvince, PAKISTAN_PROVINCES } from "@/lib/pakistan-locations";
 
 export const PRACTICE_AREAS = [
@@ -145,7 +144,7 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     data.industry_sectors=sectors;
     data.industry_sector=sectors[0];
   }else if(role==="company"&&intent==="clinic"){
-    for(const k of ["organization_name","facility_type","company_registration_number","facility_address","responsible_veterinarian","pvmc_number"])
+    for(const k of ["organization_name","facility_type","company_registration_number","facility_address","responsible_veterinarian"])
       if(!required(k,250))return {error:"Clinic name, registration / NTN, address and responsible veterinarian details are required.",data:{}};
     const cities=values(form,"clinic_cities");
     if(cities.length>20||cities.some(city=>!isPakistanLocation(city)))return {error:"Choose up to 20 clinic service cities from the Pakistan locations list.",data:{}};
@@ -158,12 +157,6 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
       if(!required(k,250))return {error:"Laboratory name, registration, services and address are required.",data:{}};
   }else if(role==="user"){
     for(const k of ["customer_type","animal_interest"])if(!capture(k,180))return {error:"Invalid customer information.",data:{}};
-  }
-  const completedPrimary=role==="veterinarian" ? String(data.qualifications??"") :
-    role==="professional" || (role==="candidate" && data.student_track==="job_seeker") ? String(data.highest_qualification??"") : "";
-  const completedDegrees=[completedPrimary,...(Array.isArray(data.additional_qualifications)?data.additional_qualifications:[])];
-  if (["candidate","professional"].includes(role) && completedDegrees.some(hasDocumentedVeterinaryQualification)) {
-    if(!pvmcDetails())return {error:"A completed DVM / recognized veterinary degree requires a PVMC practitioner registration number, or an explicit pending-number declaration. Current students do not need a practitioner number for their ongoing program.",data:{}};
   }
   return {data};
 }

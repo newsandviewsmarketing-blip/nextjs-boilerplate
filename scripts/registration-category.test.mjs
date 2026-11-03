@@ -177,14 +177,14 @@ test("Province and city validator rejects mismatches and accepts every listed pa
   assert.equal(locations.isPakistanLocationInProvince(item.value,item.province),true,item.label);
  assert.equal(locations.isPakistanLocationInProvince("Lahore","Sindh"),false);
 });
-test("Completed DVM requires a PVMC number even on the allied or job-seeker pathway",async()=>{
+
+test("DVM academic degree does not impose a PVMC practitioner requirement on allied or job seekers",async()=>{
  const {validate}=await registrationModules();
  for(const role of ["professional","candidate"]){
   const form=registrationForm({highest_qualification_choice:"DVM",student_track:"job_seeker"});
-  assert.match(validate(form,role,"").error,/PVMC/);
-  form.set("pvmc_number","12345-P");
-  assert.equal(validate(form,role,"").error,undefined);
-  assert.equal(validate(form,role,"").data.pvmc_number,"12345-P");
+  const result=validate(form,role,"");
+  assert.equal(result.error,undefined);
+  assert.equal(result.data.pvmc_number,undefined);
  }
 });
 test("MPhil and PhD without a veterinary degree need no practitioner number",async()=>{
@@ -199,18 +199,18 @@ test("Current DVM and non-veterinary students do not need a PVMC practitioner nu
   assert.equal(validate(form,"candidate","").error,undefined);
  }
 });
-test("Additional completed DVM triggers PVMC; degrees and institutions retain their pairing",async()=>{
+
+test("Additional DVM qualifications retain paired institutions without granting practice",async()=>{
  const {validate}=await registrationModules();
  const form=registrationForm({highest_qualification_choice:"PhD"});
  addDegree(form,0,"MPhil","UAF");addDegree(form,3,"DVM","UVAS");
- assert.match(validate(form,"professional","").error,/PVMC/);
- form.set("pvmc_number","12345");
  const result=validate(form,"professional","");
  assert.equal(result.error,undefined);
+ assert.equal(result.data.pvmc_number,undefined);
  assert.deepEqual(Array.from(result.data.additional_qualifications),["MPhil","DVM"]);
  assert.deepEqual(Array.from(result.data.additional_institutions),["UAF","University of Veterinary and Animal Sciences, Lahore"]);
  form.delete("additional_qualification_index");form.append("additional_qualification_index","0");
- assert.equal(validate(form,"professional","").error,undefined,"Removing a DVM removes its PVMC requirement");
+ assert.equal(validate(form,"professional","").error,undefined);
 });
 test("Invalid additional degree submissions cannot bypass bounds or institution checks",async()=>{
  const {validate}=await registrationModules();
@@ -221,7 +221,7 @@ test("Invalid additional degree submissions cannot bypass bounds or institution 
  const tooMany=registrationForm();for(let i=0;i<11;i++)addDegree(tooMany,i,"PhD");
  assert.match(validate(tooMany,"professional","").error,/10/);
  const custom=registrationForm();addDegree(custom,0,"__other__");custom.set("additional_qualification_0_other","Doctor of Veterinary Medicine");custom.set("additional_institution_0_choice","uaf");
- assert.match(validate(custom,"professional","").error,/PVMC/);
+ assert.equal(validate(custom,"professional","").error,undefined);
 });
 test("Veterinarian persistence retains DVM, additional degrees and private details",async()=>{
  const {persist}=await registrationModules();
@@ -400,4 +400,22 @@ test("Pending-number veterinarian drafts cannot invoke final submission",async()
  }});
  await assert.rejects(()=>exported.exports.completeRegistrationAction(),/Add%20your%20PVMC%20number/);
  assert.equal(rpcCalled,false);assert.equal(persistCalled,false);
+});
+
+
+test("registration evidence follows one veterinarian-only PVMC policy without requiring CNIC",()=>{
+ const page=read("app/register/complete/page.tsx");
+ const form=read("app/register/complete/RegistrationEvidenceForm.tsx");
+ const actions=read("app/register/complete/actions.ts");
+ const criteria=read("lib/registration-evidence.ts");
+ const migration=read("supabase/migrations/20261101162000_separate_clinic_publication_from_registration.sql");
+ assert.doesNotMatch(page,/cnic_number|Upload your CNIC/i);
+ assert.doesNotMatch(form,/cnic_front|cnic_back|cnicSaved/);
+ assert.doesNotMatch(actions,/cnic_front|cnic_back|isValidPakistaniCnic|saveRegistrationCnicAction/);
+ assert.match(criteria,/role === "veterinarian"[\s\S]*?pvmc_registration/);
+ assert.doesNotMatch(criteria,/role === "company"[\s\S]*?pvmc_registration/);
+ assert.match(migration,/alter column cnic_number drop not null/);
+ assert.match(migration,/FUNCTION public.complete_registration_submission/);
+ assert.equal((migration.match(/required_types := array\[\]::text\[\]/g)||[]).length,2);
+ assert.match(migration,/create or replace view public.public_clinics as/);
 });
