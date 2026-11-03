@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sampleJobs, type PublicJob } from "@/lib/jobs";
 import { applyToJobAction, toggleSavedJobAction } from "../actions";
 import { getCurrentIdentity } from "@/lib/auth";
+import { absoluteUrl, seoDescription } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ async function loadJob(slug: string): Promise<PublicJob | null> {
   const { data } = await supabase.from("public_jobs").select("id, slug, title, description, sector, city, province, employment_type, minimum_qualification, minimum_experience, deadline, company_user_id, company_name").eq("slug", slug).maybeSingle();
   if (!data?.id) return sample ?? null;
   const { data: coverage } = await supabase.from("job_coverage").select("job_id,scope,province,display_text").eq("job_id",data.id).maybeSingle();
-  const {data:media}=await supabase.from("jobs").select("advert_image_path,advert_image_mime,country,work_mode,salary_min,salary_max,salary_currency,salary_period").eq("id",data.id).maybeSingle();
+  const {data:media}=await supabase.from("jobs").select("advert_image_path,advert_image_mime,country,work_mode,salary_min,salary_max,salary_currency,salary_period,created_at").eq("id",data.id).maybeSingle();
   return {...data,...media,coverage,image_available:Boolean(media?.advert_image_path && ["image/jpeg","image/png","image/webp"].includes(media?.advert_image_mime??""))} as PublicJob;
 }
 
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!job) return { title: "Veterinary Job" };
   return {
     title: `${job.title} at ${job.company_name} in ${job.coverage?.display_text || job.city || job.province || "Pakistan"}`,
-    description: job.description,
+    description: seoDescription(job.description, "Veterinary and animal-health opportunity on VetConnect Pakistan."),
+    openGraph: {title: job.title, description: seoDescription(job.description, "VetConnect Pakistan job opportunity."), url: `/jobs/${slug}`, type: "website"},
     alternates: { canonical: `/jobs/${slug}` },
     robots: job.is_sample ? { index: false, follow: true } : undefined,
   };
@@ -83,8 +85,43 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
   const hasCv=Boolean(builder?.full_name || (cvDocuments??[]).length>0);
   const closed=Boolean(job.deadline && job.deadline<new Date().toISOString().slice(0,10));
   const imageUrl=job.id && job.image_available ? "/api/jobs/"+job.id+"/advertisement":null;
+  // Structured data is restricted to real, public, open jobs with a verified posting date.
+  const publicJob = job as PublicJob & {created_at?:string};
+  const country = (job.country || "Pakistan").trim().toLowerCase();
+  const inPakistan = country === "pakistan" || country === "pk";
+  const isRemote = job.work_mode?.trim().toLowerCase() === "remote";
+  const showJobSchema = Boolean(!job.is_sample && job.id && !closed && publicJob.created_at && inPakistan && (isRemote || job.city || job.province));
+  const employment = new Map([["full-time","FULL_TIME"],["part-time","PART_TIME"],["contract","CONTRACTOR"],["internship","INTERN"],["temporary","TEMPORARY"],["volunteer","VOLUNTEER"]]).get(job.employment_type?.trim().toLowerCase() ?? "");
+  const schema = showJobSchema ? {
+    "@context":"https://schema.org",
+    "@type":"JobPosting",
+    title:job.title,
+    description:job.description,
+    datePosted:new Date(publicJob.created_at!).toISOString(),
+    url:absoluteUrl("/jobs/"+job.slug),
+    identifier:{"@type":"PropertyValue",name:job.company_name,value:job.id},
+    hiringOrganization:{"@type":"Organization",name:job.company_name},
+    ...(job.deadline?{validThrough:job.deadline}:{}),
+    ...(employment?{employmentType:employment}:{}),
+    ...(isRemote?{
+      jobLocationType:"TELECOMMUTE",
+      applicantLocationRequirements:{"@type":"Country",name:"Pakistan"}
+    }:{
+      jobLocation:{"@type":"Place",address:{"@type":"PostalAddress",
+        ...(job.city?{addressLocality:job.city}:{}),
+        ...(job.province?{addressRegion:job.province}:{}),
+        addressCountry:"PK"}}
+    }),
+    ...(job.salary_min!=null || job.salary_max!=null ? {baseSalary:{
+      "@type":"MonetaryAmount",currency:job.salary_currency||"PKR",
+      value:{"@type":"QuantitativeValue",
+        ...(job.salary_min!=null?{minValue:job.salary_min}:{}),
+        ...(job.salary_max!=null?{maxValue:job.salary_max}:{}),
+        unitText:({month:"MONTH",year:"YEAR",hour:"HOUR",week:"WEEK",day:"DAY"} as Record<string,string>)[job.salary_period||"month"]||"MONTH"}
+    }}:{})
+  }:null;
 
-  return <main><SiteHeader />
+  return <main>{schema&&<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema).replace(/</g,"\\u003c")}}/>}<SiteHeader />
     <section className="page-hero job-detail-hero"><div className="shell">
       <span className="section-kicker">{job.sector==="Punjab"?"VETERINARY CAREER":job.sector||"VETERINARY CAREER"}</span>
       <h1>{job.title}</h1>
