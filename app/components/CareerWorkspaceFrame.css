@@ -419,3 +419,9 @@
 .vcx-clinic-service-group>p{color:#718198;font-size:11px;line-height:1.5;margin:0 0 12px}
 .vcx-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important}
 @media(max-width:540px){.vcx-clinic-specialty-panel .vcx-clinic-focus-grid{grid-template-columns:minmax(0,1fr)}.vcx-clinic-choice-title{padding:15px}.vcx-clinic-choice-section>.vcx-clinic-focus{padding:4px 15px 15px}.vcx-clinic-service-tabs{padding:0 15px 13px}.vcx-clinic-specialty-heading{padding:16px}}
+
+/* Subsections avoid a long, unstructured list while retaining existing saved values. */
+.vcx-clinic-service-subgroup{margin:0 0 15px}
+.vcx-clinic-service-subgroup h6{font-size:12px;font-weight:800;color:#2c466a;margin:5px 0 9px}
+.vcx-clinic-service-subgroup + .vcx-clinic-service-subgroup{border-top:1px solid #edf1f6;padding-top:14px}
+.vcx-clinic-service-subgroup .vcx-clinic-focus-grid{margin-bottom:0}
