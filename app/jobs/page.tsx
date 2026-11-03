@@ -70,10 +70,11 @@ export default async function JobsPage({
       matchesJobLocation(job, params.city ?? "") &&
       (!params.sector || params.sector==="All sectors" || job.sector===params.sector),
   );
-  const page = Math.max(1,Math.min(100,Number.parseInt(params.page??"1",10)||1));
+  const requestedPage = Math.max(1,Math.min(100,Number.parseInt(params.page??"1",10)||1));
   const pageSize = 10;
-  const shownJobs = visibleJobs.slice((page-1)*pageSize,page*pageSize);
   const pages = Math.max(1,Math.ceil(visibleJobs.length/pageSize));
+  const page = Math.min(requestedPage,pages);
+  const shownJobs = visibleJobs.slice((page-1)*pageSize,page*pageSize);
   const pageUrl=(next:number)=>"/jobs?"+new URLSearchParams({...(params.q?{q:params.q}:{}),...(params.city&&params.city!=="All cities"?{city:params.city}:{}),...(params.sector&&params.sector!=="All sectors"?{sector:params.sector}:{}),page:String(next)}).toString()+"#jobs";
   const cities = [...new Set([
     ...jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]),
