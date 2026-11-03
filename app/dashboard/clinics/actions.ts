@@ -533,7 +533,7 @@ export async function removeClinicServiceAction(
   const supabase = await createClient();
   const { error } = await supabase
     .from("clinic_services")
-    .delete()
+    .update({is_active:false,is_public:false,booking_enabled:false})
     .eq("id", id)
     .eq("clinic_id", clinicId);
   if (error) {
@@ -542,7 +542,7 @@ export async function removeClinicServiceAction(
   revalidatePath(path);
   revalidatePath("/clinics");
   redirect(
-    routeMessage(path, "message", "Clinic service removed."),
+    routeMessage(path, "message", "Service archived from your rate card. Existing appointment history is preserved."),
   );
 }
 

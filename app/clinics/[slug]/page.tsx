@@ -429,54 +429,29 @@ export default async function ClinicDetailPage({
       <section className="section section-soft">
         <div className="shell feature-columns">
           <div>
-            <h3>Services</h3>
-
+            <h3>Clinic services & rate card</h3>
+            <p>Fees shown are clinic-provided estimates in Pakistani rupees. Final charges depend on the service and the clinic's confirmation.</p>
             {services.length ? (
-              <div className="workspace-record-list public-service-list">
-                {services.map((service) => (
-                  <article key={service.id}>
-                    <div>
-                      <h3>
-                        {service.service_name ||
-                          "Veterinary service"}
-                      </h3>
-
-                      {service.description && (
-                        <p>{service.description}</p>
-                      )}
-
-                      <div className="status-cluster">
-                        {service.fee_min !== null && (
-                          <span className="status-pill">
-                            {service.currency}{" "}
-                            {service.fee_min}
-                            {service.fee_max !== null
-                              ? `–${service.fee_max}`
-                              : "+"}
-                          </span>
-                        )}
-
-                        {service.duration_minutes && (
-                          <span className="status-pill">
-                            {service.duration_minutes} min
-                          </span>
-                        )}
-
-                        {service.booking_enabled && (
-                          <span className="status-pill">
-                            appointment enabled
-                          </span>
-                        )}
-                      </div>
+              <div className="vc-public-rates">
+                {services.map(service => (
+                  <article className="vc-public-rate" key={service.id}>
+                    <div className="vc-public-rate-title">
+                      <h4>{service.service_name || "Veterinary service"}</h4>
+                      <strong>{service.fee_min===null && service.fee_max===null?"Ask for fee":service.fee_min!==null&&service.fee_max!==null&&service.fee_min!==service.fee_max
+                      ? `PKR ${service.fee_min.toLocaleString("en-PK")}–${service.fee_max.toLocaleString("en-PK")}`
+                      : `PKR ${(service.fee_min??service.fee_max)?.toLocaleString("en-PK")}`}</strong>
+                    </div>
+                    {service.description&&<p>{service.description}</p>}
+                    <div className="status-cluster">
+                      {service.duration_minutes&&<span className="status-pill">{service.duration_minutes} minutes</span>}
+                      <span className="status-pill">{service.booking_enabled && appointmentEnabled?"Request appointment":"Contact clinic"}</span>
                     </div>
                   </article>
                 ))}
               </div>
             ) : (
               <div className="profile-chips">
-                {clinic.services.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
+                {clinic.services.map(item=><span key={item}>{item}</span>)}
               </div>
             )}
           </div>
