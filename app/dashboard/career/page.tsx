@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { uploadCareerCvAction } from "./actions";
+import { uploadCareerCvAction,recordJobApplicationActivityAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,9 @@ type JobRow = {
   province: string | null;
   employment_type: string;
   company_user_id: string | null;
+  deadline: string | null;
 };
+type ApplicationActivity = {id:string;application_id:string;activity_type:string;direction:string;details:string;occurred_at:string};
 
 export default async function CareerWorkspacePage({searchParams}:{searchParams:Promise<{error?:string;message?:string}>}) {
   const alerts=await searchParams;
@@ -82,11 +84,16 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
   if (jobIds.length) {
     const { data } = await supabase
       .from("jobs")
-      .select("id, slug, title, sector, city, province, employment_type, company_user_id")
+      .select("id, slug, title, sector, city, province, employment_type, company_user_id, deadline")
       .in("id", jobIds);
     jobs = (data ?? []) as JobRow[];
   }
   const jobMap = new Map(jobs.map((job) => [job.id, job]));
+  const activityResult=applicationRows.length ? await supabase.from("job_application_activity")
+    .select("id,application_id,activity_type,direction,details,occurred_at")
+    .in("application_id",applicationRows.map(a=>a.id)).eq("candidate_user_id",identity.userId)
+    .order("occurred_at",{ascending:false}).limit(150) : {data:[],error:null};
+  const activityRows=(activityResult.data??[]) as ApplicationActivity[];
 
   return (
     <CareerWorkspaceFrame
@@ -156,7 +163,35 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
                   {applicationRows.map((application) => {
                     const job = jobMap.get(application.job_id);
                     return <article key={application.id}><div className="admin-data-main"><div className="admin-data-title"><span className="module-tag">{job?.sector || "Veterinary career"}</span><h2>{job?.title || "Job application"}</h2></div><p>{[job?.city, job?.province, job?.employment_type].filter(Boolean).join(" · ") || "VetConnect job"}</p><div className="status-cluster"><span className={`status-pill status-${application.status}`}>{application.status.replaceAll("_", " ")}</span><span className="status-pill">Applied {new Date(application.applied_at).toLocaleDateString("en-PK")}</span>
-                        <span className="status-pill">{application.cv_source==="saved_cv"?"Saved CV attached":application.cv_source==="profile_cv"?"VetConnect CV attached":"Legacy application"}</span></div></div>{job?.slug && <Link className="button button-secondary" href={`/jobs/${job.slug}`}>View job</Link>}</article>;
+                        <span className="status-pill">{application.cv_source==="saved_cv"?"Saved CV attached":application.cv_source==="profile_cv"?"VetConnect CV attached":"Legacy application"}</span>
+                        <span className="status-pill">Deadline: {job?.deadline?new Date(job.deadline+"T12:00:00").toLocaleDateString("en-PK"):"Not specified"}</span>
+                      </div>
+                      {application.cv_document_id&&<p><a className="text-link" href={"/api/career/documents/"+application.cv_document_id} target="_blank" rel="noopener noreferrer">View CV submitted with this application</a></p>}
+                      {job?.slug&&<p><Link className="text-link" href={"/jobs/"+job.slug}>View original job advertisement</Link></p>}
+                      <details className="backend-form-card">
+                        <summary>Calls, messages & interviews ({activityRows.filter(a=>a.application_id===application.id).length})</summary>
+                        <p className="form-help">Private notes entered by you. Calls and messages outside VetConnect are not automatically recorded.</p>
+                        {activityRows.filter(a=>a.application_id===application.id).map(a=><div key={a.id} className="career-activity-entry">
+                          <strong>{a.activity_type.replaceAll("_"," ")} · {a.direction.replaceAll("_"," ")}</strong>
+                          <small> {new Date(a.occurred_at).toLocaleString("en-PK")}</small><p>{a.details}</p>
+                        </div>)}
+                        <form action={recordJobApplicationActivityAction} className="profile-form">
+                          <input type="hidden" name="application_id" value={application.id}/>
+                          <label htmlFor={"activity-kind-"+application.id}>Activity</label>
+                          <select id={"activity-kind-"+application.id} name="activity_type" required defaultValue="phone_call">
+                            <option value="phone_call">Phone call</option><option value="message">Message / WhatsApp</option>
+                            <option value="interview">Interview</option><option value="follow_up">Follow-up</option><option value="note">Other note</option>
+                          </select>
+                          <label htmlFor={"activity-direction-"+application.id}>Direction</label>
+                          <select id={"activity-direction-"+application.id} name="direction" defaultValue="received">
+                            <option value="received">Received</option><option value="sent">Sent</option><option value="not_applicable">Not applicable</option>
+                          </select>
+                          <label htmlFor={"activity-details-"+application.id}>Notes (private)</label>
+                          <textarea id={"activity-details-"+application.id} name="details" maxLength={2000} required placeholder="Record the contact, interview date or next step."/>
+                          <button className="button button-secondary" type="submit">Save activity</button>
+                        </form>
+                      </details>
+                    </div></article>;
                   })}
                 </div>
               )}
