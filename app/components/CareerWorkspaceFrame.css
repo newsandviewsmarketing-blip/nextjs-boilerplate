@@ -425,3 +425,17 @@
 .vcx-clinic-service-subgroup h6{font-size:12px;font-weight:800;color:#2c466a;margin:5px 0 9px}
 .vcx-clinic-service-subgroup + .vcx-clinic-service-subgroup{border-top:1px solid #edf1f6;padding-top:14px}
 .vcx-clinic-service-subgroup .vcx-clinic-focus-grid{margin-bottom:0}
+
+/* Guided clinic setup reuses existing schedule, offerings and publication workflow. */
+.vcx-clinic-workflow{display:grid;gap:14px;background:#fff;border:1px solid #dce5f1;border-radius:15px;padding:20px;margin:20px 0}
+.vcx-clinic-workflow-heading{display:flex;justify-content:space-between;align-items:start;gap:16px}
+.vcx-clinic-workflow-heading h2{font-size:19px;line-height:1.3;margin:5px 0 7px;color:#142c54}
+.vcx-clinic-workflow-heading p{font-size:12px;line-height:1.55;margin:0;color:#61758f}
+.vcx-clinic-workflow-count{white-space:nowrap;background:#edf4ff;border-radius:10px;padding:9px 11px;color:#234a7d;font-size:12px;font-weight:850}
+.vcx-clinic-workflow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.vcx-clinic-workflow-item{display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;column-gap:10px;row-gap:3px;border:1px solid #e1e8f2;border-radius:11px;padding:13px;background:#f9fbfe;text-decoration:none}
+.vcx-clinic-workflow-item:hover{background:#fff6ed;border-color:#f6ceab}
+.vcx-clinic-workflow-number{grid-row:span 2;background:#fff0e3;color:#a85700;width:30px;height:30px;display:grid;place-items:center;font-size:11px;font-weight:850;border-radius:9px}
+.vcx-clinic-workflow-item strong{font-size:12px;color:#21385b}
+.vcx-clinic-workflow-item small{font-size:11px;line-height:1.5;color:#657993}
+@media(max-width:650px){.vcx-clinic-workflow{padding:14px}.vcx-clinic-workflow-grid{grid-template-columns:1fr}.vcx-clinic-workflow-heading{flex-wrap:wrap}}
