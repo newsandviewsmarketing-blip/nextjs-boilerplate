@@ -185,7 +185,14 @@ test("career workspace and veterinarian job application flow are active", () => 
   assert.match(career, /MY APPLICATIONS/);
   assert.match(career, /job_applications/);
   assert.match(jobs, /"veterinarian"/);
-  assert.match(jobs, /verification_status !== "approved"/);
+  // Applicants need an eligible account, verified email, valid private CV, and
+  // an open published job. The old professional-profile approval prerequisite
+  // is no longer part of the approved application workflow.
+  assert.match(jobs, /matchingVerifiedAccountEmail/);
+  assert.match(jobs, /inspectCvFile/);
+  assert.match(jobs, /from\("public_jobs"\)/);
+  assert.match(jobs, /jobStatus\.deadline/);
+  assert.doesNotMatch(jobs, /careerProfile\?\.verification_status !== "approved"/);
 });
 
 test("admin directory supports standardized filters and CSV export", () => {
