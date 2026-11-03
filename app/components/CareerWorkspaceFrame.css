@@ -439,3 +439,25 @@
 .vcx-clinic-workflow-item strong{font-size:12px;color:#21385b}
 .vcx-clinic-workflow-item small{font-size:11px;line-height:1.5;color:#657993}
 @media(max-width:650px){.vcx-clinic-workflow{padding:14px}.vcx-clinic-workflow-grid{grid-template-columns:1fr}.vcx-clinic-workflow-heading{flex-wrap:wrap}}
+
+/* Compact clinic-hours editor: one weekly template with optional daily exceptions. */
+.vcx-compact-hours{display:grid;gap:17px;min-width:0}
+.vcx-hours-template,.vcx-hours-week{border:1px solid #e2e8f1;border-radius:13px;background:#fbfcff;padding:16px;min-width:0}
+.vcx-compact-hours h3{margin:0 0 11px;font-size:14px;color:#1b365d}
+.vcx-hours-day-picker{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:17px}
+.vcx-hours-day{min-width:0;margin:0!important;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 3px;border:1px solid #e0e7f2;border-radius:10px;background:white;font-size:11px;color:#31496b}
+.vcx-hours-day:has(input:checked){background:#fff0e3;border-color:#f5ad68;color:#924a08}
+.vcx-hours-day input[type="checkbox"],.vcx-hours-check input[type="checkbox"]{display:block;width:17px;height:17px;min-width:17px;min-height:17px;flex:0 0 17px;padding:0;margin:0;accent-color:#f47a00;box-shadow:none}
+.vcx-hours-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.vcx-hours-input{display:grid;gap:5px;min-width:0;margin:0!important;font-size:11px!important;font-weight:750;color:#415575}
+.vcx-hours-input input{width:100%;max-width:100%;min-width:0;height:41px;font-size:13px}
+.vcx-hours-toggles{display:flex;flex-wrap:wrap;gap:12px;margin:11px 0}
+.vcx-hours-check{display:inline-flex;align-items:center;gap:8px;min-height:30px;margin:0!important;font-size:12px!important;font-weight:650}
+.vcx-hours-summary{display:grid;gap:6px}
+.vcx-hours-row{display:grid;grid-template-columns:48px minmax(0,1fr) 55px;gap:10px;align-items:center;padding:9px 12px;background:white;border:1px solid #e0e7f0;border-radius:10px;font-size:12px}
+.vcx-hours-row>strong{color:#1d395e}.vcx-hours-row>span{color:#566e89;overflow-wrap:anywhere}
+.vcx-hours-edit{cursor:pointer;background:#f3f6fb;border:1px solid #dce5f1;border-radius:8px;padding:7px 5px;font-weight:750;color:#36567e;font-size:11px}
+.vcx-hours-override{grid-column:1/-1;display:grid;gap:9px;padding:13px 0 3px;border-top:1px solid #edf0f6}
+.vcx-hours-override .vcx-hours-fields{grid-template-columns:repeat(2,minmax(0,1fr));margin:0}
+@media(max-width:750px){.vcx-hours-day-picker{grid-template-columns:repeat(4,minmax(0,1fr))}.vcx-hours-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.vcx-hours-template,.vcx-hours-week{padding:12px}.vcx-hours-fields{grid-template-columns:1fr}.vcx-hours-row{grid-template-columns:35px minmax(0,1fr) 48px;gap:5px;padding:8px}.vcx-hours-day-picker{grid-template-columns:repeat(4,minmax(0,1fr))}}

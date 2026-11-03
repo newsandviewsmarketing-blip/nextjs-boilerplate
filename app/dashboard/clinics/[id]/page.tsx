@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
 import ClinicFacilityTypeField from "../ClinicFacilityTypeField";
 import ClinicFocusFields from "../ClinicFocusFields";
+import CompactClinicHours from "../CompactClinicHours";
 import FormMessage from "../../../components/FormMessage";
 import FormSubmitButton from "../../../components/FormSubmitButton";
 import PakistanLocationFields from "../../../components/PakistanLocationFields";
@@ -585,133 +586,7 @@ export default async function ClinicManagePage({
             </FormSubmitButton>
           </form>
 
-          <form id="clinic-hours"
-            className="backend-form-card workspace-section-card workspace-heading-gap"
-            action={saveClinicAvailabilityAction}
-          >
-            <input
-              type="hidden"
-              name="clinic_id"
-              value={clinic.id}
-            />
-
-            <div className="section-heading">
-              <span className="section-kicker">
-                HOURS & AVAILABILITY
-              </span>
-              <h2>Weekly clinic schedule and appointment slots.</h2>
-              <p>
-                Set opening hours, optional breaks, 24-hour service
-                and whether appointment requests are accepted on
-                each day. The public clinic page uses this schedule.
-              </p>
-            </div>
-
-            <div className="workspace-record-list">
-              {dayNames.map((dayName, dayOfWeek) => {
-                const row = availabilityMap.get(dayOfWeek);
-                return (
-                  <article key={dayName}>
-                    <div>
-                      <h3>{dayName}</h3>
-                      <div className="form-grid">
-                        <label className="checkbox-line">
-                          <input
-                            type="checkbox"
-                            name={`day_${dayOfWeek}_open`}
-                            defaultChecked={row?.is_open ?? false}
-                          />{" "}
-                          Clinic open
-                        </label>
-
-                        <label className="checkbox-line">
-                          <input
-                            type="checkbox"
-                            name={`day_${dayOfWeek}_24h`}
-                            defaultChecked={
-                              row?.is_24_hours ?? false
-                            }
-                          />{" "}
-                          24 hours
-                        </label>
-
-                        <label>
-                          Opens
-                          <input
-                            type="time"
-                            name={`day_${dayOfWeek}_opens`}
-                            defaultValue={
-                              row?.opens_at?.slice(0, 5) ?? "09:00"
-                            }
-                          />
-                        </label>
-
-                        <label>
-                          Closes
-                          <input
-                            type="time"
-                            name={`day_${dayOfWeek}_closes`}
-                            defaultValue={
-                              row?.closes_at?.slice(0, 5) ?? "17:00"
-                            }
-                          />
-                        </label>
-
-                        <label>
-                          Break starts
-                          <input
-                            type="time"
-                            name={`day_${dayOfWeek}_break_start`}
-                            defaultValue={
-                              row?.break_start?.slice(0, 5) ?? ""
-                            }
-                          />
-                        </label>
-
-                        <label>
-                          Break ends
-                          <input
-                            type="time"
-                            name={`day_${dayOfWeek}_break_end`}
-                            defaultValue={
-                              row?.break_end?.slice(0, 5) ?? ""
-                            }
-                          />
-                        </label>
-
-                        <label className="checkbox-line">
-                          <input
-                            type="checkbox"
-                            name={`day_${dayOfWeek}_appointments`}
-                            defaultChecked={
-                              row?.appointment_enabled ?? false
-                            }
-                          />{" "}
-                          Accept appointment requests
-                        </label>
-
-                        <label>
-                          Slot length (minutes)
-                          <input
-                            type="number"
-                            min="5"
-                            max="240"
-                            step="5"
-                            name={`day_${dayOfWeek}_slot`}
-                            defaultValue={row?.slot_minutes ?? 30}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            <FormSubmitButton pendingLabel="Saving weekly hours...">
-              Save weekly availability
-            </FormSubmitButton>
-          </form>
+          <CompactClinicHours clinicId={clinic.id} existing={availability} action={saveClinicAvailabilityAction}/>
 
           <div className="workspace-two-column workspace-heading-gap">
             <section className="backend-form-card workspace-section-card">
