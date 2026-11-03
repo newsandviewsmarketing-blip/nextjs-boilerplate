@@ -63,6 +63,7 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
     <span className="section-kicker">CANONICAL MANAGEMENT RECORD · {config.label.toUpperCase()}</span>
     <h1>{name}</h1><p>{kind.replaceAll("_"," ")} · {String(data.verification_status??"Not reviewed")} · Record {id.slice(0,8)} · Created {ts(data.created_at)}</p>
   </div><div className="vc-admin-actions"><Link href="/admin/directory" className="button button-secondary">Master directory</Link>
+    {kind==="company"&&canEdit&&<Link href={"/admin/company-profile/"+id} className="button button-secondary">Complete company profile</Link>}
     {publicHref&&<Link className="button button-primary" href={publicHref} target="_blank" rel="noopener noreferrer">Open public page ↗</Link>}
   </div></div></section>
   <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout"><div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
