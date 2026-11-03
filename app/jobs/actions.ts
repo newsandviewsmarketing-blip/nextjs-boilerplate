@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {matchingVerifiedAccountEmail} from "@/lib/career-email-verification";
-import {notifyEmployerApplication} from "@/lib/guest-job-applications";
+import {inspectCvFile,notifyEmployerApplication} from "@/lib/guest-job-applications";
 
 export async function applyToJobAction(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
@@ -31,24 +32,38 @@ export async function applyToJobAction(formData: FormData) {
     if(letterError||!letter?.body_text)redirect(path+'?error='+encodeURIComponent('Create and save your cover letter before selecting it.'));
     coverNote=letter.body_text;
   }
-  const verificationQuery = careerRole === "veterinarian"
-    ? supabase.from("veterinarian_profiles").select("verification_status").eq("user_id", identity.userId).maybeSingle()
-    : supabase.from("professional_profiles").select("verification_status").eq("user_id", identity.userId).maybeSingle();
-  const { data: careerProfile, error: verificationError } = await verificationQuery;
-
-  if (verificationError || careerProfile?.verification_status !== "approved") {
-    redirect(`${path}?error=${encodeURIComponent("Your career profile needs approval before applying. Open My VetConnect > Professional workspace.")}`);
-  }
-
   const selectedCv = String(formData.get("cv_choice") ?? "").trim();
-  const source = selectedCv === "profile_cv" ? "profile_cv" : selectedCv.startsWith("saved:") ? "saved_cv" : "";
+  const source = selectedCv === "upload_cv" ? "saved_cv" : selectedCv === "profile_cv" ? "profile_cv" : selectedCv.startsWith("saved:") ? "saved_cv" : "";
   const cvId = source === "saved_cv" ? selectedCv.slice(6) : "";
   if (!["saved_cv","profile_cv"].includes(source)) {
     redirect(path+"?error="+encodeURIComponent("Select a saved CV or your VetConnect CV profile before applying."));
   }
   let documentId: string | null = null;
   let snapshot: Record<string,string | null> | null = null;
-  if (source === "saved_cv") {
+  let uploadedPath: string | null = null;
+  if (selectedCv === "upload_cv") {
+    const file = formData.get("cv_file");
+    if (!(file instanceof File) || !file.size)
+      redirect(path+"?error="+encodeURIComponent("Choose a CV file to upload with your application."));
+    let validated: Awaited<ReturnType<typeof inspectCvFile>>;
+    try { validated = await inspectCvFile(file); }
+    catch (error) {
+      redirect(path+"?error="+encodeURIComponent(error instanceof Error ? error.message : "Invalid CV file."));
+    }
+    const filePath = identity.userId+"/cv/"+randomUUID()+"."+validated.ext;
+    const {error:storageError} = await supabase.storage.from("career-documents").upload(filePath,file,{contentType:validated.mime,upsert:false});
+    if(storageError)redirect(path+"?error="+encodeURIComponent("Could not upload your CV. Please retry."));
+    uploadedPath=filePath;
+    const {data:doc,error:documentError} = await supabase.from("career_documents").insert({
+      professional_user_id:identity.userId,document_type:"cv",file_path:filePath,
+      template_type:"uploaded",is_current:true,visibility:"owner_only"
+    }).select("id").single();
+    if(documentError || !doc){
+      await supabase.storage.from("career-documents").remove([filePath]);
+      redirect(path+"?error="+encodeURIComponent("CV could not be saved privately. Please retry."));
+    }
+    documentId=doc.id;
+  } else if (source === "saved_cv") {
     const {data:document,error:cvError} = await supabase.from("career_documents")
       .select("id").eq("id",cvId)
       .eq("professional_user_id",identity.userId).eq("document_type","cv").maybeSingle();
@@ -76,7 +91,18 @@ export async function applyToJobAction(formData: FormData) {
     cv_document_id: documentId,
     cv_snapshot: snapshot,
   }).select("id").single();
-  if (error) redirect(`${path}?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    // A failed application must not leave a newly uploaded CV orphaned.
+    if (uploadedPath && documentId) {
+      await supabase.from("career_documents").delete().eq("id",documentId).eq("professional_user_id",identity.userId);
+      await supabase.storage.from("career-documents").remove([uploadedPath]);
+    }
+    redirect(`${path}?error=${encodeURIComponent(error.message)}`);
+  }
+  if(uploadedPath && documentId){
+    await supabase.from("career_documents").update({is_current:false})
+      .eq("professional_user_id",identity.userId).eq("document_type","cv").neq("id",documentId);
+  }
   if(application)await notifyEmployerApplication(jobId,application.id);
   revalidatePath(path);
   revalidatePath("/dashboard/career");
