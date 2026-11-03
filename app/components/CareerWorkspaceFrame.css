@@ -469,3 +469,15 @@
 .vcx-rate-add{border:1px solid #f5c998;border-radius:12px;background:#fff9f2;padding:15px}
 .vcx-rate-add summary{font-size:13px}
 @media(max-width:650px){.vcx-rate-fields{grid-template-columns:1fr}.vcx-rate-intro{flex-wrap:wrap}}
+
+/* Separate clinic, remote and field consultation base rates from additional services. */
+.vcx-consultation-modes{padding:14px;background:#f7fafd;border:1px solid #dfe8f3;border-radius:12px;display:grid;gap:10px}
+.vcx-consultation-modes>h3{font-size:14px;color:#17345b;margin:0}
+.vcx-consultation-modes>p{font-size:11px;color:#657991;line-height:1.5;margin:0}
+.vcx-consultation-mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.vcx-consultation-mode{background:#fff;border:1px solid #dee6f0;border-radius:10px;padding:12px;display:grid;align-content:start;gap:7px}
+.vcx-consultation-mode strong{font-size:11px;line-height:1.4;color:#17345b}
+.vcx-consultation-mode span{font-size:14px;font-weight:850;color:#a9590a}
+.vcx-consultation-mode small{font-size:10px;line-height:1.45;color:#64758a}
+.vcx-rate-extras-title{font-size:13px;color:#203f63;margin:4px 0 0}
+@media(max-width:780px){.vcx-consultation-mode-grid{grid-template-columns:1fr}}
