@@ -8,7 +8,7 @@
     "start": "next start",
     "audit": "node scripts/audit-structure.mjs",
     "lint": "eslint .",
-    "test": "node --test scripts/source.test.mjs scripts/phase1-security.test.mjs scripts/editor-dossier.test.mjs scripts/veterinary-credential.test.mjs scripts/registration-category.test.mjs scripts/career-cv-defaults.test.mjs scripts/career-matching.test.mjs scripts/career-alerts-db.test.mjs scripts/career-cover-letter-db.test.mjs scripts/site-content.test.mjs scripts/workspace-navigation.test.mjs",
+    "test": "node --test scripts/source.test.mjs scripts/phase1-security.test.mjs scripts/editor-dossier.test.mjs scripts/veterinary-credential.test.mjs scripts/registration-category.test.mjs scripts/career-cv-defaults.test.mjs scripts/career-matching.test.mjs scripts/career-alerts-db.test.mjs scripts/career-cover-letter-db.test.mjs scripts/site-content.test.mjs scripts/workspace-navigation.test.mjs scripts/company-profile.test.mjs",
     "typecheck": "tsc --noEmit",
     "security:audit": "npm audit --audit-level=high",
     "check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build",
