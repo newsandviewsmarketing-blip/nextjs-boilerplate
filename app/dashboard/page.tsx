@@ -116,6 +116,20 @@ export default async function DashboardPage({
       .select("image_url").eq("user_id",identity.userId).maybeSingle()
     : null;
 
+  // One identity can hold personal career records, approved company memberships and
+  // administrative permissions. Read only the current user's authorized records.
+  const canUseCareer=identity.roles.some(item=>["veterinarian","professional","candidate"].includes(item));
+  const [companyWorkspaceResult,personalApplicationsResult]=await Promise.all([
+    supabase.rpc("get_my_company_workspaces"),
+    canUseCareer
+      ? supabase.from("job_applications").select("id",{count:"exact",head:true}).eq("candidate_user_id",identity.userId)
+      : Promise.resolve({count:null,error:null}),
+  ]);
+  type LinkedCompany={company_id:string;canonical_name:string;member_role:string;designation:string|null;company_verification_status:string};
+  const linkedCompanies=companyWorkspaceResult.error?[]:(companyWorkspaceResult.data??[]) as LinkedCompany[];
+  const personalApplicationCount=personalApplicationsResult.error?null:personalApplicationsResult.count;
+  const hasOwnWorkspaces=canUseCareer||linkedCompanies.length>0||isAdmin||role==="company";
+
   return (
     <CareerWorkspaceFrame
       active="account" module="account"
@@ -131,6 +145,36 @@ export default async function DashboardPage({
         {isAdmin&&<Link className="vcx-button vcx-button-outline" href="/admin">Admin workspace</Link>}
         <form action={signOutAction}><button className="vcx-button vcx-button-outline" type="submit">Sign out</button></form>
       </div>
+      {hasOwnWorkspaces&&<section className="backend-form-card vcx-account-card" aria-labelledby="my-connected-workspaces">
+        <div className="section-heading">
+          <span className="section-kicker">MY VETCONNECT</span>
+          <h2 id="my-connected-workspaces">My connected workspaces</h2>
+          <p>One account, separate personal and organization records. Each destination checks your permissions before showing private data.</p>
+        </div>
+        <div className="workspace-record-list">
+          {canUseCareer&&<article>
+            <div><h3>Personal career and applications</h3>
+              <p>{personalApplicationCount===null?"Applications count unavailable":`${personalApplicationCount} applications submitted through VetConnect`}. Your CV, job interests and applications belong to your personal account.</p>
+            </div>
+            <Link className="button button-secondary" href="/dashboard/career">My applications</Link>
+          </article>}
+          {linkedCompanies.map(company=><article key={company.company_id}>
+            <div><h3>{company.canonical_name}</h3>
+              <p>{company.designation||company.member_role} · {company.company_verification_status}. Company jobs and applicants remain separate from your personal career activity.</p>
+            </div>
+            <Link className="button button-secondary" href={`/dashboard/company?company=${encodeURIComponent(company.company_id)}`}>Manage company</Link>
+          </article>)}
+          {role==="company"&&linkedCompanies.length===0&&<article>
+            <div><h3>Company registration</h3><p>No approved company workspace is assigned yet. Continue your existing private registration rather than creating a duplicate company.</p></div>
+            <Link className="button button-secondary" href="/register/status">Registration status</Link>
+          </article>}
+          {isAdmin&&<article>
+            <div><h3>VetConnect administration</h3><p>Review and manage platform records with your assigned staff permissions. These actions are separate from your personal and company activity.</p></div>
+            <Link className="button button-secondary" href="/admin">Admin workspace</Link>
+          </article>}
+        </div>
+        {companyWorkspaceResult.error&&<p role="status" className="form-help">Company membership information is temporarily unavailable. Your existing records are unchanged.</p>}
+      </section>}
       <section className="backend-form-card vcx-account-card">
         <FormMessage {...params} />
             <form id="account-settings" className="backend-form-card vc-review-target" action={updateProfileAction}>
