@@ -255,7 +255,9 @@ export async function requestRegistrationOtpAction(
   const registrationNext =
     isClinicRegistration
       ? "/dashboard/clinics"
-      : "/dashboard";
+      : role === "company"
+        ? "/dashboard/company"
+        : "/dashboard";
 
   if (!fullName || !email || !role) {
     redirect(
@@ -568,7 +570,9 @@ export async function registerAction(
   const registrationNext =
     isClinicRegistration
       ? "/dashboard/clinics"
-      : "/dashboard";
+      : role === "company"
+        ? "/dashboard/company"
+        : "/dashboard";
 
   if (
     !fullName ||
