@@ -37,7 +37,9 @@ test('multi-company actions cannot silently default to the first employer',()=>{
  assert.match(actions,/requireCompanyPermission\(permission, companyId \|\| undefined\)/);
  assert.equal((actions.match(/requireWorkspace\("[a-z.]+", formData\)/g)||[]).length,7);
  assert.match(page,/getCurrentCompanyWorkspace\(params\.company\)/);
- for(const action of ['updateCompanyProfileAction','createProductAction','deletePendingProductAction','createJobAction','deletePendingJobAction','updateInquiryStatusAction'])
+ // Company profile now uses the same shared editor as administrative creation.
+ assert.match(page,/<form action=\{updateCompanyProfileAction\}>\s*<input type="hidden" name="company_id"/);
+ for(const action of ['createProductAction','deletePendingProductAction','createJobAction','deletePendingJobAction','updateInquiryStatusAction'])
   assert.match(page,new RegExp('action=\\{'+action+'\\}\\><input type="hidden" name="company_id"'));
  assert.match(editor,/getCurrentCompanyWorkspace\(formParams\.company\)/);
  assert.match(editor,/name="company_id" value=\{workspace\.company_id\}/);
