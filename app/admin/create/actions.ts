@@ -139,9 +139,10 @@ export async function createCompanyAction(formData: FormData) {
     city: optional(formData,"city"), address: optional(formData,"address"),
     public_phone: optional(formData,"public_phone"), public_email: optional(formData,"public_email"),
     website, google_maps_url:maps, logo_url:logoFallback, cover_image_url:cover,
-    verification_status: publish ? "approved" : "pending", is_published: publish,
-    created_by: identity.userId, verified_by: publish ? identity.userId : null,
-    verified_at: publish ? new Date().toISOString() : null,
+    // Keep assisted company drafts private until every supporting save succeeds.
+    verification_status: "pending", is_published: false,
+    created_by: identity.userId, verified_by: null,
+    verified_at: null,
   }).select("id").single();
   if (error || !data) createError("company", error?.message ?? "Could not create company.");
   try {
@@ -152,6 +153,14 @@ export async function createCompanyAction(formData: FormData) {
       if (logoError) throw logoError;
     }
     await saveDocument(formData, "supporting_document", "company_registration_evidence", "company", String(data.id), identity.userId, supabase);
+    // Publication occurs last. Any failure leaves a non-public record for staff to repair.
+    if (publish) {
+      const { error: publishError } = await supabase.from("companies").update({
+        verification_status: "approved", is_published: true,
+        verified_by: identity.userId, verified_at: new Date().toISOString(),
+      }).eq("id", data.id).eq("verification_status", "pending").select("id").single();
+      if (publishError) throw publishError;
+    }
   } catch (uploadError) {
     createError("company", "Company created, but additional details need attention. Record ID: "+data.id+"; "+(uploadError instanceof Error ? uploadError.message : "Unknown save error"));
   }
