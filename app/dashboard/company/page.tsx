@@ -2,6 +2,8 @@ import JobCompensationFields from "@/app/components/JobCompensationFields";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import CareerWorkspaceFrame from "@/app/components/CareerWorkspaceFrame";
+import CompanyProfileFields from "@/app/components/CompanyProfileFields";
+import type { ManagementContact } from "@/lib/company-profile-editor";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import MasterDataInput from "../../components/MasterDataInput";
@@ -154,6 +156,25 @@ export default async function CompanyDashboardPage({
     }
 
     company = data as CompanyProfileRow | null;
+  }
+
+  let canonicalCompany: Record<string, unknown> | null = null;
+  let publicPresentation: Record<string, unknown> | null = null;
+  let internalContacts: ManagementContact[] = [];
+  if (canManageCompany || canViewPrivateCompany) {
+    const [canonicalResult, presentationResult, contactResult] = await Promise.all([
+      supabase.from("companies").select("*").eq("id",workspace.company_id).maybeSingle(),
+      supabase.from("company_profile_content").select("*").eq("company_id",workspace.company_id).maybeSingle(),
+      supabase.from("company_private_contacts").select("full_name,designation,department,office_phone,mobile_phone,email,reports_to,notes")
+        .eq("company_id",workspace.company_id).order("sort_order",{ascending:true}),
+    ]);
+    if (canonicalResult.error) redirect("/dashboard/company?error="+encodeURIComponent(canonicalResult.error.message));
+    if (presentationResult.error || contactResult.error) {
+      redirect("/dashboard/company?error=Company%20profile%20migration%20is%20not%20ready.");
+    }
+    canonicalCompany = canonicalResult.data;
+    publicPresentation = presentationResult.data;
+    internalContacts = (contactResult.data ?? []) as ManagementContact[];
   }
 
   if (canManageProducts) {
@@ -355,94 +376,23 @@ export default async function CompanyDashboardPage({
           </div>
 
           {canManageCompany && (
-            <form id="company-details" className="backend-form-card vc-review-target" action={updateCompanyProfileAction}><input type="hidden" name="company_id" value={workspace.company_id} />
-              <div className="section-heading">
-                <span className="section-kicker">COMPANY PROFILE</span>
-                <h2>Edit company information.</h2>
-                <p>
-                  Changes remain protected by the company.manage permission and
-                  database review rules.
-                </p>
-              </div>
-              <div className="form-grid">
-                <div>
-                  <label htmlFor="company_name">Company name</label>
-                  <input
-                    id="company_name"
-                    name="company_name"
-                    required
-                    defaultValue={company?.company_name ?? workspace.canonical_name}
-                  />
+            <div id="company-details" className="backend-form-card vc-review-target">
+              <form action={updateCompanyProfileAction}>
+                <input type="hidden" name="company_id" value={workspace.company_id}/>
+                <CompanyProfileFields mode="company-edit"
+                  initial={{...(company ?? {}),...(canonicalCompany ?? {}),
+                    company_name:company?.company_name ?? workspace.canonical_name,
+                    contact_email:company?.contact_email ?? canonicalCompany?.public_email ?? "",
+                    description:canonicalCompany?.description ?? company?.description ?? "",
+                    year_established:company?.year_established ?? ""}}
+                  presentation={publicPresentation}
+                  contacts={internalContacts}/>
+                <div className="vc-company-export-actions">
+                  <FormSubmitButton pendingLabel="Saving company...">Save company profile</FormSubmitButton>
+                  <Link className="button button-secondary" href={"/dashboard/company/export?company="+encodeURIComponent(workspace.company_id)}>Internal PDF / print profile</Link>
                 </div>
-                <div>
-                  <label htmlFor="legal_name">Legal name</label>
-                  <input id="legal_name" name="legal_name" defaultValue={company?.legal_name ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="trade_name">Trade name</label>
-                  <input id="trade_name" name="trade_name" defaultValue={company?.trade_name ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="business_type">Business type</label>
-                  <input id="business_type" name="business_type" defaultValue={company?.business_type ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="registration_number">Registration number</label>
-                  <input id="registration_number" name="registration_number" defaultValue={company?.registration_number ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="owner_name">Owner name</label>
-                  <input id="owner_name" name="owner_name" defaultValue={company?.owner_name ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="chief_executive_name">Chief executive</label>
-                  <input id="chief_executive_name" name="chief_executive_name" defaultValue={company?.chief_executive_name ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="year_established">Year established</label>
-                  <input id="year_established" name="year_established" type="number" min="1800" max={new Date().getFullYear()} defaultValue={company?.year_established ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="country">Country</label>
-                  <input id="country" name="country" defaultValue={company?.country ?? "Pakistan"} />
-                </div>
-                <div>
-                  <label htmlFor="city">City</label>
-                  <input id="city" name="city" defaultValue={company?.city ?? ""} />
-                </div>
-                <div className="form-span-2">
-                  <label htmlFor="address">Address</label>
-                  <input id="address" name="address" defaultValue={company?.address ?? ""} />
-                </div>
-                <div className="form-span-2">
-                  <label htmlFor="short_description">Short description</label>
-                  <input id="short_description" name="short_description" defaultValue={company?.short_description ?? ""} />
-                </div>
-                <div className="form-span-2">
-                  <label htmlFor="description">Company description</label>
-                  <textarea id="description" name="description" defaultValue={company?.description ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="website">Website</label>
-                  <input id="website" name="website" type="url" defaultValue={company?.website ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="contact_email">Contact email</label>
-                  <input id="contact_email" name="contact_email" type="email" defaultValue={company?.contact_email ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="logo_url">Logo URL</label>
-                  <input id="logo_url" name="logo_url" type="url" defaultValue={company?.logo_url ?? ""} />
-                </div>
-                <div>
-                  <label htmlFor="cover_image_url">Cover image URL</label>
-                  <input id="cover_image_url" name="cover_image_url" type="url" defaultValue={company?.cover_image_url ?? ""} />
-                </div>
-              </div>
-              <FormSubmitButton pendingLabel="Saving company...">
-                Save company profile
-              </FormSubmitButton>
-            </form>
+              </form>
+            </div>
           )}
 
           {canManageProducts && (
