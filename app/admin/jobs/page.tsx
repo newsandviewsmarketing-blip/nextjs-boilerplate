@@ -7,7 +7,7 @@ import {createClient} from "@/lib/supabase/server";
 
 export const dynamic="force-dynamic";
 type Params={search?:string;status?:string};
-type Row={id:string;title:string;sector:string|null;city:string|null;province:string|null;verification_status:string;is_published:boolean;created_at:string;advert_image_path:string|null;company_id:string|null;slug:string|null};
+type Row={id:string;title:string;sector:string|null;city:string|null;province:string|null;verification_status:string;is_published:boolean;created_at:string;updated_at:string|null;advert_image_path:string|null;company_id:string|null;slug:string|null};
 type Application={job_id:string};
 
 export default async function AdminJobsPage({searchParams}:{searchParams:Promise<Params>}){
@@ -15,7 +15,7 @@ export default async function AdminJobsPage({searchParams}:{searchParams:Promise
  const identity=await requireAdminPermission("jobs.manage","/admin/jobs");
  const permissions=await getEffectiveAdminPermissions(identity);
  const supabase=await createClient();
- const {data,error}=await supabase.from("jobs").select("id,title,sector,city,province,verification_status,is_published,created_at,advert_image_path,company_id,slug").order("created_at",{ascending:false}).limit(200);
+ const {data,error}=await supabase.from("jobs").select("id,title,sector,city,province,verification_status,is_published,created_at,updated_at,advert_image_path,company_id,slug").order("updated_at",{ascending:false,nullsFirst:false}).limit(200);
  const all=(data??[]) as Row[];
  const ids=all.map(job=>job.id);
  const {data:applicationRows,error:applicationError}=ids.length
@@ -39,7 +39,7 @@ export default async function AdminJobsPage({searchParams}:{searchParams:Promise
   <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout"><div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
    <div className="admin-control-content vc-admin-main">
     <section className="vc-admin-panel">
-     <div className="vc-panel-header"><div><h2>Recruitment overview</h2><p>Latest 200 job records. Existing approval safeguards remain in force.</p></div></div>
+     <div className="vc-panel-header"><div><h2>Recruitment overview</h2><p>Latest 200 updated job records. Existing approval safeguards remain in force.</p></div></div>
      <div className="management-links">
       {permissions.has("jobs.create")&&<Link className="button button-primary" href="/admin/create?type=job">+ New job</Link>}
       {permissions.has("companies.create")&&<Link className="button button-secondary" href="/admin/create?type=company">+ New company</Link>}
@@ -55,19 +55,19 @@ export default async function AdminJobsPage({searchParams}:{searchParams:Promise
      {error?<p role="alert">Jobs could not be loaded. Nothing has been changed.</p>:
       <div style={{display:"grid",gap:"0.65rem"}}>
        {rows.map(job=><article key={job.id} style={{display:"flex",gap:"0.85rem",alignItems:"center",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"0.8rem",background:"#fff",flexWrap:"wrap"}}>
-        <div aria-label={job.advert_image_path?"Advertisement image attached":"No advertisement image"} style={{width:68,height:68,borderRadius:8,background:job.advert_image_path?"#e8f6ec":"#f1f5f9",border:"1px solid #dce4ec",display:"grid",placeItems:"center",textAlign:"center",fontSize:11,color:"#31546c",flexShrink:0}}>
-         {job.advert_image_path?"Ad image":"No image"}
+        <div aria-label={job.advert_image_path?"Advertisement image attached":"No advertisement image"} style={{width:68,height:68,borderRadius:8,background:"#f1f5f9",border:"1px solid #dce4ec",display:"grid",placeItems:"center",textAlign:"center",fontSize:11,color:"#31546c",flexShrink:0,overflow:"hidden"}}>
+         {job.advert_image_path&&job.is_published&&job.verification_status==="approved"?<img src={`/api/jobs/${job.id}/advertisement`} alt={`Advertisement for ${job.title}`} width={68} height={68} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:job.advert_image_path?"Image saved":"No image"}
         </div>
         <div style={{flex:"1 1 270px",minWidth:0}}>
          <h3 style={{margin:"0 0 0.3rem",fontSize:"1rem"}}><Link href={`/admin/jobs/${job.id}`}>{job.title}</Link></h3>
          <p style={{margin:"0 0 0.25rem",fontSize:"0.85rem"}}>{job.company_id?companyNames.get(job.company_id)||"Employer record":"No employer"} · {job.sector||"Sector not specified"} · {[job.city,job.province].filter(Boolean).join(", ")||"Location not specified"}</p>
-         <small>{job.verification_status} · {job.is_published?"Published":"Not published"} · {counts.get(job.id)??0} application(s) · {new Date(job.created_at).toLocaleDateString("en-PK",{timeZone:"Asia/Karachi"})}</small>
+         <small>{job.verification_status} · {job.is_published?"Published":"Not published"} · {counts.get(job.id)??0} application(s) · Updated {new Date(job.updated_at||job.created_at).toLocaleDateString("en-PK",{timeZone:"Asia/Karachi"})}</small>
         </div>
         <div className="management-links" style={{margin:0}}>
          <Link href={`/admin/jobs/${job.id}`}>Open</Link>
          {job.verification_status==="pending"&&<Link href={`/admin/reviews#job-${job.id}`}>Approve / reject</Link>}
-         <Link href="/admin/jobs-media">Image</Link>
-         <Link href={`/admin/applications?q=${encodeURIComponent(job.title)}`}>Applications ({counts.get(job.id)??0})</Link>
+         <Link href={`/admin/jobs-media?job_id=${job.id}`}>Image</Link>
+         <Link href={`/admin/applications?job_id=${job.id}`}>Applications ({counts.get(job.id)??0})</Link>
          {job.is_published&&job.slug&&<Link href={`/jobs/${job.slug}`}>Public view</Link>}
         </div>
        </article>)}
