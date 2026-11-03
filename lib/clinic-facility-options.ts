@@ -32,12 +32,28 @@ export const CLINIC_SERVICES = [
   "Poultry Vaccination Planning", "Poultry Disease Investigation",
   "Feed & Flock Performance Review", "Mastitis & Udder Health",
   "Herd Reproductive Health", "Farm Biosecurity Audit",
+  "Pet Ultrasound", "Pet X-ray / Radiography", "Pet ECG", "Pet Echocardiography",
+  "In-house Blood Tests", "Clinical Pathology / Laboratory", "External Laboratory Referral",
+  "Pet Ophthalmology", "Pet Orthopaedic Consultation", "Pet Cardiology Consultation",
+  "Pet Neurology Consultation", "Pet Physiotherapy / Rehabilitation",
+  "Pet Soft Tissue Surgery", "Pet Spay / Neuter", "Pet Ear Examination & Care",
+  "Pet Grooming / Hygiene Advice", "Pet Microchipping",
+  "Broiler Farm Health", "Layer Farm Health", "Breeder Flock Health",
+  "Hatchery Health & Hygiene", "Poultry Necropsy & Sample Collection",
+  "Poultry Laboratory Testing", "Layer Egg Production Monitoring",
+  "Broiler Growth Performance Monitoring", "Dairy Herd Health",
+  "Beef Cattle Health", "Livestock Ultrasound", "Livestock Laboratory Diagnostics",
+  "Pregnancy Diagnosis", "Artificial Insemination Services",
+  "Equine General Practice", "Equine Lameness Assessment", "Equine Dentistry",
+  "Equine Ultrasound", "Equine Reproductive Services",
 ] as const;
 
 export const CLINIC_SPECIES = [
   "Dogs", "Cats", "Poultry", "Cattle", "Buffalo",
   "Sheep", "Goats", "Equine", "Fish / Aquaculture",
   "Companion Animals", "Wildlife", "Rabbits", "Pet Birds", "Exotic Pets", "Camelids",
+  "Broiler Flocks", "Layer Flocks", "Breeder Flocks", "Hatchery / Chicks",
+  "Dairy Cattle", "Beef Cattle", "Dairy Buffalo", "Horses", "Donkeys",
 ] as const;
 
 const facilitySet = new Set<string>(CLINIC_FACILITY_TYPES);
@@ -60,10 +76,10 @@ export function clinicFocusEntries(formData:FormData,kind:"services"|"species"):
   // Backwards-compatible with old forms or stale browser tabs while users update.
   if(!formData.has(kind+"_extra")&&!formData.has(kind+"_selected"))
     return String(formData.get(kind)??"").split(",")
-      .map(x=>x.trim()).filter(Boolean).slice(0,35);
+      .map(x=>x.trim()).filter(Boolean).slice(0,80);
   const submitted = formData.getAll(kind + "_selected").map(x=>String(x).trim());
   const extra = String(formData.get(kind + "_extra")??"")
     .split(",").map(x=>x.trim().replace(/\s+/g," ")).filter(Boolean);
   const result=[...submitted.filter(x=>allowed.has(x)),...extra.filter(x=>x.length <= 80 && !/[<>]/.test(x))];
-  return [...new Map(result.map(x=>[x.toLocaleLowerCase("en"),x])).values()].slice(0,35);
+  return [...new Map(result.map(x=>[x.toLocaleLowerCase("en"),x])).values()].slice(0,80);
 }
