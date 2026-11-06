@@ -27,7 +27,7 @@ export default async function CompleteRegistrationPage({
   const requirements = registrationEvidenceRequirements(role, gate?.registration_intent ?? "", gate?.student_track ?? "");
   const existing = await supabase.from("registration_evidence")
     .select("document_type,original_filename,verification_status,created_at").eq("user_id", auth.user.id).order("created_at", { ascending: false });
-  if (!profileError && !gateError && gate?.review_status === "approved") redirect("/dashboard");
+  if (!profileError && !gateError && gate?.review_status === "approved") redirect(role === "company" ? (gate?.registration_intent === "clinic" ? "/dashboard/clinics" : "/dashboard/company") : "/dashboard");
   if (!profileError && !gateError && gate?.completed_at && gate?.review_status === "pending") redirect("/register/status");
 
   const details = await supabase.from("registration_profile_details").select("category_details").eq("user_id",auth.user.id).maybeSingle();
@@ -42,7 +42,7 @@ export default async function CompleteRegistrationPage({
             <div className="section-heading">
               <span className="section-kicker">IDENTITY AND CREDENTIAL CHECK</span>
               <h1>Complete your registration</h1>
-              <p>Upload the documents required for your selected category. Files are saved privately as you upload them. Nothing becomes public until an administrator approves your application.</p>
+              <p>{role === "company" ? "Your company registration is saved as a private application. Complete the required business evidence below. Your management workspace becomes available after approval and company membership activation." : "Upload the documents required for your selected category. Files are saved privately as you upload them. Nothing becomes public until an administrator approves your application."}</p>
             </div>
             <FormMessage error={!registrationReady ? "Registration completion is temporarily unavailable. Please contact VetConnect support, then sign in with the same email to continue. Do not upload identity documents until this step is available." : params.error} />
             {registrationReady && ["veterinarian", "candidate", "professional"].includes(role) && <form action={saveRegistrationProfileDraftAction} className="backend-form-card">
