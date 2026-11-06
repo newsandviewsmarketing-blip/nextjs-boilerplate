@@ -132,12 +132,21 @@ export async function requestClinicAppointmentAction(
     .from("clinic_schedule_exceptions")
     .select("is_closed,opens_at,closes_at,appointment_enabled")
     .eq("clinic_id",clinicId).eq("exception_date",preferredDate).maybeSingle();
-  if(exceptionError){
+  // A prior release introduced the optional date-exceptions feature before its
+  // additive migration was applied. Only a confirmed missing-table error may
+  // fall back to the existing weekly schedule. Any authorization, network,
+  // query or other unexpected error still blocks requests (fail closed).
+  const exceptionTableUnavailable = Boolean(
+    exceptionError &&
+      (exceptionError.code === "PGRST205" || exceptionError.code === "42P01") &&
+      exceptionError.message?.includes("clinic_schedule_exceptions"),
+  );
+  if (exceptionError && !exceptionTableUnavailable) {
     redirect(`${path}?error=${encodeURIComponent("Clinic availability could not be checked for the selected date.")}`);
   }
   // Recurring monthly exceptions apply on the same calendar day from their
   // start date; a one-time exception for the selected date takes priority.
-  const {data:monthlyRows,error:monthlyError}=exception
+  const {data:monthlyRows,error:monthlyError}=exception || exceptionTableUnavailable
     ?{data:[],error:null}
     :await supabase.from("clinic_schedule_exceptions")
       .select("is_closed,opens_at,closes_at,appointment_enabled,exception_date,repeat_until")
