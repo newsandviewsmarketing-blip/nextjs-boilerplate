@@ -902,3 +902,13 @@ test("clinic booking degrades safely only when the optional date-exception table
   assert.match(booking, /clinic_availability/);
   assert.match(booking, /clinic_appointment_requests/);
 });
+
+test("clinic booking rejects impossible calendar dates and expired same-day appointments", () => {
+  const booking = read("app/clinics/actions.ts");
+  assert.match(booking, /isCalendarDate/);
+  assert.match(booking, /date\.toISOString\(\)\.slice\(0, 10\) !== preferredDate/);
+  assert.match(booking, /preferredDate === pakistanToday\(\)/);
+  assert.match(booking, /timeZone: "Asia\/Karachi"/);
+  assert.match(booking, /requestedMinutes <= hours \* 60 \+ minutes/);
+  assert.match(booking, /Choose a future appointment time for today/);
+});

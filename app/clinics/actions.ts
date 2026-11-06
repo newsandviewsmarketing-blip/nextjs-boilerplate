@@ -87,8 +87,9 @@ export async function requestClinicAppointmentAction(
     );
   }
 
-  const date = new Date(`${preferredDate}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
+  const isCalendarDate = /^\d{4}-\d{2}-\d{2}$/.test(preferredDate);
+  const date = isCalendarDate ? new Date(`${preferredDate}T00:00:00Z`) : new Date(NaN);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== preferredDate) {
     redirect(
       `${path}?error=${encodeURIComponent(
         "Choose a valid appointment date.",
@@ -106,6 +107,18 @@ export async function requestClinicAppointmentAction(
     );
   }
 
+  // Local clinic appointments cannot request a slot already in the past today.
+  // Use Pakistan local clock time, not the Vercel function region.
+  if (preferredDate === pakistanToday()) {
+    const nowParts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Karachi", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date());
+    const hours = Number(nowParts.find((part) => part.type === "hour")?.value);
+    const minutes = Number(nowParts.find((part) => part.type === "minute")?.value);
+    if (requestedMinutes !== null && requestedMinutes <= hours * 60 + minutes) {
+      redirect(`${path}?error=${encodeURIComponent("Choose a future appointment time for today.")}`);
+    }
+  }
   const identity = await getCurrentIdentity();
   const supabase = await createClient();
 
