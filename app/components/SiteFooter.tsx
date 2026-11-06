@@ -73,7 +73,7 @@ export default function SiteFooter() {
           <div className="footer-socials" aria-label="VetConnect social media">
             <a
               className="footer-social-link"
-              href="https://www.facebook.com/VetConnect.Digital"
+              href="https://www.facebook.com/VetConnect.official"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="VetConnect on Facebook"
