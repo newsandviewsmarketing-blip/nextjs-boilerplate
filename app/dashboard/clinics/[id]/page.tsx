@@ -22,6 +22,8 @@ import {
   removeClinicServiceAction,
   reviewClinicMembershipAction,
   saveClinicAvailabilityAction,
+  saveClinicScheduleExceptionAction,
+  removeClinicScheduleExceptionAction,
   setClinicPrimaryMemberAction,
   updateClinicAction,
   updateClinicAppointmentAction,
@@ -212,6 +214,17 @@ export default async function ClinicManagePage({
   if (clinicResult.error || !clinicResult.data) notFound();
 
   const clinic = clinicResult.data as ClinicRow;
+  // Exception dates are independent of weekly availability.
+  // This page must remain readable if the additive migration has not run yet.
+  const {data:exceptionRows,error:exceptionLoadError}=await supabase
+    .from("clinic_schedule_exceptions")
+    .select("id,exception_date,repeat_monthly,repeat_until,is_closed,opens_at,closes_at,reason,appointment_enabled")
+    .eq("clinic_id",id).order("exception_date",{ascending:true}).limit(100);
+  type ClinicDateException={
+    id:string;exception_date:string;repeat_monthly:boolean;repeat_until:string|null;is_closed:boolean;opens_at:string|null;
+    closes_at:string|null;reason:string|null;appointment_enabled:boolean;
+  };
+  const exceptions=(exceptionRows??[]) as ClinicDateException[];
   const catalog = (catalogResult.data ?? []) as ServiceCatalogRow[];
   const clinicServices =
     (servicesResult.data ?? []) as ClinicServiceRow[];
@@ -588,6 +601,52 @@ export default async function ClinicManagePage({
           </form>
 
           <CompactClinicHours clinicId={clinic.id} existing={availability} action={saveClinicAvailabilityAction}/>
+
+          <section className="backend-form-card workspace-section-card vcx-clinic-special-dates" aria-labelledby="clinic-date-exceptions">
+            <div className="section-heading">
+              <span className="section-kicker">HOLIDAYS & SPECIAL DATES</span>
+              <h2 id="clinic-date-exceptions">Closed dates & special opening hours</h2>
+              <p>Keep your regular weekly schedule. Add holidays, monthly closures or one-time changes by date. A date exception takes priority over the weekly hours when accepting appointment requests.</p>
+            </div>
+            {exceptionLoadError?<p role="status">Special-date scheduling is not available until its database migration is installed. Your weekly hours are unchanged.</p>:<>
+              <div className="vcx-special-date-records">
+                {exceptions.length===0?<p>No special dates recorded.</p>:
+                 exceptions.map(row=><article className="vcx-special-date-row" key={row.id}>
+                   <div><strong>{row.exception_date}</strong>
+                    <p>{row.is_closed?"Closed / holiday":`Special hours: ${row.opens_at?.slice(0,5)}–${row.closes_at?.slice(0,5)}`}
+                      {row.reason?` · ${row.reason}`:""}{row.repeat_monthly?` · Repeats monthly${row.repeat_until?` until ${row.repeat_until}`:""}`:""}</p>
+                   </div>
+                   <form action={removeClinicScheduleExceptionAction}>
+                    <input type="hidden" name="clinic_id" value={clinic.id}/>
+                    <input type="hidden" name="exception_id" value={row.id}/>
+                    <button className="button button-secondary" type="submit">Remove</button>
+                   </form>
+                 </article>)}
+              </div>
+              <details className="vcx-special-date-add">
+                <summary>+ Add holiday or special hours</summary>
+                <form action={saveClinicScheduleExceptionAction} className="vcx-special-date-form">
+                  <input type="hidden" name="clinic_id" value={clinic.id}/>
+                  <div className="form-grid">
+                    <label>Date<input type="date" name="exception_date" required/></label>
+                    <label>Schedule change
+                      <select name="schedule_type" defaultValue="closed">
+                        <option value="closed">Closed / holiday</option>
+                        <option value="adjusted">Special opening hours</option>
+                      </select>
+                    </label>
+                    <label>Special opening time (if adjusted)<input type="time" name="opens_at"/></label>
+                    <label>Special closing time (if adjusted)<input type="time" name="closes_at"/></label>
+                  </div>
+                  <label className="checkbox-line"><input type="checkbox" name="repeat_monthly"/>Repeat on this day of each month</label>
+                  <label>End monthly repetition (optional)<input type="date" name="repeat_until"/></label>
+                  <label>Reason or notice (optional)<input name="reason" maxLength={160} placeholder="e.g. Public holiday, monthly stocktake"/></label>
+                  <label className="checkbox-line"><input type="checkbox" name="appointment_enabled"/>Accept appointment requests on this special date (only when open)</label>
+                  <FormSubmitButton pendingLabel="Saving special date...">Save special date</FormSubmitButton>
+                </form>
+              </details>
+            </>}
+          </section>
 
           <div className="workspace-two-column workspace-heading-gap">
             <section className="backend-form-card workspace-section-card">
