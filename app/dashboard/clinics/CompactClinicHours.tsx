@@ -114,7 +114,7 @@ export default function CompactClinicHours({
    {day.open&&day.appointments&&<input type="hidden" name={`day_${i}_appointments`} value="on"/>}
    <input type="hidden" name={`day_${i}_slot`} value={day.slot}/>
   </div>)}
-  <p className="form-help">Saving updates your clinic's weekly availability and the public hours summary. A booking request is not a confirmed appointment until accepted by your clinic.</p>
+  <p className="form-help">Saving updates your clinic&apos;s weekly availability and the public hours summary. A booking request is not a confirmed appointment until accepted by your clinic.</p>
   <button type="submit" className="button button-primary">Save weekly schedule</button>
  </form>;
 }
