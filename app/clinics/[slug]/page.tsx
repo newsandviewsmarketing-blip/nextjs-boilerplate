@@ -60,6 +60,12 @@ type AvailabilityRow = {
   slot_minutes: number;
 };
 
+type ScheduleExceptionRow={
+  exception_date:string;repeat_monthly:boolean;repeat_until:string|null;
+  is_closed:boolean;opens_at:string|null;closes_at:string|null;reason:string|null;
+  appointment_enabled:boolean;
+};
+
 type PublicMemberRow = {
   professional_user_id: string;
   designation: string | null;
@@ -94,6 +100,7 @@ type ClinicPageData = {
     }
   >;
   availability: AvailabilityRow[];
+  exceptions: ScheduleExceptionRow[];
   team: PublicTeamMember[];
 };
 
@@ -144,6 +151,7 @@ async function loadClinic(
           clinic: sample,
           services: [],
           availability: [],
+          exceptions: [],
           team: [],
         }
       : null;
@@ -167,6 +175,7 @@ async function loadClinic(
       clinic,
       services: [],
       availability: [],
+      exceptions: [],
       team: [],
     };
   }
@@ -176,6 +185,7 @@ async function loadClinic(
     { data: catalogRows },
     { data: availabilityRows },
     { data: memberRows },
+    {data:exceptionRows},
   ] = await Promise.all([
     supabase
       .from("clinic_services")
@@ -205,6 +215,10 @@ async function loadClinic(
       .eq("membership_status", "active")
       .eq("is_public", true)
       .order("is_primary", { ascending: false }),
+    supabase.from("clinic_schedule_exceptions")
+      .select("exception_date,repeat_monthly,repeat_until,is_closed,opens_at,closes_at,reason,appointment_enabled")
+      .eq("clinic_id",clinic.id)
+      .order("exception_date",{ascending:true}).limit(100),
   ]);
 
   const catalogMap = new Map(
@@ -260,6 +274,7 @@ async function loadClinic(
     services,
     availability:
       (availabilityRows ?? []) as AvailabilityRow[],
+    exceptions:(exceptionRows??[]) as ScheduleExceptionRow[],
     team,
   };
 }
@@ -302,7 +317,7 @@ export default async function ClinicDetailPage({
   const pageData = await loadClinic(slug);
   if (!pageData) notFound();
 
-  const { clinic, services, availability, team } =
+  const { clinic, services, availability, exceptions, team } =
     pageData;
   const identity = await getCurrentIdentity();
 
@@ -522,6 +537,24 @@ export default async function ClinicDetailPage({
                 );
               })}
             </div>
+            {exceptions.some(row=>row.repeat_monthly||row.exception_date>=pakistanToday())&&(
+              <div className="backend-form-card" style={{marginTop:"1rem"}}>
+                <h3>Holidays & special opening hours</h3>
+                <p>Special-date notices override normal weekly opening hours for those dates.</p>
+                <div className="workspace-record-list">
+                  {exceptions.filter(row=>row.repeat_monthly||row.exception_date>=pakistanToday()).slice(0,12).map(row=>(
+                    <article key={row.exception_date}>
+                      <div>
+                        <h4>{row.repeat_monthly?`Every month on day ${Number(row.exception_date.slice(8,10))}`:row.exception_date}</h4>
+                        <p>{row.is_closed?"Closed":`Special hours: ${row.opens_at?.slice(0,5)}–${row.closes_at?.slice(0,5)}`}
+                          {row.reason?` · ${row.reason}`:""}
+                          {row.repeat_until?` · Until ${row.repeat_until}`:""}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}
