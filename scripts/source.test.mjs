@@ -253,7 +253,7 @@ test("clinic workspace activates facility profile, media, services and affiliati
   const publicPage = read("app/clinics/[slug]/page.tsx");
   assert.match(listPage, /CareerWorkspaceFrame/);
   assert.match(listPage, /MY FACILITIES/);
-  assert.match(detailPage, /Standardized service catalogue/);
+  assert.match(detailPage, /ClinicRateCard/);
   assert.match(detailPage, /uploadClinicMediaAction/);
   assert.match(actions, /request_clinic_membership/);
   assert.match(actions, /clinic_services/);
@@ -808,7 +808,7 @@ test("clinic practice types, Other options and specialty labels reuse both clini
  assert.match(selector,/value="Other"/);
  assert.match(selector,/required maxLength=\{90\}/);
  assert.match(focus,/kind\+"_selected"/);
- assert.match(focus,/<OptionGroup kind="species"/);
+ assert.match(focus,/ANIMAL_GROUPS\.map/);
  assert.match(list,/<ClinicFacilityTypeField \/>/);
  assert.match(list,/<ClinicFocusFields \/>/);
  assert.match(detail,/<ClinicFacilityTypeField defaultValue=\{clinic.facility_type\} \/>/);
