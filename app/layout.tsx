@@ -5,6 +5,31 @@ import { siteUrl } from "@/lib/seo";
 const vetConnectLogo =
   "https://www.vetconnect.com.pk/vetconnect-logo.png";
 
+// Public brand identity for search engines. Only link confirmed official accounts.
+const brandStructuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.vetconnect.com.pk/#organization",
+      name: "VetConnect Pakistan",
+      alternateName: "Vet-Connect Pakistan",
+      url: "https://www.vetconnect.com.pk/",
+      logo: vetConnectLogo,
+      email: "vetconnect.official@gmail.com",
+      sameAs: ["https://www.linkedin.com/company/vet-connectofficial/"],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.vetconnect.com.pk/#website",
+      name: "VetConnect Pakistan",
+      url: "https://www.vetconnect.com.pk/",
+      publisher: { "@id": "https://www.vetconnect.com.pk/#organization" },
+      inLanguage: ["en", "ur"],
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
 
@@ -75,7 +100,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(brandStructuredData).replace(/</g, "\\u003c"),
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
