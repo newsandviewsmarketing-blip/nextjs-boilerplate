@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
@@ -115,6 +116,10 @@ const courses = [
     meta: "Professional learning • Clinical",
   },
 ];
+
+export const metadata: Metadata = {
+  alternates: { canonical: "https://www.vetconnect.com.pk/" },
+};
 
 export const dynamic="force-dynamic";
 async function loadVerifiedCurrentJobs():Promise<CurrentJobSlide[]>{
