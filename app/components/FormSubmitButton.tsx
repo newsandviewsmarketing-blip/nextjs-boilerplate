@@ -21,6 +21,8 @@ export default function FormSubmitButton({
       className={className}
       type="submit"
       disabled={pending}
+      aria-disabled={pending}
+      aria-busy={pending}
       name={name}
       value={value}
     >
