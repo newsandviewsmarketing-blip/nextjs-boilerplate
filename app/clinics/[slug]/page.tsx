@@ -430,7 +430,7 @@ export default async function ClinicDetailPage({
         <div className="shell feature-columns">
           <div>
             <h3>Clinic services & rate card</h3>
-            <p>Fees shown are clinic-provided estimates in Pakistani rupees. Final charges depend on the service and the clinic's confirmation.</p>
+            <p>Fees shown are clinic-provided estimates in Pakistani rupees. Final charges depend on the service and the clinic&apos;s confirmation.</p>
             {services.length ? (
               <div className="vc-public-rates">
                 {services.map(service => (
