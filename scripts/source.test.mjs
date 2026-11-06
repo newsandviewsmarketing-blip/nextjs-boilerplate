@@ -890,3 +890,15 @@ test("CV and applications avoid repeat navigation and CV-library overload",()=>{
  assert.match(apps,/<\/details>/);
  assert.match(css,/\.vcx-primary \.vcx-collapsible-library/);
 });
+
+test("clinic booking degrades safely only when the optional date-exception table is missing", () => {
+  const booking = read("app/clinics/actions.ts");
+  assert.match(booking, /exceptionTableUnavailable/);
+  assert.match(booking, /PGRST205/);
+  assert.match(booking, /42P01/);
+  assert.match(booking, /exceptionError\.message\?\.includes\("clinic_schedule_exceptions"\)/);
+  assert.match(booking, /exceptionError && !exceptionTableUnavailable/);
+  assert.match(booking, /exception \|\| exceptionTableUnavailable/);
+  assert.match(booking, /clinic_availability/);
+  assert.match(booking, /clinic_appointment_requests/);
+});
