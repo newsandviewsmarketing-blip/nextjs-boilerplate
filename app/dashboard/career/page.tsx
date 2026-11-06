@@ -1,4 +1,6 @@
 import CareerWorkspaceFrame from '@/app/components/CareerWorkspaceFrame';
+import {matchesJobLocation} from '@/lib/job-location';
+import type {PublicJob} from '@/lib/jobs';
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentIdentity } from "@/lib/auth";
@@ -46,7 +48,7 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
   }
 
   const supabase = await createClient();
-  const [applicationResult, savedResult, matchResult, cvDocumentsResult, cvProfileResult, professionalResult] = await Promise.all([
+  const [applicationResult, savedResult, matchResult, cvDocumentsResult, cvProfileResult, professionalResult, preferencesResult, publicJobsResult] = await Promise.all([
     supabase
       .from("job_applications")
       .select("id, job_id, status, cover_note, applied_at, cv_source, cv_document_id")
@@ -69,7 +71,25 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
     supabase.from("career_cv_profiles").select("full_name,headline")
       .eq("user_id",identity.userId).maybeSingle(),
     supabase.from("professional_profiles").select("verification_status,headline,image_url").eq("user_id",identity.userId).maybeSingle(),
+    supabase.from("candidate_preferences").select("preferred_sectors,desired_roles,preferred_cities,preferred_job_types").eq("professional_user_id",identity.userId).maybeSingle(),
+    supabase.from("public_jobs").select("id,slug,title,description,sector,city,province,district,tehsil,employment_type,deadline,company_name").limit(100),
   ]);
+
+  const pref=preferencesResult.data;
+  const sectors=(pref?.preferred_sectors??[] as string[]).map((x:string)=>x.trim().toLowerCase()).filter(Boolean);
+  const roles=(pref?.desired_roles??[] as string[]).map((x:string)=>x.trim().toLowerCase()).filter(Boolean);
+  const cities=(pref?.preferred_cities??[] as string[]).filter(Boolean);
+  const types=(pref?.preferred_job_types??[] as string[]).map((x:string)=>x.trim().toLowerCase()).filter(Boolean);
+  const hasInterests=Boolean(sectors.length||roles.length||cities.length||types.length);
+  const currentDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const interestMatches=hasInterests?(publicJobsResult.data??[]).filter(job=>{
+    if(job.deadline&&job.deadline<currentDate)return false;
+    if(sectors.length&&!sectors.includes((job.sector??'').trim().toLowerCase()))return false;
+    if(roles.length&&!roles.some((role:string)=>(job.title+' '+(job.description??'')).toLowerCase().includes(role)))return false;
+    if(types.length&&!types.includes((job.employment_type??'').trim().toLowerCase()))return false;
+    if(cities.length&&!cities.some((city:string)=>matchesJobLocation(job as PublicJob,city)))return false;
+    return true;
+  }).slice(0,8):[];
 
   const applicationRows = (applicationResult.data ?? []) as ApplicationRow[];
   const savedRows = (savedResult.data ?? []) as SavedRow[];
@@ -202,6 +222,14 @@ export default async function CareerWorkspacePage({searchParams}:{searchParams:P
               {savedRows.length === 0 ? <div className="empty-state"><p>No saved jobs yet.</p></div> : <div className="admin-data-list">{savedRows.map((saved) => { const job = jobMap.get(saved.job_id); return <article key={saved.job_id}><div className="admin-data-main"><div className="admin-data-title"><span className="module-tag">{job?.sector || "Career"}</span><h2>{job?.title || "Saved job"}</h2></div><p>{[job?.city, job?.province, job?.employment_type].filter(Boolean).join(" · ")}</p><span className="status-pill">Saved {new Date(saved.created_at).toLocaleDateString("en-PK")}</span></div>{job?.slug && <Link className="button button-secondary" href={`/jobs/${job.slug}`}>Open</Link>}</article>; })}</div>}
             </section>
           </div>
+
+          <section className="workspace-heading-gap" aria-labelledby="current-interest-jobs">
+            <div className="section-heading"><span className="section-kicker">NEW JOBS FOR YOU</span><h2 id="current-interest-jobs">Jobs matching your saved interests.</h2><p>Fresh approved vacancies appear when you open your dashboard, even if you have not enabled email alerts.</p></div>
+            {(preferencesResult.error||publicJobsResult.error)&&<p role="alert" className="form-message form-message-error">Could not load current interest matches. Please browse jobs and retry later.</p>}
+            {!hasInterests?<div className="empty-state"><p>Choose sectors, roles, cities or employment types to see relevant opportunities.</p><Link className="button button-secondary" href="/career/preferences">Set job interests</Link></div>:
+             interestMatches.length===0?<div className="empty-state"><p>No current jobs match these filters.</p><Link className="button button-secondary" href="/career/preferences">Update interests</Link></div>:
+             <div className="company-grid">{interestMatches.map(job=><article key={job.id}><span className="module-tag">{job.sector||'Career'}</span><h3>{job.title}</h3><p>{[job.company_name,job.city,job.province,job.employment_type].filter(Boolean).join(' · ')}</p><Link className="button button-primary button-full" href={'/jobs/'+job.slug}>View opportunity</Link></article>)}</div>}
+          </section>
 
           <section className="workspace-heading-gap">
             <div className="section-heading"><span className="section-kicker">JOB MATCHES</span><h2>Profile-based opportunity matches.</h2><p>Match records are calculated from the structured career data already stored in VetConnect.</p></div>
