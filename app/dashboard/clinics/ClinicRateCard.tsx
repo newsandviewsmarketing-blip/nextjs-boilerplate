@@ -27,7 +27,7 @@ function FeeFields({row}:{row?:Offering}){
    <label>Maximum fee (optional)<input name="fee_max" type="number" min="0" step="0.01" defaultValue={row?.fee_max??""} placeholder="For a variable price"/></label>
    <label>Typical duration (minutes)<input name="duration_minutes" type="number" min="1" max="1440" defaultValue={row?.duration_minutes??""} placeholder="e.g. 20"/></label>
   </div>
-  <label className="vcx-rate-description">Description / what's included<textarea name="description" defaultValue={row?.description??""} rows={2} placeholder="Describe the visit, treatment or included tests"/></label>
+  <label className="vcx-rate-description">Description / what&apos;s included<textarea name="description" defaultValue={row?.description??""} rows={2} placeholder="Describe the visit, treatment or included tests"/></label>
   <div className="vcx-rate-options">
    <label className="checkbox-line"><input type="checkbox" name="is_public" defaultChecked={row?.is_public??true}/>Show on public rate card</label>
    <label className="checkbox-line"><input type="checkbox" name="booking_enabled" defaultChecked={row?.booking_enabled??false}/>Allow appointment requests</label>
