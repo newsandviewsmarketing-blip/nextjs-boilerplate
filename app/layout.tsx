@@ -17,7 +17,10 @@ const brandStructuredData = {
       url: "https://www.vetconnect.com.pk/",
       logo: vetConnectLogo,
       email: "vetconnect.official@gmail.com",
-      sameAs: ["https://www.linkedin.com/company/vet-connectofficial/"],
+      sameAs: [
+        "https://www.facebook.com/VetConnect.official",
+        "https://www.linkedin.com/company/vet-connectofficial/",
+      ],
     },
     {
       "@type": "WebSite",
