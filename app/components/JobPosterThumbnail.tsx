@@ -1,3 +1,5 @@
+"use client";
+import {useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -23,7 +25,8 @@ export default function JobPosterThumbnail({
   priority?: boolean;
   compact?: boolean;
 }) {
-  const showImage = Boolean(available && id);
+  const [failed,setFailed] = useState(false);
+  const showImage = Boolean(available && id && !failed);
   return (
     <Link
       href={`/jobs/${slug}`}
@@ -38,6 +41,7 @@ export default function JobPosterThumbnail({
           fill
           sizes={compact ? "(max-width: 640px) 100px, 145px" : "(max-width: 640px) 88px, 116px"}
           priority={priority}
+          onError={() => setFailed(true)}
           className="job-poster-thumbnail__image"
         />
       ) : (
