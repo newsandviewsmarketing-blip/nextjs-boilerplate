@@ -4121,6 +4121,11 @@ textarea:focus {
   margin-bottom: 12px;
 }
 .current-job-slide h3 { margin-top: 8px; }
+@media (min-width: 641px) and (max-width: 900px) {
+  .job-board article { grid-template-columns: 96px minmax(0, 1fr); }
+  .job-board .job-poster-thumbnail { --job-poster-width: 96px; }
+  .job-board .job-apply { grid-column: 2; }
+}
 @media (max-width: 640px) {
   .job-board article {
     grid-template-columns: 86px minmax(0, 1fr);
