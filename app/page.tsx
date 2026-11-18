@@ -136,11 +136,20 @@ async function loadVerifiedCurrentJobs():Promise<CurrentJobSlide[]>{
  if(!filtered.length)return [];
  const {data:dates}=await supabase.from("jobs").select("id,created_at").in("id",filtered.map(j=>j.id));
  const timestamps=new Map((dates??[]).map(x=>[x.id,x.created_at]));
- return filtered.sort((a,b)=>String(timestamps.get(b.id)||"").localeCompare(String(timestamps.get(a.id)||"")))
-  .slice(0,10).map(job=>({
-   id:job.id,slug:job.slug,title:job.title,sector:job.sector && approvedSectors.has(job.sector.toLowerCase()) ? job.sector : "Sector pending classification",
+ const current=filtered.sort((a,b)=>String(timestamps.get(b.id)||"").localeCompare(String(timestamps.get(a.id)||""))).slice(0,10);
+ // Read image metadata only for published jobs already returned by public_jobs.
+ // The route itself enforces approval and publication before serving any image.
+ const {data:media,error:mediaError}=await supabase.from("jobs")
+  .select("id,advert_image_path,advert_image_mime,is_published,verification_status")
+  .in("id",current.map(job=>job.id));
+ const imageById=new Map((mediaError?[]:(media??[])).map(row=>[row.id,
+  Boolean(row.advert_image_path && row.is_published && row.verification_status==="approved" &&
+   ["image/jpeg","image/png","image/webp"].includes(row.advert_image_mime??""))]));
+ return current.map(job=>({
+   id:job.id,slug:job.slug,title:job.title,
+   sector:job.sector && approvedSectors.has(job.sector.trim().toLowerCase()) ? job.sector.trim() : "Sector pending classification",
    company_name:job.company_name,location:job.city||job.province||"Pakistan",
-   employment_type:job.employment_type
+   employment_type:job.employment_type,image_available:imageById.get(job.id)??false
   }));
 }
 export default async function Home() {

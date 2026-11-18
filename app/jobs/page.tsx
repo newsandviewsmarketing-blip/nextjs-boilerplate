@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import JobPosterThumbnail from "../components/JobPosterThumbnail";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { type PublicJob } from "@/lib/jobs";
@@ -41,17 +42,21 @@ async function loadJobs(): Promise<PublicJob[]> {
   const open=data.filter(x=>!x.deadline||x.deadline>=today);
   if(!open.length)return [];
   const ids = open.map(job => job.id).filter(Boolean) as string[];
-  const [{data: coverage}, {data: areas}, {data: posted}] = await Promise.all([
+  const [{data: coverage}, {data: areas}, {data: posted,error:mediaError}] = await Promise.all([
     supabase.from("job_coverage").select("job_id,scope,province,display_text").in("job_id",ids),
     supabase.from("job_coverage_areas").select("job_id,label,city,district,province").in("job_id",ids),
-    supabase.from("jobs").select("id,created_at").in("id",ids)
+    supabase.from("jobs").select("id,created_at,advert_image_path,advert_image_mime,is_published,verification_status").in("id",ids)
   ]);
   const created = new Map((posted??[]).map(row=>[row.id,row.created_at]));
+  const media = new Map((mediaError?[]:(posted??[])).map(row=>[row.id,
+    Boolean(row.advert_image_path && row.is_published && row.verification_status==="approved" &&
+      ["image/jpeg","image/png","image/webp"].includes(row.advert_image_mime??""))]));
   return open.sort((a,b)=>String(created.get(b.id)||"").localeCompare(String(created.get(a.id)||""))).map(job => ({
     ...job,
-    sector: job.sector && valid.has(job.sector.toLowerCase()) ? job.sector : "Sector pending classification",
+    sector: job.sector && valid.has(job.sector.trim().toLowerCase()) ? job.sector.trim() : "Sector pending classification",
     coverage: coverage?.find(c => c.job_id===job.id) ?? null,
-    coverage_areas: areas?.filter(a => a.job_id===job.id) ?? []
+    coverage_areas: areas?.filter(a => a.job_id===job.id) ?? [],
+    image_available: media.get(job.id)??false
   })) as PublicJob[];
 }
 
@@ -182,11 +187,12 @@ export default async function JobsPage({
             </div>
           ) : (
             <div className="job-board">
-              {shownJobs.map((job, index) => (
+              {shownJobs.map((job) => (
                 <article key={job.slug}>
-                  <div className="job-logo">
-                    {String((page-1)*pageSize+index + 1).padStart(2, "0")}
-                  </div>
+                  <JobPosterThumbnail
+                    id={job.id} slug={job.slug} title={job.title}
+                    company={job.company_name} available={Boolean(job.image_available)}
+                  />
                   <div className="job-main">
                     <span>{job.sector || "Animal health"}</span>
                     <h3>{job.title}</h3>

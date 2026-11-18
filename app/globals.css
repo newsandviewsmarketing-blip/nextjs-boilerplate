@@ -4056,3 +4056,83 @@ textarea:focus {
 .vc-public-rate-title h4{font-size:15px;line-height:1.4;margin:0;color:#19325a}
 .vc-public-rate-title strong{white-space:nowrap;font-size:15px;color:#b35b09}
 .vc-public-rate>p{font-size:12px;line-height:1.5;color:#5f7288;margin:8px 0}
+
+
+/* VetConnect job artwork: one no-crop 4:5 visual frame for every original poster.
+   Original bytes are stored unchanged and remain accessible on the job detail. */
+.job-poster-thumbnail {
+  --job-poster-width: 116px;
+  position: relative;
+  display: flex;
+  flex: none;
+  width: var(--job-poster-width);
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #dce4ee;
+  background: #f2f5f9;
+  box-shadow: 0 2px 7px rgba(12, 30, 64, 0.07);
+  isolation: isolate;
+}
+.job-poster-thumbnail__image {
+  object-fit: contain !important;
+  object-position: center center;
+  background: #f2f5f9;
+}
+.job-poster-thumbnail__fallback {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 9px;
+  color: #25375a;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: .05em;
+}
+.job-poster-thumbnail__mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #10214a;
+  color: #fff;
+  font-weight: 800;
+  font-size: .8rem;
+  letter-spacing: 0;
+}
+.job-poster-thumbnail:hover,
+.job-poster-thumbnail:focus-visible {
+  border-color: var(--orange);
+  outline-offset: 3px;
+}
+.job-board article {
+  grid-template-columns: 116px minmax(0, 1fr) auto;
+  align-items: center;
+}
+.job-board .job-main,
+.job-board .job-apply { min-width: 0; }
+.current-job-slide .job-poster-thumbnail--compact {
+  --job-poster-width: 116px;
+  margin-bottom: 12px;
+}
+.current-job-slide h3 { margin-top: 8px; }
+@media (min-width: 641px) and (max-width: 900px) {
+  .job-board article { grid-template-columns: 96px minmax(0, 1fr); }
+  .job-board .job-poster-thumbnail { --job-poster-width: 96px; }
+  .job-board .job-apply { grid-column: 2; }
+}
+@media (max-width: 640px) {
+  .job-board article {
+    grid-template-columns: 86px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+  }
+  .job-board .job-poster-thumbnail { --job-poster-width: 86px; }
+  .job-board .job-apply { grid-column: 2; }
+  .current-job-slide .job-poster-thumbnail--compact { --job-poster-width: 100px; }
+}
