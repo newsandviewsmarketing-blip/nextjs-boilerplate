@@ -136,7 +136,7 @@ async function loadVerifiedCurrentJobs():Promise<CurrentJobSlide[]>{
  if(!filtered.length)return [];
  const {data:dates}=await supabase.from("jobs").select("id,created_at").in("id",filtered.map(j=>j.id));
  const timestamps=new Map((dates??[]).map(x=>[x.id,x.created_at]));
- const current=filtered.sort((a,b)=>String(timestamps.get(b.id)||"").localeCompare(String(timestamps.get(a.id)||"")).slice(0,10);
+ const current=filtered.sort((a,b)=>String(timestamps.get(b.id)||"").localeCompare(String(timestamps.get(a.id)||""))).slice(0,10);
  // Read image metadata only for published jobs already returned by public_jobs.
  // The route itself enforces approval and publication before serving any image.
  const {data:media,error:mediaError}=await supabase.from("jobs")
