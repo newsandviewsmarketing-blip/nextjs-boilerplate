@@ -15,14 +15,6 @@ export function teamPhotoUrl(path:string|null):string|null {
   if(!base) return null;
   return base.replace(/\/$/,"")+"/storage/v1/object/public/team-photos/"+path;
 }
-export const TEAM_GROUPS = [
-  {value:"chairman",label:"Chairman",rank:0},
-  {value:"founder",label:"Founder",rank:1},
-  {value:"leadership",label:"Leadership",rank:2},
-  {value:"management",label:"Management",rank:3},
-  {value:"team",label:"Our Team",rank:4},
-  {value:"advisors",label:"Advisors",rank:5}
-] as const;
 export function sortTeamMembers<T extends TeamMember>(members:T[]):T[]{
  const priority=new Map<string,number>(TEAM_GROUPS.map(g=>[g.value,g.rank]));
  return [...members].sort((a,b)=>(priority.get(a.team_group)??4)-(priority.get(b.team_group)??4)
