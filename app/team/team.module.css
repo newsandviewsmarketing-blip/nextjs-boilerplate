@@ -1,0 +1,18 @@
+.hero{background:linear-gradient(110deg,#07173e,#123566);color:white;padding:4rem 0 3.5rem}
+.hero h1{color:white;font-size:clamp(2rem,4vw,3rem);margin:.5rem 0}
+.hero p{color:#d8e3f6;max-width:660px}
+.kicker{font-size:.75rem;font-weight:800;letter-spacing:.14em;color:#ff8a12}
+.section{padding:3.5rem 0}
+.intro{color:#58647a;max-width:720px;margin-bottom:2rem}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem}
+.card{border-radius:16px;overflow:hidden;background:white;border:1px solid #e7eaf0;box-shadow:0 8px 30px rgba(4,19,50,.045)}
+.portrait{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:center 30%;background:#eaeef6}
+.placeholder{width:100%;aspect-ratio:4/3;display:grid;place-items:center;background:#eef1f8;color:#6e7890;font-weight:700}
+.cardBody{padding:1.35rem}
+.cardBody h2{font-size:1.25rem;margin:.3rem 0;color:#0c1c46}
+.role{font-size:.87rem;color:#e77600;font-weight:700;margin:0 0 .5rem}
+.department{font-size:.8rem;color:#778195;margin:.1rem 0 .7rem}
+.summary{color:#536177;line-height:1.65;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.9em}
+.readMore{display:inline-block;color:#0c275c;font-weight:700;margin-top:.8rem}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.hero{padding:3rem 0}}
