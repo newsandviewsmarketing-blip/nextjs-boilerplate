@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import {TEAM_GROUPS} from "@/lib/team-groups";
+export {TEAM_GROUPS} from "@/lib/team-groups";
 
 export type TeamMember = {
   id:string;full_name:string;slug:string;job_title:string;department:string;
