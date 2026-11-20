@@ -2,7 +2,7 @@ import "../admin-compact.css";
 import Link from "next/link";
 import SiteHeader from "@/app/components/SiteHeader";
 import AdminNav from "@/app/admin/components/AdminNav";
-import {requireAdminPermission} from "@/lib/admin";
+import {requireSuperAdminTeamAccess} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
 import {type TeamMember,teamPhotoUrl,TEAM_GROUPS,sortTeamMembers} from "@/lib/team-members";
 import {unpublishTeamMember} from "./actions";
@@ -11,7 +11,7 @@ import styles from "./team-admin.module.css";
 
 export const dynamic="force-dynamic";
 export default async function TeamManagement({searchParams}:{searchParams:Promise<{edit?:string;message?:string}>}){
- const identity=await requireAdminPermission("site.manage","/admin/team");
+ const identity=await requireSuperAdminTeamAccess();
  const query=await searchParams;
  const db=await createClient();
  const {data,error}=await db.from("team_members").select("*").order("sort_order").order("full_name");
