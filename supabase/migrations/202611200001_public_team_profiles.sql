@@ -26,7 +26,10 @@ grant select on public.team_members to anon;
 grant select, insert, update, delete on public.team_members to authenticated;
 drop policy if exists team_members_public_read on public.team_members;
 create policy team_members_public_read on public.team_members for select to anon, authenticated
-using (is_published or (select public.has_admin_permission('site.manage')));
+using (is_published);
+drop policy if exists team_members_admin_read on public.team_members;
+create policy team_members_admin_read on public.team_members for select to authenticated
+using ((select public.has_admin_permission('site.manage')));
 drop policy if exists team_members_admin_insert on public.team_members;
 create policy team_members_admin_insert on public.team_members for insert to authenticated
 with check ((select public.has_admin_permission('site.manage')));
