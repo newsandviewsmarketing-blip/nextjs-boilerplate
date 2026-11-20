@@ -25,3 +25,6 @@
 .vc-admin-compact .vc-workspace-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:16px}
 .vc-admin-compact .vc-workspace-actions a{font-size:.8rem}
 @media(max-width:780px){.vc-admin-compact .admin-navigation{position:static}.vc-admin-compact .dashboard-hero{padding:21px 0}.vc-admin-compact .vc-admin-fold>summary{padding:14px}.vc-admin-compact .vc-admin-fold>div{padding:0 14px 15px}}
+
+.vc-admin-compact .vc-admin-mini-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#0a1838;color:#d7e2f4;font-size:.78rem;padding:18px max(22px,calc((100vw - 1180px)/2));min-height:64px}
+.vc-admin-compact .vc-admin-mini-footer a{color:#fff;text-decoration:underline}
