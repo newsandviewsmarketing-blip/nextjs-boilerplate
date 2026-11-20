@@ -21,6 +21,9 @@ create table if not exists public.team_members (
 );
 create index if not exists team_members_published_order on public.team_members (is_published,sort_order,full_name);
 alter table public.team_members enable row level security;
+-- API grants and RLS are independent: grant only the minimum required operations.
+grant select on public.team_members to anon;
+grant select, insert, update, delete on public.team_members to authenticated;
 drop policy if exists team_members_public_read on public.team_members;
 create policy team_members_public_read on public.team_members for select to anon, authenticated
 using (is_published or (select public.has_admin_permission('site.manage')));
