@@ -3,12 +3,15 @@ import SiteHeader from "@/app/components/SiteHeader";
 import SiteFooter from "@/app/components/SiteFooter";
 import {publishedTeamMembers,teamPhotoUrl,TEAM_GROUPS} from "@/lib/team-members";
 import styles from "./team.module.css";
+import {getPublishedSiteDocument} from "@/lib/site-content";
 export const dynamic="force-dynamic";
 export const metadata={title:"Our Team | VetConnect Pakistan",description:"Meet the leadership and professional team of VetConnect Pakistan, with verified biographies, responsibilities and profile links."};
 export default async function TeamPage(){
- const members=await publishedTeamMembers();
+ const [members,pageContent]=await Promise.all([publishedTeamMembers(),getPublishedSiteDocument("team")]);
+ const publishedIntro=pageContent.summary;
+ const intro=/team profiles will be added|awaiting confirmation/i.test(publishedIntro)?"Meet the leadership and people behind VetConnect Pakistan.":publishedIntro;
  return <><SiteHeader/><main>
- <section className={styles.hero}><div className="shell"><span className={styles.kicker}>VETCONNECT PAKISTAN · OUR PEOPLE</span><h1>Meet Our Team</h1><p>Introducing the leadership and people behind our work in veterinary services, animal health, livestock, industry, careers and professional learning.</p></div></section>
+ <section className={styles.hero}><div className="shell"><span className={styles.kicker}>VETCONNECT PAKISTAN · OUR PEOPLE</span><h1>{pageContent.title}</h1><p>{intro}</p></div></section>
  <section className={styles.section}><div className="shell">
  {members.length?TEAM_GROUPS.map(group=>{
  const groupMembers=members.filter(member=>member.team_group===group.value);
