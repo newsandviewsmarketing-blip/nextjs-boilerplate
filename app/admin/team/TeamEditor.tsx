@@ -16,6 +16,7 @@ export default function TeamEditor({selected}:{selected?:TeamMember}){
  const [publish,setPublish]=useState(selected?.is_published??false);
  const [bio,setBio]=useState(selected?.biography??"");
  const [tab,setTab]=useState<"identity"|"biography"|"links">("identity");
+ const [validation,setValidation]=useState("");
  useEffect(()=>()=>{if(photo?.startsWith("blob:"))URL.revokeObjectURL(photo)},[photo]);
  const onPhoto=(file?:File)=>{
    if(!file)return;
@@ -28,7 +29,7 @@ export default function TeamEditor({selected}:{selected?:TeamMember}){
    <span className={styles.status}>{publish?"Ready to publish":"Private draft"}</span>
   </div>
   <div className={styles.editorLayout}>
-   <form id="team-member-form" action={saveTeamMember} encType="multipart/form-data" className={styles.editorForm}>
+   <form id="team-member-form" action={saveTeamMember} encType="multipart/form-data" className={styles.editorForm} onSubmit={event=>{if(name.trim().length<2||title.trim().length<2){event.preventDefault();setTab("identity");setValidation("Enter the team member’s full name and designation.");return}if(publish&&(!hasFile||!summary.trim()||!bio.trim())){event.preventDefault();setTab(!hasFile?"identity":"biography");setValidation("An approved portrait, summary and full biography are required before publication.");return}setValidation("")}}>
     <input type="hidden" name="id" value={selected?.id??""}/>
     <div className={styles.tabs} role="group" aria-label="Edit profile sections">
      <button type="button" aria-pressed={tab==="identity"} onClick={()=>setTab("identity")}>01 Identity & photo</button>
@@ -38,12 +39,12 @@ export default function TeamEditor({selected}:{selected?:TeamMember}){
     <div className={styles.tabBody} hidden={tab!=="identity"}>
      <h3>Basic identity</h3>
      <div className={styles.fields}>
-      <label>Full name <em>*</em><input name="full_name" value={name} onChange={e=>setName(e.target.value)} required maxLength={120} placeholder="Full professional name"/></label>
-      <label>Designation <em>*</em><input name="job_title" value={title} onChange={e=>setTitle(e.target.value)} required maxLength={120} placeholder="CEO, Chairman, Finance Director"/></label>
+      <label>Full name <em>*</em><input name="full_name" value={name} onChange={e=>setName(e.target.value)} maxLength={120} placeholder="Full professional name"/></label>
+      <label>Designation <em>*</em><input name="job_title" value={title} onChange={e=>setTitle(e.target.value)} maxLength={120} placeholder="CEO, Chairman, Finance Director"/></label>
       <label>Section / seniority<select name="team_group" value={group} onChange={e=>setGroup(e.target.value)}>{TEAM_GROUPS.map(x=><option value={x.value} key={x.value}>{x.label}</option>)}</select></label>
       <label>Order within section<input type="number" name="sort_order" min="0" max="99999" value={order} onChange={e=>setOrder(Number(e.target.value))}/></label>
       <label>Department<input name="department" maxLength={120} defaultValue={selected?.department??""} placeholder="Executive Office, Finance, Operations"/></label>
-      <label>Profile URL slug <em>*</em><input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={selected?.slug??""} placeholder="full-name"/></label>
+      <label>Profile URL slug <em>*</em><input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={selected?.slug??""} placeholder="full-name"/></label>
      </div>
      <div className={styles.photoUpload}>
       <label htmlFor="team-photo-upload">Professional portrait (JPG, PNG or WebP, up to 5 MB)</label>
@@ -74,6 +75,7 @@ export default function TeamEditor({selected}:{selected?:TeamMember}){
       <label className={styles.publishToggle}><input name="is_published" type="checkbox" checked={publish} onChange={e=>setPublish(e.target.checked)}/> Publish approved team profile to public website</label>
       <p className={styles.help}>A photograph, summary and biography are required before publication. You can save incomplete profiles as private drafts.</p>
     </div>
+    {validation&&<p role="alert" className={styles.help} style={{padding:"0 1.3rem",color:"#b34720"}}>{validation}</p>}
     <div className={styles.formFooter}>
       <button className="button button-primary" type="submit">Save {publish?"& publish":"private draft"}</button>
       <a className="button button-secondary" href="/admin/team">New member</a>
