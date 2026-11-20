@@ -2,11 +2,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentIdentity } from "@/lib/auth";
-import { getEffectiveAdminPermissions } from "@/lib/admin";
+import { getEffectiveAdminPermissions, requireSuperAdminTeamAccess } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSiteSlug, validateSiteDocument, historySiteDocument } from "@/lib/site-content-document";
 
-async function access(publish = false) {
+async function access(publish = false, team = false) {
+  if (team) await requireSuperAdminTeamAccess();
   const identity = await getCurrentIdentity();
   if (!identity) redirect("/login?next=/admin/website");
   const rights = await getEffectiveAdminPermissions(identity);
@@ -27,19 +28,19 @@ function errorMessage(error: {code?: string;message?: string} | null) {
   return "The change could not be saved. Check your permission and try again.";
 }
 export async function saveWebsiteDraftAction(form: FormData) {
-  const db = await access();
   const {slug,revision} = target(form);
+  const db = await access(false,slug==="team");
   const input = String(form.get("document") ?? "");
   if (input.length > 100000) throw new Error("Page is too large.");
   const document = validateSiteDocument(JSON.parse(input),slug);
   const {error} = await db.rpc("save_site_content_drafts",{entries:[{document,expected_revision:revision}]});
   if (error) throw new Error(errorMessage(error));
   revalidatePath("/admin/website");
-  redirect("/admin/website?slug=" + slug + "&message=Draft%20saved.%20The%20public%20page%20has%20not%20changed.");
+  redirect(slug==="team"?"/admin/team?message=Page%20text%20draft%20saved#page-settings":"/admin/website?slug=" + slug + "&message=Draft%20saved.%20The%20public%20page%20has%20not%20changed.");
 }
 export async function publishWebsiteDraftAction(form: FormData) {
-  const db = await access(true);
   const {slug,revision} = target(form);
+  const db = await access(true,slug==="team");
   if (form.get("confirm") !== "publish") throw new Error("Confirm the reviewed revision before publishing.");
   const {data,error:readError} = await db.from("site_content_drafts").select("document,revision").eq("slug",slug).maybeSingle();
   if (readError || !data || data.revision !== revision) throw new Error("The draft changed. Reload before publishing.");
@@ -49,7 +50,7 @@ export async function publishWebsiteDraftAction(form: FormData) {
   revalidatePath("/" + slug);
   revalidatePath("/sitemap.xml");
   revalidatePath("/admin/website");
-  redirect("/admin/website?slug=" + slug + "&message=Reviewed%20revision%20published.");
+  redirect(slug==="team"?"/admin/team?message=Team%20page%20text%20published#page-settings":"/admin/website?slug=" + slug + "&message=Reviewed%20revision%20published.");
 }
 export async function restoreWebsiteDraftAction(form: FormData) {
   const db = await access();
@@ -64,5 +65,5 @@ export async function restoreWebsiteDraftAction(form: FormData) {
   const {error} = await db.rpc("save_site_content_drafts",{entries:[{document,expected_revision:revision}]});
   if (error) throw new Error(errorMessage(error));
   revalidatePath("/admin/website");
-  redirect("/admin/website?slug=" + slug + "&message=Previous%20text%20restored%20as%20a%20new%20draft.%20Review%20before%20publishing.");
+  redirect(slug==="team"?"/admin/team?message=Page%20text%20restored%20to%20draft#page-settings":"/admin/website?slug=" + slug + "&message=Previous%20text%20restored%20as%20a%20new%20draft.%20Review%20before%20publishing.");
 }

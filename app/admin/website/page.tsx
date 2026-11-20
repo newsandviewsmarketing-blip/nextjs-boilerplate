@@ -22,6 +22,7 @@ export default async function WebsitePages({searchParams}:{searchParams:Promise<
   const rights=await getEffectiveAdminPermissions(identity);
   if(!rights.has("site.manage")&&!rights.has("site_content.edit"))redirect("/dashboard?error=Website%20content%20permission%20required.");
   const slug=isSiteSlug(params.slug)?params.slug:"about";
+  if(slug==="team")redirect("/admin/team#page-settings");
   const db=await createClient();
   const [gate,draft,publication,history]=await Promise.all([
     db.rpc("site_content_can_edit"),
@@ -39,16 +40,11 @@ export default async function WebsitePages({searchParams}:{searchParams:Promise<
     <section className="dashboard-hero"><div className="shell"><span className="section-kicker">CONTENT MANAGEMENT</span><h1>Website Pages</h1><p>Manage the page introduction, SEO and publication history. Team member profiles and photos have their own workspace.</p></div></section>
     <section className="section compact-section"><div className="shell admin-control-layout"><AdminNav roles={identity.roles} activeGroup="Governance & data"/>
       <div className="admin-control-content">
-        <nav aria-label="Choose website page" className="management-links">{PUBLIC_INFORMATION_LINKS.map(p=><Link className="button button-secondary" href={"/admin/website?slug="+p.slug} aria-current={p.slug===slug?"page":undefined} key={p.slug}>{p.label}</Link>)}</nav>
+        <nav aria-label="Choose website page" className="management-links">{PUBLIC_INFORMATION_LINKS.filter(p=>p.slug!=="team").map(p=><Link className="button button-secondary" href={"/admin/website?slug="+p.slug} aria-current={p.slug===slug?"page":undefined} key={p.slug}>{p.label}</Link>)}</nav>
         <FormMessage message={params.message} error={!ready?"Website editing is unavailable. No changes have been made.":undefined}/>
         {ready?<><section className="backend-form-card">
           <h2>{initial.title}</h2><p>Saved draft revision: {revision}. Published version: {String(publication.data?.document?.version??"Website source")}.</p>
           {!draftValid?<p>The existing saved text uses an older format. The editor starts with the latest website source; saving creates a new draft. Older text remains in history.</p>:null}
-          {slug==="team"&&<div style={{background:"#edf4ff",border:"1px solid #cfdff5",borderRadius:12,padding:"1rem 1.2rem",margin:"1rem 0"}}>
-  <strong>Team profiles, photos and display order</strong>
-  <p style={{margin:".4rem 0 .8rem"}}>This editor manages the public Team page introduction and SEO. Use the dedicated Team Management workspace to add people, upload original portraits, set Chairman/Founder hierarchy, edit biographies and publish profiles.</p>
-  <Link href="/admin/team" className="button button-primary">Open Team Management →</Link>
-</div>}
 <p><Link href={"/"+slug} target="_blank" rel="noopener noreferrer">Open public page</Link></p>
           <WebsiteEditor key={slug+":"+revision} initial={initial} revision={revision}/>
         </section>

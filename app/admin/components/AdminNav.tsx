@@ -42,7 +42,7 @@ export default async function AdminNav({roles,activeGroup}:{roles:AccountRole[];
       {name:"Master-data suggestions",href:"/admin/data#suggestions-to-review",permission:"master_data.manage"},
     ]},
     {title:"Governance & data",items:[
-      {name:"Website pages",href:"/admin/website",permission:"site_content.edit"},
+      {name:"Legal & information pages",href:"/admin/website",permission:"site_content.edit"},
       
       {name:"Master directory",href:"/admin/directory",permission:"directories.manage"},
       {name:"Standardized data",href:"/admin/data",permission:"master_data.manage"},
