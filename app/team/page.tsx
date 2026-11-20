@@ -3,9 +3,9 @@ import SiteHeader from "@/app/components/SiteHeader";
 import SiteFooter from "@/app/components/SiteFooter";
 import {publishedTeamMembers,teamPhotoUrl,TEAM_GROUPS} from "@/lib/team-members";
 import styles from "./team.module.css";
-import {getPublishedSiteDocument} from "@/lib/site-content";
+import {getPublishedSiteDocument,siteContentMetadata} from "@/lib/site-content";
 export const dynamic="force-dynamic";
-export const metadata={title:"Our Team | VetConnect Pakistan",description:"Meet the leadership and professional team of VetConnect Pakistan, with verified biographies, responsibilities and profile links."};
+export async function generateMetadata(){return siteContentMetadata("team");}
 export default async function TeamPage(){
  const [members,pageContent]=await Promise.all([publishedTeamMembers(),getPublishedSiteDocument("team")]);
  const publishedIntro=pageContent.summary;
