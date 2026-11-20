@@ -54,9 +54,9 @@ export async function saveTeamMember(form:FormData){
   if(!Number.isInteger(values.photo_position_y)||values.photo_position_y<0||values.photo_position_y>100)throw Error("Invalid photo positioning.");
   if(values.is_published && (!summary || !biography || !photoPath))throw Error("A portrait, summary and biography are required before publication.");
   if(values.email_public&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email_public))throw Error("Invalid public email.");
-  const result=id?await db.from("team_members").update(values).eq("id",id):
-     await db.from("team_members").insert(values);
-  if(result.error)throw Error("Unable to save team profile. Check the slug is unique and the database migration has been applied.");
+  const result=id?await db.from("team_members").update(values).eq("id",id).select("id").single():
+     await db.from("team_members").insert(values).select("id").single();
+  if(result.error||!result.data?.id)throw Error("Team profile was not saved. Check your permission, unique profile URL and database connectivity.");
   revalidatePath("/team");revalidatePath("/admin/team");
   redirect("/admin/team?message=Member%20profile%20saved");
 }
@@ -64,8 +64,8 @@ export async function unpublishTeamMember(form:FormData){
   await requireAdminPermission("site.manage","/admin/team");
   const id=field(form,"id",64);if(!uuid.test(id))throw Error("Invalid member ID.");
   const db=await createClient();
-  const {error}=await db.from("team_members").update({is_published:false,updated_at:new Date().toISOString()}).eq("id",id);
-  if(error)throw Error("Unable to unpublish team profile.");
+  const {data,error}=await db.from("team_members").update({is_published:false,updated_at:new Date().toISOString()}).eq("id",id).select("id").single();
+  if(error||!data?.id)throw Error("The team profile could not be unpublished. Verify permission and retry.");
   revalidatePath("/team");revalidatePath("/admin/team");
   redirect("/admin/team?message=Member%20unpublished");
 }
