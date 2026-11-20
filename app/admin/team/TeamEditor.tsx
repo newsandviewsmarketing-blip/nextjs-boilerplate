@@ -1,8 +1,10 @@
 "use client";
 import {useEffect,useState} from "react";
 import {saveTeamMember} from "./actions";
-import {TEAM_GROUPS,type TeamMember,teamPhotoUrl} from "@/lib/team-members";
+import {type TeamMember} from "@/lib/team-members";
+import {TEAM_GROUPS} from "@/lib/team-groups";
 import styles from "./team-admin.module.css";
+const teamPhotoUrl=(path:string|null)=>{const base=process.env.NEXT_PUBLIC_SUPABASE_URL;return path&&base&&/^[a-f0-9-]{36}\\/[a-zA-Z0-9_.-]+$/.test(path)?base.replace(/\\/$/,"")+"/storage/v1/object/public/team-photos/"+path:null};
 
 export default function TeamEditor({selected}:{selected?:TeamMember}){
  const [name,setName]=useState(selected?.full_name??"");
