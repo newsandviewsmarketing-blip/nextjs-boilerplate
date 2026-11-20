@@ -43,6 +43,7 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
     ]},
     {title:"Governance & data",items:[
       {name:"Website pages",href:"/admin/website",permission:"site_content.edit"},
+      {name:"Team Management",href:"/admin/team",permission:"site.manage"},
       {name:"Master directory",href:"/admin/directory",permission:"directories.manage"},
       {name:"Standardized data",href:"/admin/data",permission:"master_data.manage"},
       {name:"Roles & permissions",href:"/admin/users",permission:"users.manage"},
