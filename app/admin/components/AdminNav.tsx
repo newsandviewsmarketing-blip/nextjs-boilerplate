@@ -43,7 +43,7 @@ export default async function AdminNav({roles,activeGroup}:{roles:AccountRole[];
     ]},
     {title:"Governance & data",items:[
       {name:"Website pages",href:"/admin/website",permission:"site_content.edit"},
-      {name:"Team Management",href:"/admin/team",permission:"site.manage"},
+      
       {name:"Master directory",href:"/admin/directory",permission:"directories.manage"},
       {name:"Standardized data",href:"/admin/data",permission:"master_data.manage"},
       {name:"Roles & permissions",href:"/admin/users",permission:"users.manage"},
@@ -52,7 +52,7 @@ export default async function AdminNav({roles,activeGroup}:{roles:AccountRole[];
     ]},
   ];
   const visibleGroups=groups.map(group=>({
-    ...group,items:group.items.filter(item=>allowed(item.permission)||(item.href==="/admin/website"&&allowed("site.manage")))
+    ...group,items:group.items.filter(item=>allowed(item.permission)||(item.href==="/admin/website"&&allowed("site.manage"))).concat(group.title==="Governance & data" && identity?.roles.includes("super_admin") && allowed("site.manage")?[{name:"Team Management",href:"/admin/team",permission:"site.manage" as AdminPermission}]:[])
   })).filter(group=>group.items.length>0);
   return <aside className="admin-navigation vc-sidebar" aria-label="Administrator navigation">
     <div className="admin-navigation-heading vc-sidebar-brand"><span>VETCONNECT ADMIN</span><strong>{roles.map(staffRoleLabel).join(" · ") || "Administrator"}</strong></div>
