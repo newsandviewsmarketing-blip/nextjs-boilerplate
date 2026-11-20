@@ -4,7 +4,7 @@ import { getCurrentIdentity, type AccountRole } from "@/lib/auth";
 import { getEffectiveAdminPermissions, staffRoleLabel, type AdminPermission } from "@/lib/admin";
 
 type Entry = {name:string;href:string;permission:AdminPermission};
-export default async function AdminNav({roles}:{roles:AccountRole[]}) {
+export default async function AdminNav({roles,activeGroup}:{roles:AccountRole[];activeGroup?:string}) {
   const identity=await getCurrentIdentity();
   const grants=identity ? await getEffectiveAdminPermissions(identity) : new Set<AdminPermission>();
   const allowed=(p:AdminPermission)=>grants.has(p);
@@ -59,7 +59,7 @@ export default async function AdminNav({roles}:{roles:AccountRole[]}) {
     <details className="vc-sidebar-fold" open>
       <summary>Management menu</summary>
       <nav aria-label="Admin modules">
-        {visibleGroups.map(group=><details className="vc-nav-section vc-admin-section" key={group.title} open={group.title==="Dashboard"||group.title==="Approvals"}>
+        {visibleGroups.map(group=><details className="vc-nav-section vc-admin-section" key={group.title} open={activeGroup?group.title===activeGroup:group.title==="Dashboard"||group.title==="Approvals"}>
           <summary className="vc-nav-label">{group.title}</summary>
           {group.items.map(item=><Link href={item.href} key={item.name}>{item.name}</Link>)}
         </details>)}
