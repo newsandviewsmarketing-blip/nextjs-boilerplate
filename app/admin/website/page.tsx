@@ -44,7 +44,12 @@ export default async function WebsitePages({searchParams}:{searchParams:Promise<
         {ready?<><section className="backend-form-card">
           <h2>{initial.title}</h2><p>Saved draft revision: {revision}. Published version: {String(publication.data?.document?.version??"Website source")}.</p>
           {!draftValid?<p>The existing saved text uses an older format. The editor starts with the latest website source; saving creates a new draft. Older text remains in history.</p>:null}
-          <p><Link href={"/"+slug} target="_blank" rel="noopener noreferrer">Open public page</Link></p>
+          {slug==="team"&&<div style={{background:"#edf4ff",border:"1px solid #cfdff5",borderRadius:12,padding:"1rem 1.2rem",margin:"1rem 0"}}>
+  <strong>Team profiles, photos and display order</strong>
+  <p style={{margin:".4rem 0 .8rem"}}>This editor manages the public Team page introduction and SEO. Use the dedicated Team Management workspace to add people, upload original portraits, set Chairman/Founder hierarchy, edit biographies and publish profiles.</p>
+  <Link href="/admin/team" className="button button-primary">Open Team Management →</Link>
+</div>}
+<p><Link href={"/"+slug} target="_blank" rel="noopener noreferrer">Open public page</Link></p>
           <WebsiteEditor key={slug+":"+revision} initial={initial} revision={revision}/>
         </section>
         <section className="backend-form-card"><h2>Publish saved revision</h2>
