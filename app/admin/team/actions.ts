@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireAdminPermission } from "@/lib/admin";
+import { requireSuperAdminTeamAccess } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { TEAM_GROUPS } from "@/lib/team-members";
 
@@ -13,7 +13,7 @@ function urlField(form:FormData,name:string) {
   catch {throw Error("Provide a valid HTTPS link for "+name);}
 }
 export async function saveTeamMember(form:FormData){
-  const identity=await requireAdminPermission("site.manage","/admin/team");
+  const identity=await requireSuperAdminTeamAccess();
   const db=await createClient();
   const id=field(form,"id",64);
   if(id && !uuid.test(id))throw Error("Invalid member ID.");
@@ -61,7 +61,7 @@ export async function saveTeamMember(form:FormData){
   redirect("/admin/team?message=Member%20profile%20saved");
 }
 export async function unpublishTeamMember(form:FormData){
-  await requireAdminPermission("site.manage","/admin/team");
+  await requireSuperAdminTeamAccess();
   const id=field(form,"id",64);if(!uuid.test(id))throw Error("Invalid member ID.");
   const db=await createClient();
   const {data,error}=await db.from("team_members").update({is_published:false,updated_at:new Date().toISOString()}).eq("id",id).select("id").single();
