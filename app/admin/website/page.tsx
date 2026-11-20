@@ -2,7 +2,6 @@ import "../admin-compact.css";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SiteHeader from "@/app/components/SiteHeader";
-import SiteFooter from "@/app/components/SiteFooter";
 import AdminNav from "../components/AdminNav";
 import FormMessage from "@/app/components/FormMessage";
 import FormSubmitButton from "@/app/components/FormSubmitButton";
@@ -70,5 +69,5 @@ export default async function WebsitePages({searchParams}:{searchParams:Promise<
         </div></details></>:null}
       </div>
     </div></section>
-  </main><SiteFooter/></div>;
+  </main><footer className="vc-admin-mini-footer"><span>© 2026 VetConnect Pakistan · Administration</span><Link href="/">Return to website</Link></footer></div>;
 }
