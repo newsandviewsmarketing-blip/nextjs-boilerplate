@@ -43,7 +43,7 @@ export default function TeamEditor({selected}:{selected?:TeamMember}){
   if(value){try{const u=new URL(value);if(u.protocol!=="https:")throw Error("https");}catch{event.preventDefault();setTab("links");setValidation("Use a complete HTTPS address for professional links.");return}}
  }
  const email=String(inputs.get("email_public")??"").trim();
- if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){event.preventDefault();setTab("links");setValidation("Enter a valid public email address.");return}
+ if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){event.preventDefault();setTab("links");setValidation("Enter a valid public email address.");return}
  setValidation("")}}>
     <input type="hidden" name="id" value={selected?.id??""}/>
     <div className={styles.tabs} role="group" aria-label="Edit profile sections">
