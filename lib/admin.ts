@@ -117,3 +117,16 @@ export async function requireAdminPermission(permission: AdminPermission, return
 export function staffRoleLabel(role: string) {
   return staffRoleOptions.find((item) => item.value === role)?.label ?? role.replaceAll("_", " ");
 }
+
+/** Team directory ownership is reserved for an active Super Administrator.
+ * Both role and effective publishing permission are required; database RLS
+ * independently enforces the same rule for direct API callers.
+ */
+export async function requireSuperAdminTeamAccess() {
+  const identity = await getCurrentIdentity();
+  if (!identity) redirect("/login?next=%2Fadmin%2Fteam");
+  const allowed = identity.roles.includes("super_admin") &&
+    await getEffectiveAdminPermission(identity, "site.manage");
+  if (!allowed) redirect("/dashboard?error=Super%20Administrator%20access%20required.");
+  return identity;
+}
