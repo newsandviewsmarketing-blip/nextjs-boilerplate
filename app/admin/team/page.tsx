@@ -1,8 +1,8 @@
+import "../admin-compact.css";
 import Link from "next/link";
 import SiteHeader from "@/app/components/SiteHeader";
-import SiteFooter from "@/app/components/SiteFooter";
 import AdminNav from "@/app/admin/components/AdminNav";
-import {requireAdminPermission} from "@/lib/admin";
+import {requireSuperAdminTeamAccess} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
 import {type TeamMember,teamPhotoUrl,TEAM_GROUPS,sortTeamMembers} from "@/lib/team-members";
 import {unpublishTeamMember} from "./actions";
@@ -11,21 +11,21 @@ import styles from "./team-admin.module.css";
 
 export const dynamic="force-dynamic";
 export default async function TeamManagement({searchParams}:{searchParams:Promise<{edit?:string;message?:string}>}){
- const identity=await requireAdminPermission("site.manage","/admin/team");
+ const identity=await requireSuperAdminTeamAccess();
  const query=await searchParams;
  const db=await createClient();
  const {data,error}=await db.from("team_members").select("*").order("sort_order").order("full_name");
  const members=sortTeamMembers((data??[]) as TeamMember[]);
  const selected=members.find(m=>m.id===query.edit);
  const published=members.filter(m=>m.is_published).length;
- return <><SiteHeader/><main className={styles.workspace}>
+ return <div className="vc-admin-compact"><SiteHeader/><main className={styles.workspace}>
  <section className={styles.hero}><div className="shell">
   <span className={styles.eyebrow}>VETCONNECT CMS · WEBSITE MANAGEMENT</span><h1>Our Team Management</h1>
   <p>Manage leadership, biographies, original portraits, public links, SEO and publishing from one editorial workspace.</p>
   <div className={styles.heroActions}><Link href="/team" target="_blank" className="button button-secondary">View public team ↗</Link><Link href="/admin/website?slug=team" className="button button-secondary">Edit page introduction</Link></div>
  </div></section>
  <section className="section compact-section"><div className="shell admin-control-layout">
- <AdminNav roles={identity.roles}/>
+ <AdminNav roles={identity.roles} activeGroup="Governance & data"/>
  <div className="admin-control-content">
  {query.message&&<div className={styles.notice} role="status">{query.message}</div>}
  {error?<div className={styles.notice} role="alert">Team database unavailable. No changes have been made.</div>:<>
@@ -47,5 +47,5 @@ export default async function TeamManagement({searchParams}:{searchParams:Promis
  </div>
  <TeamEditor key={selected?.id??"new"} selected={selected}/>
  </>}
- </div></div></section></main><SiteFooter/></>;
+ </div></div></section></main><footer className="vc-admin-mini-footer"><span>© 2026 VetConnect Pakistan · Administration</span><Link href="/">Return to website</Link></footer></div>;
 }
