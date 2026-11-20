@@ -1,7 +1,6 @@
 import "../admin-compact.css";
 import Link from "next/link";
 import SiteHeader from "@/app/components/SiteHeader";
-import SiteFooter from "@/app/components/SiteFooter";
 import AdminNav from "@/app/admin/components/AdminNav";
 import {requireAdminPermission} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
@@ -48,5 +47,5 @@ export default async function TeamManagement({searchParams}:{searchParams:Promis
  </div>
  <TeamEditor key={selected?.id??"new"} selected={selected}/>
  </>}
- </div></div></section></main><SiteFooter/></div>;
+ </div></div></section></main><footer className="vc-admin-mini-footer"><span>© 2026 VetConnect Pakistan · Administration</span><Link href="/">Return to website</Link></footer></div>;
 }
