@@ -1,0 +1,27 @@
+/* Compact, single-header administrative layout. Scoped: public routes unaffected. */
+.vc-admin-compact .site-header{position:relative;top:auto;z-index:2;backdrop-filter:none}
+.vc-admin-compact .dashboard-hero{padding:28px 0}
+.vc-admin-compact .dashboard-hero h1{font-size:clamp(1.45rem,2.4vw,2rem);margin:.3rem 0}
+.vc-admin-compact .dashboard-hero p{margin:.35rem 0;font-size:.88rem}
+.vc-admin-compact .section.compact-section{padding-top:22px;padding-bottom:36px}
+.vc-admin-compact .admin-control-content{min-width:0}
+.vc-admin-compact .admin-control-content>.backend-form-card,
+.vc-admin-compact .admin-control-content>details{margin:0 0 14px}
+.vc-admin-compact .admin-navigation{align-self:start}
+.vc-admin-compact .admin-navigation-heading strong{font-size:.72rem;line-height:1.5}
+.vc-admin-compact .admin-navigation .vc-admin-section:not([open]){margin-bottom:.12rem}
+.vc-admin-compact .management-links{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.vc-admin-compact .management-links a{min-height:36px;padding:8px 12px;font-size:.78rem}
+.vc-admin-compact .management-links [aria-current="page"]{background:#fff1e4;border-color:#f2af71;color:#a95000}
+.vc-admin-compact .backend-form-card{padding:clamp(15px,2vw,24px)}
+.vc-admin-compact .vc-admin-fold{border:1px solid #e3e8f0;background:#fff;border-radius:13px;margin-bottom:14px;overflow:hidden}
+.vc-admin-compact .vc-admin-fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 20px;font-weight:800;color:#10264d}
+.vc-admin-compact .vc-admin-fold>summary::-webkit-details-marker{display:none}
+.vc-admin-compact .vc-admin-fold>summary::after{content:"+";font-size:22px;color:#dc7400}
+.vc-admin-compact .vc-admin-fold[open]>summary::after{content:"−"}
+.vc-admin-compact .vc-admin-fold>div{padding:0 20px 20px}
+.vc-admin-compact .vc-admin-fold p{font-size:.84rem;color:#61708a;line-height:1.55}
+.vc-admin-compact .vc-admin-fold pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto}
+.vc-admin-compact .vc-workspace-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+.vc-admin-compact .vc-workspace-actions a{font-size:.8rem}
+@media(max-width:780px){.vc-admin-compact .admin-navigation{position:static}.vc-admin-compact .dashboard-hero{padding:21px 0}.vc-admin-compact .vc-admin-fold>summary{padding:14px}.vc-admin-compact .vc-admin-fold>div{padding:0 14px 15px}}
