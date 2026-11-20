@@ -12,6 +12,8 @@ const teamPhotoUrl=(path:string|null)=>{
 
 export default function TeamEditor({selected}:{selected?:TeamMember}){
  const [name,setName]=useState(selected?.full_name??"");
+ const [slug,setSlug]=useState(selected?.slug??"");
+ const [slugEdited,setSlugEdited]=useState(Boolean(selected?.slug));
  const [title,setTitle]=useState(selected?.job_title??"");
  const [summary,setSummary]=useState(selected?.summary??"");
  const [photo,setPhoto]=useState<string|null>(teamPhotoUrl(selected?.photo_path??null));
@@ -35,7 +37,14 @@ export default function TeamEditor({selected}:{selected?:TeamMember}){
    <span className={styles.status}>{publish?"Ready to publish":"Private draft"}</span>
   </div>
   <div className={styles.editorLayout}>
-   <form id="team-member-form" action={saveTeamMember} encType="multipart/form-data" className={styles.editorForm} onSubmit={event=>{if(name.trim().length<2||title.trim().length<2){event.preventDefault();setTab("identity");setValidation("Enter the team member’s full name and designation.");return}if(publish&&(!hasFile||!summary.trim()||!bio.trim())){event.preventDefault();setTab(!hasFile?"identity":"biography");setValidation("An approved portrait, summary and full biography are required before publication.");return}setValidation("")}}>
+   <form id="team-member-form" action={saveTeamMember} encType="multipart/form-data" noValidate className={styles.editorForm} onSubmit={event=>{if(name.trim().length<2||title.trim().length<2||!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)){event.preventDefault();setTab("identity");setValidation("Enter a full name, designation and valid profile URL slug.");return}if(publish&&(!hasFile||!summary.trim()||!bio.trim())){event.preventDefault();setTab(!hasFile?"identity":"biography");setValidation("An approved portrait, summary and full biography are required before publication.");return}const inputs=new FormData(event.currentTarget);
+ for(const key of ["website_url","linkedin_url","facebook_url"]){
+  const value=String(inputs.get(key)??"").trim();
+  if(value){try{const u=new URL(value);if(u.protocol!=="https:")throw Error("https");}catch{event.preventDefault();setTab("links");setValidation("Use a complete HTTPS address for professional links.");return}}
+ }
+ const email=String(inputs.get("email_public")??"").trim();
+ if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){event.preventDefault();setTab("links");setValidation("Enter a valid public email address.");return}
+ setValidation("")}}>
     <input type="hidden" name="id" value={selected?.id??""}/>
     <div className={styles.tabs} role="group" aria-label="Edit profile sections">
      <button type="button" aria-pressed={tab==="identity"} onClick={()=>setTab("identity")}>01 Identity & photo</button>
@@ -45,12 +54,12 @@ export default function TeamEditor({selected}:{selected?:TeamMember}){
     <div className={styles.tabBody} hidden={tab!=="identity"}>
      <h3>Basic identity</h3>
      <div className={styles.fields}>
-      <label>Full name <em>*</em><input name="full_name" value={name} onChange={e=>setName(e.target.value)} maxLength={120} placeholder="Full professional name"/></label>
+      <label>Full name <em>*</em><input name="full_name" value={name} onChange={e=>{setName(e.target.value);if(!slugEdited)setSlug(e.target.value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""))}} maxLength={120} placeholder="Full professional name"/></label>
       <label>Designation <em>*</em><input name="job_title" value={title} onChange={e=>setTitle(e.target.value)} maxLength={120} placeholder="CEO, Chairman, Finance Director"/></label>
       <label>Section / seniority<select name="team_group" value={group} onChange={e=>setGroup(e.target.value)}>{TEAM_GROUPS.map(x=><option value={x.value} key={x.value}>{x.label}</option>)}</select></label>
       <label>Order within section<input type="number" name="sort_order" min="0" max="99999" value={order} onChange={e=>setOrder(Number(e.target.value))}/></label>
       <label>Department<input name="department" maxLength={120} defaultValue={selected?.department??""} placeholder="Executive Office, Finance, Operations"/></label>
-      <label>Profile URL slug <em>*</em><input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={selected?.slug??""} placeholder="full-name"/></label>
+      <label>Profile URL slug <em>*</em><input name="slug" value={slug} onChange={e=>{setSlug(e.target.value.toLowerCase());setSlugEdited(true)}} placeholder="full-name"/></label>
      </div>
      <div className={styles.photoUpload}>
       <label htmlFor="team-photo-upload">Professional portrait (JPG, PNG or WebP, up to 5 MB)</label>
