@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdminPermission } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
+import { TEAM_GROUPS } from "@/lib/team-members";
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 function field(form:FormData,name:string,max:number) {return String(form.get(name)??"").trim().slice(0,max);}
@@ -43,8 +44,15 @@ export async function saveTeamMember(form:FormData){
     qualifications:field(form,"qualifications",1200),
     linkedin_url:urlField(form,"linkedin_url"),email_public:field(form,"email_public",254)||null,
     photo_path:photoPath,sort_order:sort,is_published:form.get("is_published")==="on",
+    team_group:field(form,"team_group",30),
+    seo_title:field(form,"seo_title",160),seo_description:field(form,"seo_description",300),
+    website_url:urlField(form,"website_url"),facebook_url:urlField(form,"facebook_url"),
+    photo_position_y:Number(field(form,"photo_position_y",3)),
     updated_at:new Date().toISOString()
   };
+  if(!TEAM_GROUPS.some(g=>g.value===values.team_group))throw Error("Choose a valid leadership group.");
+  if(!Number.isInteger(values.photo_position_y)||values.photo_position_y<0||values.photo_position_y>100)throw Error("Invalid photo positioning.");
+  if(values.is_published && (!summary || !biography || !photoPath))throw Error("A portrait, summary and biography are required before publication.");
   if(values.email_public&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email_public))throw Error("Invalid public email.");
   const result=id?await db.from("team_members").update(values).eq("id",id):
      await db.from("team_members").insert(values);
