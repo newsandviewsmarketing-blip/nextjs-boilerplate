@@ -5,6 +5,8 @@ import SiteFooter from "../../../components/SiteFooter";
 import FormMessage from "../../../components/FormMessage";
 import FormSubmitButton from "../../../components/FormSubmitButton";
 import AdminNav from "../../components/AdminNav";
+import DossierSectionTabs from "./DossierSectionTabs";
+import ReviewDocumentsPanel from "../../reviews/ReviewDocumentsPanel";
 import {getCurrentIdentity} from "@/lib/auth";
 import {getEffectiveAdminPermissions,permissionOptions,staffRoleOptions} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
@@ -41,6 +43,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  const canReview=rights.has("profiles.review");
  const canRegulatory=rights.has("regulatory.review");
  const canInspectPrivate=canManage||canReview||canRegulatory;
+ const canInspectEvidence=canManage||canReview;
  const supabase=await createClient();
  const [profile,vet,professional,company,staffRoles,permissions,credentials,memberships,audit,verification,uploads,careerFiles,education,experience]=await Promise.all([
   supabase.from("profiles").select("*").eq("id",id).maybeSingle(),
@@ -70,6 +73,15 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  const label=isSuspiciousProfileName(String(p.full_name??"")) ? `Flagged account · ${id.slice(0,8)}` : safeName(p.full_name||p.email||"Unnamed account");
  const publicHref=publicVet?"/vets/"+id:publicPro&&pr?.slug?"/professionals/"+pr.slug:null;
  const alertSpam=isSuspiciousProfileName(String(p.full_name??""));
+ const {data:registrationEvidence,error:registrationEvidenceError}=canInspectEvidence
+   ? await supabase.from("registration_evidence")
+       .select("user_id,document_type,original_filename,storage_path,verification_status")
+       .eq("user_id",id).order("created_at",{ascending:false}).limit(60)
+   : {data:[],error:null};
+ const evidenceLinks=await Promise.all((registrationEvidence??[]).map(async row=>{
+   const {data}=await supabase.storage.from("registration-evidence").createSignedUrl(row.storage_path,60*10);
+   return {...row,secureUrl:data?.signedUrl??null};
+ }));
  const docLinks=await Promise.all((uploads.data??[]).map(async row=>{
    const {data}=await supabase.storage.from("record-documents").createSignedUrl(row.storage_path,60*10);
    return {...row,secureUrl:data?.signedUrl??null};
@@ -97,11 +109,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
      {canRegulatory&&<Link href="/admin/credential-recheck">Open PVMC data recheck register ↗</Link>}
     </div>}
    {alertSpam&&<div className="vc-editor-alert" role="alert"><strong>Possible promotional or spam account name.</strong><p>The account name contains a website link or promotional wording. This is not evidence that the link was published as a product or article. Review the account, then suspend it if appropriate. Do not open the untrusted external link.</p></div>}
-   <nav className="vc-editor-tabs" aria-label="Record dossier sections">
-      <a href="#identity">Submitted details</a><a href="#linked">Linked records</a>
-      <a href="#uploads">Files & sources</a><a href="#actions">Management actions</a>
-      <a href="#history">History & audit</a>
-   </nav>
+   <DossierSectionTabs/>
    <div className="vc-admin-metrics vc-editor-metrics">
      <div className="vc-admin-metric"><span>Account status</span><b>{accountStatus}</b><small>Independent of profile approval</small></div>
      <div className="vc-admin-metric"><span>Veterinarian review</span><b>{String(v?.verification_status??"Not created")}</b><small>Profile verification</small></div>
@@ -126,7 +134,14 @@ export default async function AdminUserDossier({params,searchParams}:Props){
       <div className="vc-editor-note"><strong>Public visibility:</strong> {publicHref?<Link href={String(publicHref)} target="_blank" rel="noopener noreferrer">Open published profile in new tab ↗</Link>:"No verified public profile link for this account."} This does not rule out public content created through other organizations.</div>
    </section>
    <section className="vc-admin-panel" id="uploads">
-      <div className="vc-panel-header"><div><span className="section-kicker">FILE & SOURCE TRACE</span><h2>Supporting documents and uploads</h2><p>Staff-managed documents are protected. Candidate CV files have separate privacy permissions.</p></div></div>
+      <div className="vc-panel-header"><div><span className="section-kicker">FILE & SOURCE TRACE</span><h2>2. Documents · Supporting uploads</h2><p>Documents are listed from separately permissioned sources. Missing links do not establish that no file exists.</p></div></div>
+      {canInspectEvidence && <>
+        {registrationEvidenceError?<p role="alert">Private registration documents could not be read.</p>:
+         <ReviewDocumentsPanel veterinarian={Boolean(v)} documents={evidenceLinks.map((doc,i)=>({
+           key:doc.storage_path+"-"+i,kind:doc.document_type,filename:doc.original_filename,
+           status:doc.verification_status,url:doc.secureUrl
+         }))}/>}
+      </>}
       {canManage ? <>
         {uploads.error?<p role="alert">Staff documents could not be read.</p>:
         docLinks.length?<div className="vc-editor-file-list">{docLinks.map(doc=><div key={doc.id}>

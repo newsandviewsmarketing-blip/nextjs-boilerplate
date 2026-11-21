@@ -28,3 +28,11 @@
 
 .vc-admin-compact .vc-admin-mini-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#0a1838;color:#d7e2f4;font-size:.78rem;padding:18px max(22px,calc((100vw - 1180px)/2));min-height:64px}
 .vc-admin-compact .vc-admin-mini-footer a{color:#fff;text-decoration:underline}
+
+/* Single-record admin dossier: inactive sections remain in the DOM for controlled access. */
+.vc-editor-dossier .vc-admin-panel[hidden] { display: none !important; }
+.vc-editor-dossier .vc-editor-tabs button { cursor: pointer; }
+@media (max-width: 680px) {
+  .vc-editor-dossier .vc-editor-tabs { display:flex; flex-wrap:wrap; gap:8px; }
+  .vc-editor-dossier .vc-editor-tabs button { flex:1 1 135px; }
+}
