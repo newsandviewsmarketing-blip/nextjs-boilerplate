@@ -168,6 +168,19 @@ export default async function AdminPage({
     ...pending.filter((row) => row.record_source === "account").map((row) => row.user_id),
     ...credentialRows.filter((row) => row.record_source === "account").map((row) => row.user_id),
   ])];
+  // Legacy account-level pending profiles may have evidence even without a pending registration gate.
+  const outstandingEvidenceIds = ids.filter(id => !registrationDocsMap.has(id));
+  const {data:otherEvidence} = canReviewProfiles && outstandingEvidenceIds.length
+    ? await supabase.from("registration_evidence")
+        .select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at")
+        .in("user_id",outstandingEvidenceIds).order("created_at",{ascending:false})
+    : {data:[]};
+  for (const doc of otherEvidence ?? []) {
+    const {data} = await supabase.storage.from("registration-evidence").createSignedUrl(doc.storage_path,900);
+    const list = registrationDocsMap.get(doc.user_id) ?? [];
+    list.push({...doc,signed_url:data?.signedUrl??null});
+    registrationDocsMap.set(doc.user_id,list);
+  }
   const { data: profiles } = ids.length
     ? await supabase
         .from("profiles")
