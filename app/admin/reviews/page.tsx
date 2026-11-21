@@ -236,11 +236,11 @@ export default async function AdminPage({
     (complianceRows ?? []).map((row) => [row.product_id, row.registration_number]),
   );
 
-  const { data: adminDocuments } = await supabase
+  const { data: adminDocuments } = canReviewProfiles ? await supabase
     .from("admin_record_documents")
     .select("entity_type,entity_id,document_kind,original_name,storage_path")
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(200) : {data: []};
   const signedDocuments = await Promise.all((adminDocuments ?? []).map(async (document) => {
     const { data } = await supabase.storage.from("record-documents").createSignedUrl(document.storage_path, 3600);
     return { ...document, signed_url: data?.signedUrl ?? null };
@@ -283,7 +283,8 @@ export default async function AdminPage({
             <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {String(submittedDetails.city || submittedDetails.district || "City not provided")}</p></div><span className="status-pill">Pending</span></div>
             <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
             <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
-            <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || "Not supplied")}</p>
+            <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || (Array.isArray(submittedDetails.specializations)?submittedDetails.specializations.join(", "):"Not supplied"))}</p>
+            <p>Practice areas: {Array.isArray(submittedDetails.practice_areas)?submittedDetails.practice_areas.join(", "):"Not supplied"}</p>
             {detailEntries.length>0&&<dl className="review-details">
               {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
             </dl>}</details>
@@ -344,7 +345,7 @@ export default async function AdminPage({
               <span>Jobs</span>
             </article>
           </div>
-          <div id="pending-profiles" className="admin-review-list vc-review-target">
+          {canReviewProfiles && <div id="pending-profiles" className="admin-review-list vc-review-target">
             {pending.length === 0 && (
               <div className="empty-state">
                 <h2>No profiles are waiting for review.</h2>
@@ -484,13 +485,13 @@ export default async function AdminPage({
                 </article>
               );
             })}
-          </div>
-          <div className="section-heading admin-product-heading">
+          </div>}
+          {canReviewProfiles && <div className="section-heading admin-product-heading">
             <span id="credential-checks" className="section-kicker vc-review-target">VETERINARY CREDENTIAL REVIEW</span>
             <h2>PVMC verification is separate from profile approval.</h2>
             <p>Registration numbers remain private. Only the verified status is published.</p>
-          </div>
-          <div className="admin-review-list">
+          </div>}
+          {canReviewProfiles && <div className="admin-review-list">
             {credentialRows.length === 0 && (
               <div className="empty-state"><h2>No PVMC credentials are waiting for review.</h2></div>
             )}
@@ -512,7 +513,7 @@ export default async function AdminPage({
                 </article>
               );
             })}
-          </div>
+          </div>}
           <div className="section-heading admin-product-heading">
             <span id="pending-products" className="section-kicker vc-review-target">PRODUCT MODERATION</span>
             <h2>Marketplace submissions.</h2>
