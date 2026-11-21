@@ -4,6 +4,7 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import AdminNav from "../components/AdminNav";
+import PrintReviewButton from "./PrintReviewButton";
 import {
   reviewProductAction,
   reviewProfileAction,
@@ -299,8 +300,9 @@ export default async function AdminPage({
           const docs=registrationDocsMap.get(row.user_id)??[];
           const submittedDetails=registrationDetailMap.get(row.user_id)??{};
           const detailEntries=Object.entries(submittedDetails).filter(([,value])=>typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0);
-          return <article className="admin-review-card" key={row.user_id}>
+          return <article className="admin-review-card" key={row.user_id} id={`registration-review-${row.user_id}`}>
             <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {String(submittedDetails.city || submittedDetails.district || "City not provided")}</p></div><span className="status-pill">Pending</span></div>
+            <PrintReviewButton targetId={`registration-review-${row.user_id}`} />
             <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
             <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
             <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || (Array.isArray(submittedDetails.specializations)?submittedDetails.specializations.join(", "):"Not supplied"))}</p>
@@ -403,6 +405,7 @@ export default async function AdminPage({
                     </div>
                     <span className="status-pill">Pending</span>
                   </div>
+                  <PrintReviewButton targetId={`profile-${row.record_source ?? "account"}-${String(row.entity_id || row.user_id)}`} />
                   <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
                   <dl className="review-details">
                     <div><dt>Sector</dt><dd>{sector}</dd></div>
