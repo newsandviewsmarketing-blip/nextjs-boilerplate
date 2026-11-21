@@ -6,6 +6,8 @@ export default function PrintReviewButton({ targetId }: Props) {
   const printReview = () => {
     const target = document.getElementById(targetId);
     if (!target) return;
+    const previouslyClosed = Array.from(target.querySelectorAll<HTMLDetailsElement>("details:not([open])"));
+    previouslyClosed.forEach(section => { section.open = true; });
     const style = document.createElement("style");
     style.textContent = `@media print {
       body * { visibility: hidden !important; }
@@ -19,6 +21,7 @@ export default function PrintReviewButton({ targetId }: Props) {
     document.head.appendChild(style);
     const clean = () => {
       target.classList.remove("vc-print-target");
+      previouslyClosed.forEach(section => { section.open = false; });
       style.remove();
       window.removeEventListener("afterprint", clean);
     };
