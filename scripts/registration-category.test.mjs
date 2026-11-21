@@ -229,6 +229,7 @@ test("Veterinarian persistence retains DVM, additional degrees and private detai
  const db={from(table){
   if(table==="profiles")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{primary_role:"veterinarian"}})})}),update:()=>({eq:async()=>({})})};
   if(table==="registration_profile_details")return {select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})}),upsert:async(row)=>{saved=row;return {};}};
+  if(table==="master_data_items")return {select:()=>({in:()=>({eq:async()=>({data:[{id:"sector-dairy",category:"veterinary_sector",label:"Dairy / Cattle"}],error:null})})})};
   if(table==="veterinarian_profiles")return {update:(row)=>({eq:async()=>{vet=row;return {};}})};
   throw new Error("Unexpected table: "+table);
  }};
@@ -247,6 +248,7 @@ function veterinarianDraftDb(existingDetails) {
    select:()=>({eq:()=>({maybeSingle:async()=>({data:existingDetails?{category_details:existingDetails}:null})})}),
    upsert:async(row)=>{writes.push(row);return {};}
   };
+  if(table==="master_data_items")return {select:()=>({in:()=>({eq:async()=>({data:[{id:"sector-dairy",category:"veterinary_sector",label:"Dairy / Cattle"}],error:null})})})};
   if(table==="veterinarian_profiles")return {update:()=>({eq:async()=>({})})};
   throw new Error("Unexpected table: "+table);
  }};
