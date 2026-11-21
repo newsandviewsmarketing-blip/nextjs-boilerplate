@@ -34,7 +34,7 @@ export default async function TeamManagement({searchParams}:{searchParams:Promis
  <section className={styles.hero}><div className="shell">
   <span className={styles.eyebrow}>VETCONNECT CMS · WEBSITE MANAGEMENT</span><h1>Our Team Management</h1>
   <p>Manage leadership, biographies, original portraits, public links, SEO and publishing from one editorial workspace.</p>
-  <div className={styles.heroActions}><Link href="/team" target="_blank" className="button button-secondary">View public team ↗</Link><a href="#page-settings" className="button button-secondary">Page introduction & SEO</a></div>
+  <div className={styles.heroActions}><Link href="/team" target="_blank" className="button button-secondary">View public team ↗</Link></div>
  </div></section>
  <section className="section compact-section"><div className="shell admin-control-layout">
  <AdminNav roles={identity.roles} activeGroup="Governance & data"/>
@@ -58,8 +58,10 @@ export default async function TeamManagement({searchParams}:{searchParams:Promis
   </div>):<div className={styles.empty}><h3>No team profiles yet</h3><p>Add a member with an approved original portrait, professional role and biography. You control when it is published.</p></div>}
  </div>
  <TeamEditor key={selected?.id??"new"} selected={selected}/>
- <section id="page-settings" className={styles.editor} style={{marginTop:24}}>
-  <div className={styles.editorHeader}><div><span className={styles.eyebrow}>ONE TEAM WORKSPACE</span><h2>Public Team Page · Introduction & SEO</h2><p>Manage public page wording here. Team member cards and their biographies remain above.</p></div></div>
+ <details id="page-settings" className={styles.editor} style={{marginTop:18}}>
+ <summary style={{padding:"14px 20px",cursor:"pointer",fontWeight:700}}>Advanced page settings · Introduction & SEO</summary>
+ <div>
+ 
   <div style={{padding:"16px 22px"}}>
    {(pageDraft.error||pagePublished.error)?<p role="alert">Page text editor is unavailable. Existing published wording has not been changed.</p>:<>
    <TeamPageSettings initial={pageDoc} revision={pageRevision}/>
@@ -77,7 +79,8 @@ export default async function TeamManagement({searchParams}:{searchParams:Promis
    <p style={{fontSize:12,color:"#6a7890",marginTop:12}}>Published page version: {String(pagePublished.data?.document?.version??"Website source")}. Historical records remain in the database.</p>
    </>}
   </div>
- </section>
+ </div>
+ </details>
  </>}
  </div></div></section></main><footer className="vc-admin-mini-footer"><span>© 2026 VetConnect Pakistan · Administration</span><Link href="/">Return to website</Link></footer></div>;
 }
