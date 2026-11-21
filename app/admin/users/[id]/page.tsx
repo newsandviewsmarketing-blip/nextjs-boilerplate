@@ -117,13 +117,18 @@ export default async function AdminUserDossier({params,searchParams}:Props){
      <div className="vc-admin-metric"><span>Professional review</span><b>{String(pr?.verification_status??"Not created")}</b><small>Independent profile</small></div>
    </div>
    <section className="vc-admin-panel" id="identity">
-      <div className="vc-panel-header"><div><span className="section-kicker">ORIGINAL SUBMITTED FIELDS</span><h2>Account registration record</h2><p>Values currently stored in VetConnect, including empty fields. Original form submission data may not be fully preserved.</p></div></div>
-      <dl className="vc-editor-field-grid">{noInternal(Object.entries(p)).map(([k,value])=><div key={k}><dt>{k.replaceAll("_"," ")}</dt><dd>{display(value)}</dd></div>)}</dl>
+      <div className="vc-panel-header"><div><span className="section-kicker">1. PROFILE</span><h2>Applicant summary</h2><p>Review core details first. Expand the stored fields only when needed.</p></div></div>
+      <dl className="vc-editor-field-grid">
+        {(["full_name","email","phone","city","province","primary_role","account_status"] as const).map(key=><div key={key}><dt>{key.replaceAll("_"," ")}</dt><dd>{display(p[key])}</dd></div>)}
+      </dl>
+      <details className="vc-editor-record"><summary>Show all stored registration fields</summary>
+        <dl className="vc-editor-field-grid">{noInternal(Object.entries(p)).map(([k,value])=><div key={k}><dt>{k.replaceAll("_"," ")}</dt><dd>{display(value)}</dd></div>)}</dl>
+      </details>
       <div className="vc-editor-note"><strong>Registration source:</strong> VetConnect account profile (exact submitter/IP/source attribution not available in this record). Created {stamp(p.created_at)}. Last profile update {stamp(p.updated_at)}.</div>
    </section>
    <section className="vc-admin-panel" id="linked">
-      <div className="vc-panel-header"><div><span className="section-kicker">LINKED WORKFLOWS</span><h2>All stored profile modules</h2><p>Account creation, profile approval, PVMC verification and public publication are different states.</p></div></div>
-      {canInspectPrivate? specRows.map(([title,row])=><details key={title} className="vc-editor-record" open={Boolean(row)}>
+      <div className="vc-panel-header"><div><span className="section-kicker">LINKED WORKFLOWS</span><h2>Professional modules</h2><p>Open the relevant veterinarian, professional or company profile to inspect all stored fields.</p></div></div>
+      {canInspectPrivate? specRows.map(([title,row])=><details key={title} className="vc-editor-record">
         <summary>{title} · {row?String(row.verification_status??"Created"):"Not submitted"}</summary>
         {row?<dl className="vc-editor-field-grid">{noInternal(Object.entries(row)).map(([key,val])=><div key={key}><dt>{key.replaceAll("_"," ")}</dt><dd>{display(val)}</dd></div>)}</dl>:<p>This user has not completed this module.</p>}
       </details>):<p>Specialist details are restricted to authorized verification staff.</p>}
@@ -154,7 +159,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
    </section>
    <section className="vc-admin-panel" id="actions">
      <div className="vc-panel-header"><div><span className="section-kicker">MANAGEMENT CONTROL</span><h2>Review, correct and restrict this record</h2><p>Actions are checked again on the server. No action on this page automatically verifies a PVMC number.</p></div></div>
-     {toEdit&&<details className="vc-editor-action" open><summary>Edit identity & contact details</summary>
+     {toEdit&&<details className="vc-editor-action"><summary>Edit identity & contact details</summary>
        <form action={correctUserDossierAction} className="vc-editor-form"><input type="hidden" name="user_id" value={id}/>
          {(["full_name","phone","province","district","tehsil","city"] as const).map(field=><div key={field}>
            <label htmlFor={`edit-${field}`}>{field.replaceAll("_"," ")}</label>
