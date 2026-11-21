@@ -7,7 +7,7 @@ test("one account dossier unifies editing, review, status and file provenance",(
  const actions=read("app/admin/users/[id]/actions.ts");
  const users=read("app/admin/users/page.tsx");
  const moderation=read("app/admin/actions.ts");
- for(const required of ["Original submitted fields","role","profile"]){assert.ok(dossier.toLowerCase().includes(required.toLowerCase()))}
+ for(const required of ["Applicant summary","Show all stored registration fields","role","profile"]){assert.ok(dossier.toLowerCase().includes(required.toLowerCase()))}
  for(const tag of ["id=\"identity\"","id=\"linked\"","id=\"uploads\"","id=\"actions\"","id=\"history\""]){assert.ok(dossier.includes(tag),tag)}
  assert.match(dossier,/reviewProfileAction/);
  assert.match(dossier,/reviewVeterinarianCredentialAction/);
