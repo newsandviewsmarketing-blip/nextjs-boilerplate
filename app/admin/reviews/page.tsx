@@ -82,7 +82,7 @@ export default async function AdminPage({
   const registrationIds=(registrationRows??[]).map(row=>row.user_id);
   const [{data:registrationProfiles},{data:registrationEvidence},{data:registrationDetailRows}] = registrationIds.length ? await Promise.all([
     supabase.from("profiles").select("id,full_name,email,primary_role").in("id",registrationIds),
-    supabase.from("registration_evidence").select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at").in("user_id",registrationIds).eq("verification_status","pending").order("created_at",{ascending:false}),
+    supabase.from("registration_evidence").select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at").in("user_id",registrationIds).order("created_at",{ascending:false}),
     supabase.from("registration_profile_details").select("user_id,category_details").in("user_id",registrationIds),
   ]) : [{data:[]},{data:[]},{data:[]}];
   const registrationEvidenceWithUrls=await Promise.all((registrationEvidence??[]).map(async doc=>{
