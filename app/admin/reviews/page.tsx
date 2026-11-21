@@ -177,6 +177,13 @@ export default async function AdminPage({
   const profileMap = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile]),
   );
+  const { data: specialtyReference } = canReviewProfiles
+    ? await supabase.from("master_data_items").select("id,label,code,slug").eq("category","veterinary_specialization").eq("is_active",true)
+    : { data: [] };
+  const specialtyIdFor = (label: string) => {
+    const normalized = label.trim().toLowerCase();
+    return specialtyReference?.find(item => [item.label,item.code,item.slug].some(value => String(value || "").trim().toLowerCase() === normalized))?.id ?? null;
+  };
   const productRows = (products ?? []) as PendingProduct[];
   const jobRows = (jobs ?? []) as PendingJob[];
   const {data:availableJobSectors}=await supabase.from("master_data_items")
@@ -285,6 +292,7 @@ export default async function AdminPage({
             <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
             <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || (Array.isArray(submittedDetails.specializations)?submittedDetails.specializations.join(", "):"Not supplied"))}</p>
             <p>Practice areas: {Array.isArray(submittedDetails.practice_areas)?submittedDetails.practice_areas.join(", "):"Not supplied"}</p>
+            {Array.isArray(submittedDetails.specializations) && submittedDetails.specializations.length > 0 && <p>Subcategory reference ID(s): {submittedDetails.specializations.map((value:unknown)=>specialtyIdFor(String(value)) || "Not mapped").join(", ")}</p>}
             {detailEntries.length>0&&<dl className="review-details">
               {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
             </dl>}</details>
@@ -387,6 +395,7 @@ export default async function AdminPage({
                     <div><dt>Sector</dt><dd>{sector}</dd></div>
                     <div><dt>Category</dt><dd>{type}</dd></div>
                     <div><dt>Subcategory / specialty</dt><dd>{String(row.subcategory || row.sub_category || row.specialization || row.professional_type || "Not supplied")}</dd></div>
+                    <div><dt>Subcategory reference ID</dt><dd>{specialtyIdFor(String(row.subcategory || row.sub_category || row.specialization || "")) || "Not mapped"}</dd></div>
                     {type === "veterinarian" ? (
                       <>
                         <div>
