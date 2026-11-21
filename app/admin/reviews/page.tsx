@@ -280,13 +280,17 @@ export default async function AdminPage({
           const submittedDetails=registrationDetailMap.get(row.user_id)??{};
           const detailEntries=Object.entries(submittedDetails).filter(([,value])=>typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0);
           return <article className="admin-review-card" key={row.user_id}>
-            <h3>{profile?.full_name??profile?.email??"Registrant"} — {profile?.primary_role??"member"}</h3>
-            <p>{profile?.email} · Submitted {row.submitted_at?new Date(row.submitted_at).toLocaleString():""}</p>
+            <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {String(submittedDetails.city || submittedDetails.district || "City not provided")}</p></div><span className="status-pill">Pending</span></div>
+            <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
             <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
+            <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || "Not supplied")}</p>
             {detailEntries.length>0&&<dl className="review-details">
               {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
-            </dl>}
-            <ul>{docs.map((doc,i)=><li key={doc.document_type+"-"+i}>{doc.document_type}: {doc.signed_url?<a href={doc.signed_url} target="_blank" rel="noreferrer">{doc.original_filename}</a>:doc.original_filename}</li>)}</ul>
+            </dl>}</details>
+            <details><summary><b>2. Documents · {docs.length} attached</b></summary>
+              {docs.length===0?<p className="form-help">No registration evidence found. Check required uploads before approving.</p>:<ul>{docs.map((doc,i)=><li key={doc.document_type+"-"+i}>{doc.document_type} · {doc.verification_status}: {doc.signed_url?<a href={doc.signed_url} target="_blank" rel="noreferrer">{doc.original_filename} (View)</a>:<span>{doc.original_filename} (Preview unavailable)</span>}</li>)}</ul>}
+            </details>
+            <details><summary><b>3. Review &amp; Decision</b></summary>
             <form action={reviewRegistrationSubmissionAction}>
               <input type="hidden" name="user_id" value={row.user_id}/>
               <label>Reviewer note <textarea name="reason" maxLength={1000} placeholder="For clinic approval, record PVMC registry source, registration status and verification details (at least 25 characters)."/></label>
@@ -295,7 +299,7 @@ export default async function AdminPage({
                 <FormSubmitButton className="button button-primary" pendingLabel="Approving…" name="decision" value="approved">Approve registration</FormSubmitButton>
                 <FormSubmitButton className="button button-secondary" pendingLabel="Returning…" name="decision" value="rejected">Return for changes</FormSubmitButton>
               </div>
-            </form>
+            </form></details>
           </article>;
         })}
       </section>}
@@ -354,6 +358,8 @@ export default async function AdminPage({
               const type = String(row.profile_type);
               const documentEntityType = row.record_source === "managed_people" ? "person" : row.record_source === "companies" ? "company" : row.record_source === "clinics" ? "clinic" : row.record_source === "laboratories" ? "laboratory" : null;
               const documents = documentEntityType ? documentMap.get(`${documentEntityType}:${String(row.entity_id || row.user_id)}`) ?? [] : [];
+              const accountDocs = row.record_source === "account" ? registrationDocsMap.get(row.user_id) ?? [] : [];
+              const sector = String(row.veterinary_sector || row.sector || "Not supplied");
               return (
                 <article key={`${type}-${row.user_id}`} id={`profile-${row.record_source ?? "account"}-${String(row.entity_id || row.user_id)}`} className="vc-review-target">
                   <div className="review-header">
@@ -375,7 +381,11 @@ export default async function AdminPage({
                     </div>
                     <span className="status-pill">Pending</span>
                   </div>
+                  <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
                   <dl className="review-details">
+                    <div><dt>Sector</dt><dd>{sector}</dd></div>
+                    <div><dt>Category</dt><dd>{type}</dd></div>
+                    <div><dt>Subcategory / specialty</dt><dd>{String(row.subcategory || row.sub_category || row.specialization || row.professional_type || "Not supplied")}</dd></div>
                     {type === "veterinarian" ? (
                       <>
                         <div>
@@ -431,8 +441,13 @@ export default async function AdminPage({
                         <div><dt>Address</dt><dd>{String(row.address || "Not provided")}</dd></div>
                       </>
                     )}
-                  </dl>
-                  {documents.length > 0 && <div className="review-documents"><b>Private supporting documents</b>{documents.map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.original_name}</a> : <span key={document.storage_path}>{document.original_name}</span>)}</div>}
+                  </dl></details>
+                  <details><summary><b>2. Documents · {documents.length+accountDocs.length} attached</b></summary>
+                    {documents.length+accountDocs.length===0?<p className="form-help">No documents found in linked review records. Verify required uploads.</p>:null}
+                    {documents.length > 0 && <div className="review-documents">{documents.map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.document_kind}: {document.original_name} (View)</a> : <span key={document.storage_path}>{document.original_name} (Preview unavailable)</span>)}</div>}
+                    {accountDocs.length > 0 && <div className="review-documents">{accountDocs.map((doc,i)=>doc.signed_url?<a key={i} href={doc.signed_url} target="_blank" rel="noreferrer">{doc.document_type}: {doc.original_filename} (View)</a>:<span key={i}>{doc.document_type}: {doc.original_filename} (Preview unavailable)</span>)}</div>}
+                  </details>
+                  <details><summary><b>3. Review &amp; Decision</b></summary>
                   <form action={reviewProfileAction}>
                     <input type="hidden" name="profile_type" value={type} />
                     <input type="hidden" name="record_source" value={row.record_source ?? "account"} />
@@ -465,7 +480,7 @@ export default async function AdminPage({
                         Reject
                       </button>
                     </div>
-                  </form>
+                  </form></details>
                 </article>
               );
             })}
