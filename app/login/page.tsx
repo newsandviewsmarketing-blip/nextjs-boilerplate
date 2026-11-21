@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentIdentity } from "@/lib/auth";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import FormMessage from "../components/FormMessage";
@@ -11,6 +13,19 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; message?: string; next?: string }>;
 }) {
   const params = await searchParams;
+  // Reuse an active Supabase session on the current origin.
+  // A preview hostname and the production hostname cannot share host-only cookies.
+  const identity = await getCurrentIdentity();
+  if (identity) {
+    const requested = params.next || "/dashboard";
+    const destination = requested.startsWith("/") &&
+      !requested.startsWith("//") &&
+      !requested.includes("\\") &&
+      !requested.startsWith("/login") &&
+      !requested.startsWith("/auth/")
+      ? requested : "/dashboard";
+    redirect(destination);
+  }
   return (
     <main>
       <SiteHeader />
