@@ -50,6 +50,27 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
         ? value.map((item:string)=>item.trim())
         : [...new Set(value.map((item:string)=>item.trim()).filter(Boolean))];
   }
+  // Resolve sector/specialization canonical IDs using trusted active master data.
+  // Names are retained for backward compatibility; no user-supplied ID is trusted.
+  const sectorLabels = [...new Set([
+    ...textList(categoryDetails,"practice_areas"),
+    ...textList(categoryDetails,"industry_sectors"),
+    str(categoryDetails,"industry_sector")
+  ].filter(Boolean))];
+  const specializationLabels = [...new Set(textList(categoryDetails,"specializations").filter(Boolean))];
+  if (sectorLabels.length || specializationLabels.length) {
+    const {data:references,error:referenceError} = await supabase
+      .from("master_data_items").select("id,category,label")
+      .in("category",["veterinary_sector","veterinary_specialization"])
+      .eq("is_active",true);
+    if(referenceError)return "Unable to resolve current sector and specialization references: "+referenceError.message;
+    const match=(category:string,labels:string[])=>labels.map(label=>{
+      const key=label.toLocaleLowerCase("en").trim();
+      return references?.find(item=>item.category===category && item.label?.toLocaleLowerCase("en").trim()===key)?.id ?? null;
+    }).filter((value):value is string=>Boolean(value));
+    categoryDetails.sector_ids=[...new Set(match("veterinary_sector",sectorLabels))];
+    categoryDetails.subcategory_ids=[...new Set(match("veterinary_specialization",specializationLabels))];
+  }
   const {error:detailsError}=await supabase.from("registration_profile_details").upsert(
     {user_id:userId,category_details:categoryDetails},
     {onConflict:"user_id"}

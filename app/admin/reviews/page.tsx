@@ -4,6 +4,7 @@ import SiteFooter from "../../components/SiteFooter";
 import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import AdminNav from "../components/AdminNav";
+import PrintReviewButton from "./PrintReviewButton";
 import {
   reviewProductAction,
   reviewProfileAction,
@@ -81,7 +82,7 @@ export default async function AdminPage({
   const registrationIds=(registrationRows??[]).map(row=>row.user_id);
   const [{data:registrationProfiles},{data:registrationEvidence},{data:registrationDetailRows}] = registrationIds.length ? await Promise.all([
     supabase.from("profiles").select("id,full_name,email,primary_role").in("id",registrationIds),
-    supabase.from("registration_evidence").select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at").in("user_id",registrationIds).eq("verification_status","pending").order("created_at",{ascending:false}),
+    supabase.from("registration_evidence").select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at").in("user_id",registrationIds).order("created_at",{ascending:false}),
     supabase.from("registration_profile_details").select("user_id,category_details").in("user_id",registrationIds),
   ]) : [{data:[]},{data:[]},{data:[]}];
   const registrationEvidenceWithUrls=await Promise.all((registrationEvidence??[]).map(async doc=>{
@@ -168,6 +169,19 @@ export default async function AdminPage({
     ...pending.filter((row) => row.record_source === "account").map((row) => row.user_id),
     ...credentialRows.filter((row) => row.record_source === "account").map((row) => row.user_id),
   ])];
+  // Legacy account-level pending profiles may have evidence even without a pending registration gate.
+  const outstandingEvidenceIds = ids.filter(id => !registrationDocsMap.has(id));
+  const {data:otherEvidence} = canReviewProfiles && outstandingEvidenceIds.length
+    ? await supabase.from("registration_evidence")
+        .select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at")
+        .in("user_id",outstandingEvidenceIds).order("created_at",{ascending:false})
+    : {data:[]};
+  for (const doc of otherEvidence ?? []) {
+    const {data} = await supabase.storage.from("registration-evidence").createSignedUrl(doc.storage_path,900);
+    const list = registrationDocsMap.get(doc.user_id) ?? [];
+    list.push({...doc,signed_url:data?.signedUrl??null});
+    registrationDocsMap.set(doc.user_id,list);
+  }
   const { data: profiles } = ids.length
     ? await supabase
         .from("profiles")
@@ -177,6 +191,13 @@ export default async function AdminPage({
   const profileMap = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile]),
   );
+  const { data: specialtyReference } = canReviewProfiles
+    ? await supabase.from("master_data_items").select("id,label,code,slug").eq("category","veterinary_specialization").eq("is_active",true)
+    : { data: [] };
+  const specialtyIdFor = (label: string) => {
+    const normalized = label.trim().toLowerCase();
+    return specialtyReference?.find(item => [item.label,item.code,item.slug].some(value => String(value || "").trim().toLowerCase() === normalized))?.id ?? null;
+  };
   const productRows = (products ?? []) as PendingProduct[];
   const jobRows = (jobs ?? []) as PendingJob[];
   const {data:availableJobSectors}=await supabase.from("master_data_items")
@@ -236,11 +257,11 @@ export default async function AdminPage({
     (complianceRows ?? []).map((row) => [row.product_id, row.registration_number]),
   );
 
-  const { data: adminDocuments } = await supabase
+  const { data: adminDocuments } = canReviewProfiles ? await supabase
     .from("admin_record_documents")
     .select("entity_type,entity_id,document_kind,original_name,storage_path")
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(200) : {data: []};
   const signedDocuments = await Promise.all((adminDocuments ?? []).map(async (document) => {
     const { data } = await supabase.storage.from("record-documents").createSignedUrl(document.storage_path, 3600);
     return { ...document, signed_url: data?.signedUrl ?? null };
@@ -279,11 +300,15 @@ export default async function AdminPage({
           const docs=registrationDocsMap.get(row.user_id)??[];
           const submittedDetails=registrationDetailMap.get(row.user_id)??{};
           const detailEntries=Object.entries(submittedDetails).filter(([,value])=>typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0);
-          return <article className="admin-review-card" key={row.user_id}>
+          return <article className="admin-review-card" key={row.user_id} id={`registration-review-${row.user_id}`}>
             <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {String(submittedDetails.city || submittedDetails.district || "City not provided")}</p></div><span className="status-pill">Pending</span></div>
+            <PrintReviewButton targetId={`registration-review-${row.user_id}`} />
             <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
             <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
-            <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || "Not supplied")}</p>
+            <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || (Array.isArray(submittedDetails.specializations)?submittedDetails.specializations.join(", "):"Not supplied"))}</p>
+            <p>Practice areas: {Array.isArray(submittedDetails.practice_areas)?submittedDetails.practice_areas.join(", "):"Not supplied"}</p>
+            <p>Sector reference ID(s): {Array.isArray(submittedDetails.sector_ids) && submittedDetails.sector_ids.length ? submittedDetails.sector_ids.join(", ") : "Not mapped"}</p>
+            <p>Subcategory reference ID(s): {Array.isArray(submittedDetails.subcategory_ids) && submittedDetails.subcategory_ids.length ? submittedDetails.subcategory_ids.join(", ") : Array.isArray(submittedDetails.specializations) && submittedDetails.specializations.length ? submittedDetails.specializations.map((value:unknown)=>specialtyIdFor(String(value)) || "Not mapped").join(", ") : "Not mapped"}</p>
             {detailEntries.length>0&&<dl className="review-details">
               {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
             </dl>}</details>
@@ -344,7 +369,7 @@ export default async function AdminPage({
               <span>Jobs</span>
             </article>
           </div>
-          <div id="pending-profiles" className="admin-review-list vc-review-target">
+          {canReviewProfiles && <div id="pending-profiles" className="admin-review-list vc-review-target">
             {pending.length === 0 && (
               <div className="empty-state">
                 <h2>No profiles are waiting for review.</h2>
@@ -381,11 +406,13 @@ export default async function AdminPage({
                     </div>
                     <span className="status-pill">Pending</span>
                   </div>
+                  <PrintReviewButton targetId={`profile-${row.record_source ?? "account"}-${String(row.entity_id || row.user_id)}`} />
                   <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
                   <dl className="review-details">
                     <div><dt>Sector</dt><dd>{sector}</dd></div>
                     <div><dt>Category</dt><dd>{type}</dd></div>
                     <div><dt>Subcategory / specialty</dt><dd>{String(row.subcategory || row.sub_category || row.specialization || row.professional_type || "Not supplied")}</dd></div>
+                    <div><dt>Subcategory reference ID</dt><dd>{specialtyIdFor(String(row.subcategory || row.sub_category || row.specialization || "")) || "Not mapped"}</dd></div>
                     {type === "veterinarian" ? (
                       <>
                         <div>
@@ -484,13 +511,13 @@ export default async function AdminPage({
                 </article>
               );
             })}
-          </div>
-          <div className="section-heading admin-product-heading">
+          </div>}
+          {canReviewProfiles && <div className="section-heading admin-product-heading">
             <span id="credential-checks" className="section-kicker vc-review-target">VETERINARY CREDENTIAL REVIEW</span>
             <h2>PVMC verification is separate from profile approval.</h2>
             <p>Registration numbers remain private. Only the verified status is published.</p>
-          </div>
-          <div className="admin-review-list">
+          </div>}
+          {canReviewProfiles && <div className="admin-review-list">
             {credentialRows.length === 0 && (
               <div className="empty-state"><h2>No PVMC credentials are waiting for review.</h2></div>
             )}
@@ -512,7 +539,7 @@ export default async function AdminPage({
                 </article>
               );
             })}
-          </div>
+          </div>}
           <div className="section-heading admin-product-heading">
             <span id="pending-products" className="section-kicker vc-review-target">PRODUCT MODERATION</span>
             <h2>Marketplace submissions.</h2>
