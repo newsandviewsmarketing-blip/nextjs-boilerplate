@@ -5,6 +5,7 @@ import FormMessage from "../../components/FormMessage";
 import FormSubmitButton from "../../components/FormSubmitButton";
 import AdminNav from "../components/AdminNav";
 import PrintReviewButton from "./PrintReviewButton";
+import ReviewDocumentsPanel from "./ReviewDocumentsPanel";
 import {
   reviewProductAction,
   reviewProfileAction,
@@ -324,7 +325,7 @@ export default async function AdminPage({
               {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
             </dl>}</details>
             <details><summary><b>2. Documents · {docs.length} attached</b></summary>
-              {docs.length===0?<p className="form-help">No registration evidence found. Check required uploads before approving.</p>:<ul>{docs.map((doc,i)=><li key={doc.document_type+"-"+i}>{doc.document_type} · {doc.verification_status}: {doc.signed_url?<a href={doc.signed_url} target="_blank" rel="noreferrer">{doc.original_filename} (View)</a>:<span>{doc.original_filename} (Preview unavailable)</span>}</li>)}</ul>}
+              <ReviewDocumentsPanel veterinarian={profile?.primary_role==="veterinarian"} documents={docs.map((doc,i)=>({key:doc.storage_path+"-"+i,kind:doc.document_type,filename:doc.original_filename,status:doc.verification_status,url:doc.signed_url}))}/>
             </details>
             <details><summary><b>3. Review &amp; Decision</b></summary>
             <form action={reviewRegistrationSubmissionAction}>
@@ -481,9 +482,10 @@ export default async function AdminPage({
                     )}
                   </dl></details>
                   <details><summary><b>2. Documents · {documents.length+accountDocs.length} attached</b></summary>
-                    {documents.length+accountDocs.length===0?<p className="form-help">No documents found in linked review records. Verify required uploads.</p>:null}
-                    {documents.length > 0 && <div className="review-documents">{documents.map((document) => document.signed_url ? <a key={document.storage_path} href={document.signed_url} target="_blank" rel="noreferrer">{document.document_kind}: {document.original_name} (View)</a> : <span key={document.storage_path}>{document.original_name} (Preview unavailable)</span>)}</div>}
-                    {accountDocs.length > 0 && <div className="review-documents">{accountDocs.map((doc,i)=>doc.signed_url?<a key={i} href={doc.signed_url} target="_blank" rel="noreferrer">{doc.document_type}: {doc.original_filename} (View)</a>:<span key={i}>{doc.document_type}: {doc.original_filename} (Preview unavailable)</span>)}</div>}
+                    <ReviewDocumentsPanel veterinarian={type==="veterinarian"} documents={[
+                      ...documents.map(doc=>({key:doc.storage_path,kind:doc.document_kind,filename:doc.original_name,url:doc.signed_url,status:"Awaiting review"})),
+                      ...accountDocs.map((doc,i)=>({key:doc.storage_path+"-"+i,kind:doc.document_type,filename:doc.original_filename,url:doc.signed_url,status:doc.verification_status}))
+                    ]}/>
                   </details>
                   <details><summary><b>3. Review &amp; Decision</b></summary>
                   <form action={reviewProfileAction}>
