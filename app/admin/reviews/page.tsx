@@ -81,7 +81,7 @@ export default async function AdminPage({
     : { data: [] };
   const registrationIds=(registrationRows??[]).map(row=>row.user_id);
   const [{data:registrationProfiles},{data:registrationEvidence},{data:registrationDetailRows}] = registrationIds.length ? await Promise.all([
-    supabase.from("profiles").select("id,full_name,email,primary_role").in("id",registrationIds),
+    supabase.from("profiles").select("id,full_name,email,primary_role,city,province").in("id",registrationIds),
     supabase.from("registration_evidence").select("user_id,document_type,original_filename,storage_path,content_type,verification_status,created_at").in("user_id",registrationIds).order("created_at",{ascending:false}),
     supabase.from("registration_profile_details").select("user_id,category_details").in("user_id",registrationIds),
   ]) : [{data:[]},{data:[]},{data:[]}];
@@ -299,14 +299,25 @@ export default async function AdminPage({
           const profile=registrationProfileMap.get(row.user_id);
           const docs=registrationDocsMap.get(row.user_id)??[];
           const submittedDetails=registrationDetailMap.get(row.user_id)??{};
-          const detailEntries=Object.entries(submittedDetails).filter(([,value])=>typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0);
+          const detailEntries=Object.entries(submittedDetails).filter(([key,value])=>
+            !["sector_ids","subcategory_ids"].includes(key) &&
+            (typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0)
+          );
+          const displayList=(key:string)=>Array.isArray(submittedDetails[key])?
+            (submittedDetails[key] as unknown[]).filter(value=>typeof value==="string"&&value.trim()).join(", "):"";
+          const sectorLabel=displayList("practice_areas")||displayList("industry_sectors")||
+            String(submittedDetails.industry_sector||"Not supplied");
+          const categoryLabel=displayList("professional_types")||
+            String(submittedDetails.professional_type||profile?.primary_role||"Not supplied");
+          const subcategoryLabel=displayList("specializations")||
+            String(submittedDetails.specialization_other||"Not supplied");
           return <article className="admin-review-card" key={row.user_id} id={`registration-review-${row.user_id}`}>
-            <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {String(submittedDetails.city || submittedDetails.district || "City not provided")}</p></div><span className="status-pill">Pending</span></div>
+            <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {[profile?.city||submittedDetails.city,profile?.province||submittedDetails.province].filter(Boolean).join(", ")||"City not provided"}</p><p>Application ID: {row.user_id}</p></div><span className="status-pill">Pending</span></div>
             <PrintReviewButton targetId={`registration-review-${row.user_id}`} />
             <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
             <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
-            <p>Sector: {String(submittedDetails.sector || submittedDetails.veterinary_sector || "Not supplied")} · Category: {String(submittedDetails.category || profile?.primary_role || "Not supplied")} · Subcategory: {String(submittedDetails.subcategory || submittedDetails.sub_category || (Array.isArray(submittedDetails.specializations)?submittedDetails.specializations.join(", "):"Not supplied"))}</p>
-            <p>Practice areas: {Array.isArray(submittedDetails.practice_areas)?submittedDetails.practice_areas.join(", "):"Not supplied"}</p>
+            <p><b>Sector:</b> {sectorLabel}</p><p><b>Category:</b> {categoryLabel}</p>
+            <p><b>Subcategory / Expertise:</b> {subcategoryLabel}</p>
             <p>Sector reference ID(s): {Array.isArray(submittedDetails.sector_ids) && submittedDetails.sector_ids.length ? submittedDetails.sector_ids.join(", ") : "Not mapped"}</p>
             <p>Subcategory reference ID(s): {Array.isArray(submittedDetails.subcategory_ids) && submittedDetails.subcategory_ids.length ? submittedDetails.subcategory_ids.join(", ") : Array.isArray(submittedDetails.specializations) && submittedDetails.specializations.length ? submittedDetails.specializations.map((value:unknown)=>specialtyIdFor(String(value)) || "Not mapped").join(", ") : "Not mapped"}</p>
             {detailEntries.length>0&&<dl className="review-details">
