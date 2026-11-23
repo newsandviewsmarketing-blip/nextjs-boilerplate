@@ -86,12 +86,12 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  const label=isSuspiciousProfileName(String(p.full_name??"")) ? `Flagged account · ${id.slice(0,8)}` : safeName(p.full_name||p.email||"Unnamed account");
  const photoUrl=typeof pr?.image_url==="string"&&pr.image_url.trim()?pr.image_url.trim():
    typeof v?.image_url==="string"&&v.image_url.trim()?v.image_url.trim():null;
- const overviewFacts:[string,unknown][]=[
+ const overviewFacts= ([
    ["Email",p.email],["Phone",p.phone],
    ["Sector",v?.veterinary_sector],["Specialization",v?.specialization],
    ["Experience",v?.years_experience??pr?.years_experience],
    ["Current position",pr?.current_position],["Organization",pr?.organization_name],
- ].filter(([,value])=>value!==null&&value!==undefined&&value!=="");
+ ] as [string,unknown][]).filter(([,value])=>value!==null&&value!==undefined&&value!=="");
  const vetFields=["qualifications","veterinary_sector","specialization","years_experience","services"];
  const professionalFields=["current_position","organization_name","skills"];
  const companyFields=["business_name","organization_type","public_summary"];
