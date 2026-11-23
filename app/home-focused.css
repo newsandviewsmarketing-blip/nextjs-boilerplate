@@ -156,3 +156,34 @@
  .vc-homepage .vc-quick-fields{grid-template-columns:1fr;}
  .vc-homepage .vc-quick-keyword{grid-column:auto;}
 }
+
+/* Blueprint-inspired veterinary discovery. Genuine public directory photos only. */
+.vc-expertise-section{padding:clamp(28px,3.5vw,46px) 0;background:#fff;}
+.vc-expertise-heading{margin-bottom:18px;}
+.vc-expertise-heading h2,.vc-explore-section h2{color:#11254b;letter-spacing:-.025em;font-size:clamp(1.45rem,2.5vw,2rem);margin:6px 0 8px;line-height:1.18;}
+.vc-expertise-heading p,.vc-explore-section p{font-size:.87rem;color:#5c6f82;line-height:1.55;max-width:680px;margin:0;}
+.vc-expertise-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;}
+.vc-expertise-feature{display:flex;flex-direction:column;gap:12px;min-width:0;background:#fff;border:1px solid #dfe8f2;border-radius:15px;box-shadow:0 5px 17px rgba(19,41,81,.05);overflow:hidden;}
+.vc-blueprint-photo,.vc-feature-icon{height:130px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#eaf2ff,#fff0e4);color:#113b66;}
+.vc-blueprint-photo img.profile-photo,.vc-blueprint-photo img{width:100%;height:100%;object-fit:contain;object-position:center;}
+.vc-feature-icon{font-size:3.3rem;}
+.vc-expertise-feature>div:last-child{padding:0 14px 16px;display:flex;flex-direction:column;gap:7px;flex:1;}
+.vc-expertise-feature .vc-feature-kicker{font-size:.66rem;color:#e87504;font-weight:850;letter-spacing:.06em;}
+.vc-expertise-feature h3{color:#12254a;font-size:1.02rem;line-height:1.25;margin:0;}
+.vc-expertise-feature p{color:#596d83;font-size:.79rem;line-height:1.45;margin:0;flex:1;}
+.vc-expertise-feature a{font-size:.77rem;font-weight:800;text-decoration:none;color:#0a476e;}
+.vc-expertise-feature a:hover,.vc-expertise-feature a:focus-visible{text-decoration:underline;}
+.vc-product-categories{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;}
+.vc-product-category{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;min-height:74px;border-radius:11px;background:#fff;border:1px solid #dce5f0;color:#143250;text-decoration:none;flex-direction:column;padding:8px;}
+.vc-product-category span{font-size:1.75rem;}
+.vc-product-category strong{font-size:.74rem;text-align:center;line-height:1.2;}
+.vc-product-category:hover,.vc-product-category:focus-visible{border-color:#ed7a04;outline-offset:2px;}
+.vc-explore-section{padding:32px 0 36px;background:#fff;}
+.vc-directory-tiles{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin-top:18px;}
+.vc-directory-tile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0;padding:13px 7px;border:1px solid #dae5f1;border-radius:12px;background:#fff;color:#102747;text-decoration:none;}
+.vc-directory-tile:hover,.vc-directory-tile:focus-visible{border-color:#f7800b;outline-offset:2px;box-shadow:0 4px 12px rgba(16,37,72,.08);}
+.vc-directory-icon{display:grid;place-items:center;width:39px;height:39px;background:#fff3e8;border-radius:12px;font-size:1.25rem;}
+.vc-directory-tile strong{font-size:.77rem;line-height:1.25;}
+.vc-directory-tile small{font-size:.63rem;color:#627388;line-height:1.35;}
+@media(max-width:1100px){.vc-directory-tiles{grid-template-columns:repeat(4,minmax(0,1fr));}.vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:600px){.vc-expertise-section{padding:23px 0;}.vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}.vc-expertise-feature{gap:8px;}.vc-blueprint-photo,.vc-feature-icon{height:90px;}.vc-feature-icon{font-size:2.4rem;}.vc-expertise-feature>div:last-child{padding:0 10px 12px;}.vc-expertise-feature h3{font-size:.85rem;}.vc-expertise-feature p{font-size:.7rem;}.vc-expertise-feature a{font-size:.69rem;}.vc-expertise-feature .vc-feature-kicker{font-size:.56rem;}.vc-product-categories{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:7px;overscroll-behavior-inline:contain;}.vc-product-category{flex:0 0 104px;scroll-snap-align:start;}.vc-product-category strong{font-size:.68rem;}.vc-explore-section{padding:25px 0 29px;}.vc-directory-tiles{display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x mandatory;padding-bottom:9px;}.vc-directory-tile{flex:0 0 108px;scroll-snap-align:start;}.vc-directory-tile strong{font-size:.7rem;}.vc-directory-tile small{font-size:.59rem;}}
