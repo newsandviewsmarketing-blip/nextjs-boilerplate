@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import {
   productCategories,
   productMark,
-  sampleProducts,
   type PublicProduct,
 } from "@/lib/marketplace";
 
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 async function loadProducts() {
-  if (!isSupabaseConfigured()) return sampleProducts;
+  if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
   const { data } = await supabase
     .from("products")
@@ -28,7 +27,7 @@ async function loadProducts() {
     .eq("verification_status", "approved")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
-  if (!data?.length) return sampleProducts;
+  if (!data?.length) return [];
   const canonicalIds = [...new Set(data.map((row) => row.company_id).filter(Boolean))] as string[];
   const legacyIds = [...new Set(data.map((row) => row.company_user_id).filter(Boolean))] as string[];
   const [{ data: canonicalCompanies }, { data: legacyCompanies }] = await Promise.all([
@@ -81,32 +80,50 @@ async function loadProducts() {
       regulatory_review_status: row.regulatory_review_status,
       company_user_id: row.company_user_id,
       company_id: row.company_id,
-      company_name: company?.company_name ?? "Verified VetConnect company",
+      company_name: company?.company_name ?? "Company profile unavailable",
       company_city: company?.city ?? null,
     };
   });
 }
 
+type MarketplaceSupplier={id:string;user_id:string|null;company_name:string;business_type:string|null;city:string|null;province:string|null;logo_url:string|null};
+async function loadSuppliers():Promise<MarketplaceSupplier[]>{
+ if(!isSupabaseConfigured())return [];
+ const supabase=await createClient();
+ const {data,error}=await supabase.from("public_company_directory").select("id,user_id,company_name,business_type,city,province,logo_url").order("company_name");
+ if(error)return [];
+ return (data??[]) as MarketplaceSupplier[];
+}
 export default async function MarketplacePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; sector?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; city?: string; sector?: string; category?: string }>;
 }) {
   const params = await searchParams;
-  const products = await loadProducts();
-  const query = (params.q ?? "").toLowerCase();
+  const [products,suppliers] = await Promise.all([loadProducts(),loadSuppliers()]);
+  const query = (params.q ?? "").trim().toLowerCase();
+  const city = (params.city ?? "").trim().toLowerCase();
+  const selectedSector = (params.sector ?? "").trim().toLowerCase();
   const visibleProducts = products.filter(
     (product) =>
       (!query ||
-        `${product.product_name} ${product.company_name} ${product.category} ${product.generic_name ?? ""}`
+        `${product.product_name} ${product.brand_name ?? ""} ${product.company_name} ${product.category} ${product.generic_name ?? ""}`
           .toLowerCase()
           .includes(query)) &&
-      (!params.sector ||
-        params.sector === "All sectors" ||
-        product.sector === params.sector) &&
+      (!city || city === "all cities" || product.company_city?.trim().toLowerCase() === city) &&
+      (!selectedSector || selectedSector === "all sectors" ||
+        product.sector?.trim().toLowerCase() === selectedSector ||
+        product.sectors?.some((item) => item.trim().toLowerCase() === selectedSector)) &&
       (!params.category || product.category === params.category),
   );
-  const sectors = [...new Set(products.map((product) => product.sector).filter(Boolean))] as string[];
+  const visibleSuppliers=suppliers.filter((company)=>{
+   const matchesKeyword=!query||[company.company_name,company.business_type??""].join(" ").toLowerCase().includes(query);
+   const matchesCity=!city||city==="all cities"||company.city?.trim().toLowerCase()===city;
+   const matchesSector=!selectedSector||selectedSector==="all sectors"||company.business_type?.toLowerCase().includes(selectedSector);
+   return matchesKeyword&&matchesCity&&matchesSector;
+  });
+  const sectors = [...new Set(products.flatMap((product) => [product.sector,...(product.sectors ?? [])]).filter(Boolean))] as string[];
+  const cities = [...new Set([...products.map((product) => product.company_city),...suppliers.map((company) => company.city)].filter(Boolean))] as string[];
 
   return (
     <main>
@@ -120,7 +137,8 @@ export default async function MarketplacePage({
             or quotation requests directly to the supplier.
           </p>
           <div className="hero-actions">
-            <Link className="button button-primary" href="#products">Browse products</Link>
+            <Link className="button button-primary" href="#suppliers">Find suppliers</Link>
+            <Link className="button button-secondary" href="#products">Browse products</Link>
             <Link className="button button-secondary" href="/register?role=company#registration">List your company</Link>
           </div>
         </div>
@@ -141,16 +159,34 @@ export default async function MarketplacePage({
           </div>
         </div>
       </section>
+      <section id="suppliers" className="section compact-section">
+        <div className="shell">
+          <div className="section-heading"><span className="section-kicker">APPROVED COMPANY DIRECTORY</span><h2>Find animal-health suppliers</h2>
+            <p>Public company profiles are listed separately from product approvals. City is the company's registered public location, not confirmed product availability.</p>
+          </div>
+          {visibleSuppliers.length===0?<div className="empty-state"><h3>No public companies match these filters.</h3><Link href="/companies">Browse all companies</Link></div>:
+            <div className="company-grid">
+              {visibleSuppliers.map((company)=><article key={company.id}>
+                {company.logo_url?<img className="company-mark large company-logo" src={company.logo_url} alt={company.company_name+" logo"} loading="lazy" decoding="async" />:
+                <div className="company-mark large">VC</div>}
+                <h3>{company.company_name}</h3><p>{company.business_type||"Animal-health company"} · {company.city||company.province||"Pakistan"}</p>
+                <Link className="button button-secondary button-full" href={`/companies/${company.id}`}>View company profile</Link>
+              </article>)}
+            </div>}
+        </div>
+      </section>
       <section id="products" className="section section-soft">
         <div className="shell">
           <div className="directory-top">
             <div>
               <b>{visibleProducts.length} product listings</b>
-              <span>{products.some((product) => product.is_sample) ? "Sample preview until companies publish approved products" : "Verified company marketplace data"}</span>
+              <span>Only approved published product listings. Supplier city does not confirm local stock.</span>
             </div>
             <form className="market-search" method="get">
-              <input name="q" defaultValue={params.q ?? ""} placeholder="Search product or company" />
-              <select name="sector" defaultValue={params.sector ?? "All sectors"}>
+              <input name="q" defaultValue={params.q ?? ""} placeholder="Product, brand or company" aria-label="Search products" />
+              <input name="city" list="marketplace-supplier-cities" defaultValue={params.city ?? ""} placeholder="All cities" aria-label="Supplier city" />
+              <datalist id="marketplace-supplier-cities">{cities.map((item)=><option key={item} value={item}/>)}</datalist>
+              <select name="sector" defaultValue={params.sector ?? "All sectors"} aria-label="Product sector">
                 <option>All sectors</option>
                 {sectors.map((sector) => <option key={sector}>{sector}</option>)}
               </select>
@@ -164,7 +200,7 @@ export default async function MarketplacePage({
             </div>
           )}
           {visibleProducts.length === 0 ? (
-            <div className="empty-state"><h2>No products match this search.</h2><Link href="/marketplace#products">Clear search</Link></div>
+            <div className="empty-state"><h2>{products.length ? "No approved products match these filters." : "No approved product listings are available yet."}</h2><p>Explore published company profiles or adjust your search. Product information appears after review and publication.</p><Link href="/companies">Browse companies</Link> · <Link href="/marketplace#products">Clear filters</Link></div>
           ) : (
             <div className="product-grid">
               {visibleProducts.map((product) => (
