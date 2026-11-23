@@ -9,9 +9,9 @@ export async function generateMetadata(){return siteContentMetadata("team");}
 export default async function TeamPage(){
  const [members,pageContent]=await Promise.all([publishedTeamMembers(),getPublishedSiteDocument("team")]);
  const publishedIntro=pageContent.summary;
- const intro=/team profiles will be added|awaiting confirmation/i.test(publishedIntro)?"Meet the leadership and people behind VetConnect Pakistan.":publishedIntro;
+ const intro=/team profiles will be added|awaiting confirmation/i.test(publishedIntro)?"Meet the leadership and people behind Vet-Connect.":publishedIntro;
  return <><SiteHeader/><main>
- <section className={styles.hero}><div className="shell"><span className={styles.kicker}>VETCONNECT PAKISTAN · OUR PEOPLE</span><h1>{pageContent.title}</h1><p>{intro}</p></div></section>
+ <section className={styles.hero}><div className="shell"><span className={styles.kicker}>VET-CONNECT · OUR PEOPLE</span><h1>{pageContent.title}</h1><p>{intro}</p></div></section>
  <section className={styles.section}><div className="shell">
  {members.length?TEAM_GROUPS.map(group=>{
  const groupMembers=members.filter(member=>member.team_group===group.value);
@@ -19,7 +19,7 @@ export default async function TeamPage(){
  return <section className={styles.group} key={group.value} aria-labelledby={"team-group-"+group.value}>
   <div className={styles.groupHeading}><h2 id={"team-group-"+group.value}>{group.label}</h2></div>
   <div className={styles.grid}>{groupMembers.map(member=><article className={styles.card} key={member.id}>
-  {teamPhotoUrl(member.photo_path)?<img className={styles.portrait} style={{objectPosition:"center "+member.photo_position_y+"%"}} src={teamPhotoUrl(member.photo_path)!} alt={"Portrait of "+member.full_name} loading="lazy"/>:<div className={styles.placeholder}>VetConnect Team</div>}
+  {teamPhotoUrl(member.photo_path)?<img className={styles.portrait} style={{objectPosition:"center "+member.photo_position_y+"%"}} src={teamPhotoUrl(member.photo_path)!} alt={"Portrait of "+member.full_name} loading="lazy"/>:<div className={styles.placeholder}>Vet-Connect Team</div>}
   <div className={styles.cardBody}><h3>{member.full_name}</h3><p className={styles.role}>{member.job_title}</p>
   {member.department&&<p className={styles.department}>{member.department}</p>}
   <p className={styles.summary}>{member.summary || "Read about this team member's role and professional background."}</p>
