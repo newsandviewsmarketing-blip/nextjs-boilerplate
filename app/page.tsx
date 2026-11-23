@@ -6,6 +6,8 @@ import SectorJobSlider,{type CurrentJobSlide} from "./components/SectorJobSlider
 import HomeMarketLanes,{type HomeCompany,type HomeProduct} from "./components/HomeMarketLanes";
 import HomeQuickSearch from "./components/HomeQuickSearch";
 import HomeAdPlacement from "./components/HomeAdPlacement";
+import HomeExpertise, {type HomeVet, type HomeClinic, type HomeProfessional} from "./components/HomeExpertise";
+import HomeDirectories from "./components/HomeDirectories";
 import "./home-focused.css";
 import {isSupabaseConfigured} from "@/lib/supabase/config";
 import {createClient} from "@/lib/supabase/server";
@@ -71,8 +73,33 @@ async function loadHomepageMarket():Promise<{companies:HomeCompany[];products:Ho
  }));
  return {companies,products};
 }
+async function loadHomepageExpertise():Promise<{vets:HomeVet[];clinics:HomeClinic[];professionals:HomeProfessional[]}>{
+ const empty={vets:[],clinics:[],professionals:[]};
+ if(!isSupabaseConfigured())return empty;
+ const supabase=await createClient();
+ const [accountVets,assistedVets,clinics,accountPros,assistedPros]=await Promise.all([
+  supabase.from("public_veterinarians").select("user_id,full_name,city,veterinary_sector,specialization,image_url,pvmc_verified,profile_verified").eq("profile_verified",true).eq("pvmc_verified",true).limit(12),
+  supabase.from("public_managed_veterinarians").select("user_id,full_name,city,veterinary_sector,specialization,image_url,pvmc_verified,profile_verified").eq("profile_verified",true).eq("pvmc_verified",true).limit(12),
+  supabase.from("public_clinics").select("slug,clinic_name,city,facility_type,logo_url,species,profile_verified").eq("profile_verified",true).limit(12),
+  supabase.from("public_professionals").select("slug,full_name,professional_type,city,image_url,profile_verified").eq("profile_verified",true).limit(12),
+  supabase.from("public_managed_professionals").select("slug,full_name,professional_type,city,image_url,profile_verified").eq("profile_verified",true).limit(12)
+ ]);
+ const vets=new Map<string,HomeVet>();
+ for(const row of [...(accountVets.data??[]),...(assistedVets.data??[])]){
+  if(row.user_id&&row.full_name&&row.profile_verified&&row.pvmc_verified)
+   vets.set(row.user_id,{user_id:row.user_id,full_name:row.full_name,city:row.city,veterinary_sector:row.veterinary_sector,specialization:row.specialization,image_url:row.image_url,pvmc_verified:true});
+ }
+ const pros=new Map<string,HomeProfessional>();
+ for(const row of [...(accountPros.data??[]),...(assistedPros.data??[])]){
+  if(row.slug&&row.full_name&&row.profile_verified)
+   pros.set(row.slug,{slug:row.slug,full_name:row.full_name,professional_type:row.professional_type,city:row.city,image_url:row.image_url});
+ }
+ return {vets:[...vets.values()].slice(0,4),
+   clinics:(clinics.data??[]).filter(row=>row.slug&&row.clinic_name&&row.profile_verified).slice(0,4).map(row=>({slug:row.slug,clinic_name:row.clinic_name,city:row.city,facility_type:row.facility_type,logo_url:row.logo_url,species:row.species??[]})),
+   professionals:[...pros.values()].slice(0,4)};
+}
 export default async function Home() {
- const [currentJobs,market]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket()]);
+ const [currentJobs,market,expertise]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket(),loadHomepageExpertise()]);
  return (
     <main className="vc-homepage">
       <SiteHeader />
@@ -81,8 +108,8 @@ export default async function Home() {
         <div className="shell hero-grid">
           <div className="hero-copy">
             <div className="eyebrow"><span/> VETCONNECT PAKISTAN</div>
-            <h1>Connecting veterinary expertise with <em>farmers, animal owners and industry.</em></h1>
-            <p className="hero-lead">Find veterinary clinics and professionals, discover sector-specific jobs, and connect with animal-health companies across Pakistan.</p>
+            <h1>Connecting certified veterinary expertise with <em>farmers, animal owners and industry.</em></h1>
+            <p className="hero-lead">Explore verified veterinarian profiles, clinics and industry professionals. Discover jobs, suppliers, products and services across Pakistan.</p>
             <div className="hero-actions">
               <Link href="/vets" className="button button-primary">Find a Veterinarian</Link>
               <Link href="/jobs" className="button button-secondary">Browse Jobs</Link>
@@ -91,12 +118,14 @@ export default async function Home() {
           <HomeQuickSearch />
         </div>
       </section>
+      <HomeExpertise vets={expertise.vets} clinics={expertise.clinics} professionals={expertise.professionals}/>
       <section className="section jobs-featured-below-hero">
         <div className="shell">
           <SectorJobSlider jobs={currentJobs}/>
         </div>
       </section>
       <HomeMarketLanes companies={market.companies} products={market.products}/>
+      <HomeDirectories />
       <HomeAdPlacement />
       <SiteFooter />
     </main>
