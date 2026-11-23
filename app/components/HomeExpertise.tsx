@@ -18,25 +18,25 @@ export default function HomeExpertise({vets,clinics,professionals,onlineClinics}
   </div>
   <div className="vc-expertise-grid">
    <article className="vc-expertise-feature">
-    <div className="vc-online-booking-artwork"><img src="/images/vetconnect-online-vet-booking.svg" alt="Illustration of online veterinary video consultation and appointment scheduling" loading="lazy" decoding="async"/></div>
+    <div className="vc-approved-art vc-approved-art-online" role="img" aria-label="Illustrative Pakistani female veterinarian in a veterinary consultation setting"/>
     <div><span className="vc-feature-kicker">VETCONNECT SERVICES</span><h3>Online Booking &amp; Vet Online</h3>
      <p>{onlineClinics.length>0?onlineClinics.length+" approved "+(onlineClinics.length===1?"practice lists":"practices list")+" tele-veterinary consultation. Request a time directly." :"Discover remote veterinary consultations and request appointments when participating clinicians publish availability."}</p>
      <Link href="/clinics?q=Tele-Veterinary+Consultation">Explore online booking →</Link></div>
    </article>
    <article className="vc-expertise-feature">
-    {professionals[0]?<Photo url={professionals[0].image_url} name={professionals[0].full_name}/>:<span className="vc-feature-icon" aria-hidden="true">👨‍🔬</span>}
+    <div className="vc-approved-art vc-approved-art-consultant" role="img" aria-label="Illustrative Pakistani veterinary professional consultant"/>
     <div><span className="vc-feature-kicker">INDUSTRY & ADVISORY</span><h3>Professionals & Consultants</h3>
-     <p>Research, nutrition, poultry, dairy and animal-health specialists. Clinical appointments are not assumed.</p>
+     <p>{professionals.length>0?`Explore ${professionals.length} public professional profiles covering research, nutrition, poultry, dairy and industry advisory.`:"Explore veterinary industry, nutrition, poultry, dairy and advisory professionals."}</p>
      <Link href="/professionals">Explore professionals →</Link></div>
    </article>
    <article className="vc-expertise-feature">
-    {clinics[0]?<Photo url={clinics[0].logo_url} name={clinics[0].clinic_name}/>:<span className="vc-feature-icon" aria-hidden="true">🏥</span>}
+    <div className="vc-approved-art vc-approved-art-clinic" role="img" aria-label="Illustrative veterinary clinic premises"/>
     <div><span className="vc-feature-kicker">CLINICS & PRACTICE</span><h3>Veterinary Clinics</h3>
-     <p>Find approved facilities, services, animal species and published contact options.</p>
+     <p>{clinics.length>0?`Explore ${clinics.length} approved veterinary clinics with published services, animal species and contact options.`:"Find approved veterinary facilities, services and contact options."}</p>
      <Link href="/clinics">Explore clinics →</Link></div>
    </article>
    <article className="vc-expertise-feature">
-    <span className="vc-feature-icon" aria-hidden="true">🔬</span>
+    <div className="vc-approved-art vc-approved-art-lab" role="img" aria-label="Illustrative veterinary diagnostic laboratory"/>
     <div><span className="vc-feature-kicker">DIAGNOSTIC SERVICES</span><h3>Diagnostic Laboratories</h3>
      <p>Search the laboratory directory when public approved listings become available.</p>
      <Link href="/labs">Explore laboratories →</Link></div>
