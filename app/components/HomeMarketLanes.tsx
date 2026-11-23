@@ -17,25 +17,29 @@ export default function HomeMarketLanes({companies,products}:{companies:HomeComp
     <div className="vc-market-lane-heading"><h3>Companies</h3><span>Published business profiles</span></div>
     {companies.length>0?<div className="vc-market-window" aria-label="Company directory, scroll horizontally">
      <div className={"vc-market-track vc-market-track-left"+(companies.length<4?" vc-market-static":"")}>
-      {companies.map(company=><Link key={company.id} className="vc-market-company" href={"/companies/"+company.id}>
-       {company.logo?
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={company.logo} alt={company.name+" logo"} loading="lazy" decoding="async"/>:
-        <span className="vc-market-initial" aria-hidden="true">{company.name.slice(0,2).toUpperCase()}</span>}
-       <span><strong>{company.name}</strong><small>{company.city||"Pakistan"}</small></span>
-      </Link>)}
+      {[0,1].map(copy=><div className="vc-market-track-group" aria-hidden={copy===1} key={copy}>
+       {companies.map(company=><Link tabIndex={copy===1?-1:undefined} key={company.id} className="vc-market-company" href={"/companies/"+company.id}>
+        {company.logo?
+         // eslint-disable-next-line @next/next/no-img-element
+         <img src={company.logo} alt={company.name+" logo"} loading="lazy" decoding="async"/>:
+         <span className="vc-market-initial" aria-hidden="true">{company.name.slice(0,2).toUpperCase()}</span>}
+        <span><strong>{company.name}</strong><small>{company.city||"Pakistan"}</small></span>
+       </Link>)}
+      </div>)}
      </div>
-    </div>:<div className="vc-market-empty">Browse the company directory for newly published businesses. <Link href="/companies">Explore companies</Link></div>}
+    </div>:<div className="vc-market-empty">Browse published businesses. <Link href="/companies">Explore companies</Link></div>}
     <div className="vc-market-lane-heading"><h3>Products</h3><span>Approved marketplace listings</span></div>
     {products.length>0?<div className="vc-market-window" aria-label="Animal-health products, scroll horizontally">
      <div className={"vc-market-track vc-market-track-right"+(products.length<4?" vc-market-static":"")}>
-      {products.map(product=><Link key={product.slug} className="vc-market-company" href={"/marketplace/"+product.slug}>
-       {product.image?
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={product.image} alt={product.name+" product image"} loading="lazy" decoding="async"/>:
-        <span className="vc-market-initial" aria-hidden="true">P</span>}
-       <span><strong>{product.name}</strong><small>{product.company}{product.category?" · "+product.category:""}</small></span>
-      </Link>)}
+      {[0,1].map(copy=><div className="vc-market-track-group" aria-hidden={copy===1} key={copy}>
+       {products.map(product=><Link tabIndex={copy===1?-1:undefined} key={product.slug} className="vc-market-company" href={"/marketplace/"+product.slug}>
+        {product.image?
+         // eslint-disable-next-line @next/next/no-img-element
+         <img src={product.image} alt={product.name+" product image"} loading="lazy" decoding="async"/>:
+         <span className="vc-market-initial" aria-hidden="true">P</span>}
+        <span><strong>{product.name}</strong><small>{product.company}{product.category?" · "+product.category:""}</small></span>
+       </Link>)}
+      </div>)}
      </div>
     </div>:<div className="vc-market-empty">Approved products will appear here when available. <Link href="/marketplace">Browse marketplace</Link></div>}
    </div>
