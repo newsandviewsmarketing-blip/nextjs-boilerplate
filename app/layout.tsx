@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { siteUrl } from "@/lib/seo";
 
@@ -35,6 +36,7 @@ const brandStructuredData = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
+  other: { "google-adsense-account": "ca-pub-3423484174950482" },
 
   title: {
     default:
@@ -103,6 +105,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script id="vetconnect-adsense-ownership" strategy="beforeInteractive" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3423484174950482" crossOrigin="anonymous" />
+      </head>
       <body>
         <script
           type="application/ld+json"
