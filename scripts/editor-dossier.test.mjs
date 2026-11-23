@@ -7,7 +7,7 @@ test("one account dossier unifies editing, review, status and file provenance",(
  const actions=read("app/admin/users/[id]/actions.ts");
  const users=read("app/admin/users/page.tsx");
  const moderation=read("app/admin/actions.ts");
- for(const required of ["Applicant summary","Show all stored registration fields","role","profile"]){assert.ok(dossier.toLowerCase().includes(required.toLowerCase()))}
+ for(const required of ["Applicant overview","Professional and registration details","ProfilePhoto","registration_evidence","role","profile"]){assert.ok(dossier.toLowerCase().includes(required.toLowerCase()))}
  for(const tag of ["id=\"identity\"","id=\"linked\"","id=\"uploads\"","id=\"actions\"","id=\"history\""]){assert.ok(dossier.includes(tag),tag)}
  assert.match(dossier,/reviewProfileAction/);
  assert.match(dossier,/reviewVeterinarianCredentialAction/);
@@ -16,6 +16,12 @@ test("one account dossier unifies editing, review, status and file provenance",(
  assert.match(dossier,/updateUserPermissionsAction/);
  assert.match(dossier,/createSignedUrl/);
  assert.match(dossier,/target="_blank" rel="noopener noreferrer"/);
+ assert.doesNotMatch(dossier,/noInternal\(Object\.entries/);
+ assert.doesNotMatch(dossier,/Show all stored registration fields/);
+ assert.doesNotMatch(dossier,/SiteFooter/);
+ const tabs=read("app/admin/users/[id]/DossierSectionTabs.tsx");
+ for(const label of ["Overview","Original Submission","Documents","Review & Actions","Audit History"])assert.ok(tabs.includes(label));
+ assert.match(dossier,/ProfilePhoto imageUrl=\{photoUrl\}/);
  assert.match(users,/admin\/users\/\$\{user.id\}/);
  assert.doesNotMatch(users,/admin-data-list user-admin-list/);
  assert.match(moderation,/requestedReturnTo === \`\/admin\/users\/\$\{entityId\}\`/);

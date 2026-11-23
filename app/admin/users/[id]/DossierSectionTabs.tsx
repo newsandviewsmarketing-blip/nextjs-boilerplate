@@ -1,50 +1,38 @@
 "use client";
 import {useEffect,useState} from "react";
 
-type Tab="profile"|"documents"|"review";
-const groups:Record<Tab,string[]>={
-  profile:["identity","linked"],
-  documents:["uploads"],
-  review:["actions","history"],
-};
-const labels:Record<Tab,string>={
-  profile:"1. Profile",
-  documents:"2. Documents",
-  review:"3. Review & Actions",
-};
-function tabFromHash():Tab {
-  if(typeof window==="undefined")return "profile";
-  const target=window.location.hash.replace("#","");
-  return (Object.keys(groups) as Tab[]).find(key=>groups[key].includes(target))||"profile";
+type Tab="overview"|"submission"|"documents"|"review"|"audit";
+const tabs:{id:Tab;label:string;panel:string}[]=[
+ {id:"overview",label:"Overview",panel:"identity"},
+ {id:"submission",label:"Original Submission",panel:"linked"},
+ {id:"documents",label:"Documents",panel:"uploads"},
+ {id:"review",label:"Review & Actions",panel:"actions"},
+ {id:"audit",label:"Audit History",panel:"history"},
+];
+function currentTab():Tab{
+ if(typeof window==="undefined")return "overview";
+ const hash=window.location.hash.replace(/^#/,"");
+ return tabs.find(tab=>tab.panel===hash||tab.id===hash)?.id??"overview";
 }
 export default function DossierSectionTabs(){
-  const [selected,setSelected]=useState<Tab>("profile");
-  useEffect(()=>{
-    const sync=()=>setSelected(tabFromHash());
-    sync();
-    window.addEventListener("hashchange",sync);
-    return ()=>window.removeEventListener("hashchange",sync);
-  },[]);
-  useEffect(()=>{
-    for(const [tab,ids] of Object.entries(groups)){
-      for(const id of ids){
-        const element=document.getElementById(id);
-        if(element)element.hidden=tab!==selected;
-      }
-    }
-    return ()=>{
-      for(const ids of Object.values(groups))for(const id of ids){
-        const element=document.getElementById(id);
-        if(element)element.hidden=false;
-      }
-    };
-  },[selected]);
-  return <nav className="vc-editor-tabs" aria-label="Account dossier sections">
-    {(Object.keys(groups) as Tab[]).map(tab=><button key={tab} type="button"
-      aria-pressed={selected===tab}
-      className={selected===tab?"button button-primary":"button button-secondary"}
-      onClick={()=>{setSelected(tab);history.replaceState(null,"","#"+groups[tab][0]);}}>
-      {labels[tab]}
-    </button>)}
-  </nav>;
+ const [selected,setSelected]=useState<Tab>("overview");
+ useEffect(()=>{
+  const sync=()=>setSelected(currentTab());
+  sync();
+  window.addEventListener("hashchange",sync);
+  return ()=>window.removeEventListener("hashchange",sync);
+ },[]);
+ useEffect(()=>{
+  const host=document.querySelector<HTMLElement>(".vc-editor-dossier");
+  if(host)host.dataset.dossierTab=selected;
+  return ()=>{if(host)host.dataset.dossierTab="overview";};
+ },[selected]);
+ return <nav className="vc-editor-tabs vc-dossier-tab-navigation" aria-label="Account dossier sections">
+  {tabs.map(tab=><button key={tab.id} type="button"
+   aria-pressed={selected===tab.id} aria-controls={tab.panel}
+   className={selected===tab.id?"button button-primary":"button button-secondary"}
+   onClick={()=>{setSelected(tab.id);window.history.replaceState(null,"","#"+tab.panel);}}>
+   {tab.label}
+  </button>)}
+ </nav>;
 }
