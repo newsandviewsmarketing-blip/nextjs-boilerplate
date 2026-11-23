@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {notFound,redirect} from "next/navigation";
-import SiteHeader from "../../../components/SiteHeader";
-import SiteFooter from "../../../components/SiteFooter";
+import ProfilePhoto from "../../../components/ProfilePhoto";
 import FormMessage from "../../../components/FormMessage";
 import FormSubmitButton from "../../../components/FormSubmitButton";
 import AdminNav from "../../components/AdminNav";
@@ -27,7 +26,22 @@ const display=(v:unknown)=>{
  if(typeof v==="object")return JSON.stringify(v);
  return String(v);
 };
-const noInternal=(entries:[string,unknown][])=>entries.filter(([name])=>!/(token|secret|password|storage_path|file_path|private_notes)/i.test(name));
+// Render curated professional information, not raw database columns or internal identifiers.
+const fields=(row:Item|null,keys:readonly string[])=>keys
+ .filter(key=>row&&row[key]!==null&&row[key]!==undefined&&row[key]!==""&&(!Array.isArray(row[key])||(row[key] as unknown[]).length>0))
+ .map(key=>[key,row?.[key]] as [string,unknown]);
+const fieldNames:Record<string,string>={
+ qualifications:"Qualifications",veterinary_sector:"Veterinary sector",specialization:"Specialization",
+ years_experience:"Experience (years)",services:"Services",professional_type:"Professional type",
+ headline:"Professional headline",current_position:"Current position",organization_name:"Organization",
+ skills:"Professional skills",public_summary:"Biography",business_name:"Business name",
+ organization_type:"Organization type",district:"District",tehsil:"Tehsil",
+ degree:"Degree",institution:"Institution",field_of_study:"Field of study",
+ designation:"Designation",responsibilities:"Responsibilities",
+ credential_type:"Credential",issuing_authority:"Issuing authority",
+ category:"Category",subcategory:"Subcategory",registration_intent:"Registration purpose"
+};
+const labelFor=(key:string)=>fieldNames[key]??key.replaceAll("_"," ");
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AdminUserDossier({params,searchParams}:Props){
@@ -71,7 +85,20 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  const publicVet=accountStatus==="active"&&v?.verification_status==="approved"&&v?.pvmc_verification_status==="approved"&&vetCredentialIssues.length===0;
  const publicPro=accountStatus==="active"&&pr?.verification_status==="approved"&&pr?.profile_visibility==="public";
  const label=isSuspiciousProfileName(String(p.full_name??"")) ? `Flagged account · ${id.slice(0,8)}` : safeName(p.full_name||p.email||"Unnamed account");
- const publicHref=publicVet?"/vets/"+id:publicPro&&pr?.slug?"/professionals/"+pr.slug:null;
+ const photoUrl=typeof pr?.image_url==="string"&&pr.image_url.trim()?pr.image_url.trim():
+   typeof v?.image_url==="string"&&v.image_url.trim()?v.image_url.trim():null;
+ const overviewFacts:[string,unknown][]=[
+   ["Email",p.email],["Phone",p.phone],["City",p.city],["Province",p.province],
+   ["Sector",v?.veterinary_sector],["Specialization",v?.specialization],
+   ["Experience",v?.years_experience??pr?.years_experience],
+   ["Current position",pr?.current_position],["Organization",pr?.organization_name],
+ ].filter(([,value])=>value!==null&&value!==undefined&&value!=="");
+ const vetFields=["qualifications","veterinary_sector","specialization","years_experience","services","public_summary"];
+ const professionalFields=["headline","current_position","organization_name","skills","public_summary"];
+ const companyFields=["business_name","organization_type","public_summary"];
+ const renderedVet=fields(v,vetFields.filter(key=>!["veterinary_sector","specialization","years_experience"].includes(key)));
+ const renderedProfessional=fields(pr,professionalFields.filter(key=>!["current_position","organization_name"].includes(key)));
+ const renderedCompany=fields(co,companyFields);
  const alertSpam=isSuspiciousProfileName(String(p.full_name??""));
  const {data:registrationEvidence,error:registrationEvidenceError}=canInspectEvidence
    ? await supabase.from("registration_evidence")
@@ -88,18 +115,19 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  }));
  const toEdit=canManage;
  const specRows:[string,Item|null][]=[["Veterinarian profile",v],["Professional profile",pr],["Company profile",co]];
- const allLinks=[
-  {label:"Directory",href:"/admin/directory",ok:rights.has("directories.manage")},
-  {label:"User register",href:"/admin/users",ok:rights.has("users.manage")},
-  {label:"Review queue",href:"/admin/reviews",ok:canReview||canRegulatory},
-  {label:"Activity report",href:"/admin/reports",ok:rights.has("audit.view")}
- ];
- return <main className="vc-admin-page vc-editor-dossier">
- <SiteHeader/>
- <section className="vc-admin-banner"><div className="shell vc-admin-banner-content"><div>
-   <span className="section-kicker">SINGLE SOURCE · ACCOUNT DOSSIER</span><h1>{label}</h1>
-   <p>{role.replaceAll("_"," ")} · {accountStatus} · Reference {id.slice(0,8)} · Joined {stamp(p.created_at)}</p>
- </div><div className="vc-admin-actions"><Link className="button button-secondary" href="/admin/users">← User register</Link>{publicHref&&<Link className="button button-primary" target="_blank" rel="noopener noreferrer" href={String(publicHref)}>Open public profile ↗</Link>}</div></div></section>
+ return <main className="vc-admin-page vc-editor-dossier" data-dossier-tab="overview">
+ <section className="vc-admin-banner"><div className="shell vc-admin-banner-content">
+  <div className="vc-dossier-identity">
+   <div className="vc-dossier-photo" aria-label="Existing professional photograph">
+    <ProfilePhoto imageUrl={photoUrl} name={label} fallback={label.slice(0,1).toUpperCase()}/>
+   </div>
+   <div><span className="section-kicker">VETCONNECT · PROFESSIONAL RECORD</span>
+    <h1>{label}</h1>
+    <p>{String(pr?.headline||pr?.professional_type||role).replaceAll("_"," ")} · {[p.city,p.province].filter(Boolean).join(", ")||"Location not supplied"}</p>
+   </div>
+  </div>
+  <div className="vc-admin-actions"><Link className="button button-secondary" href="/admin/users">← User register</Link></div>
+ </div></section>
  <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout">
    <div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
    <div className="admin-control-content vc-admin-main">
@@ -117,26 +145,37 @@ export default async function AdminUserDossier({params,searchParams}:Props){
      <div className="vc-admin-metric"><span>Professional review</span><b>{String(pr?.verification_status??"Not created")}</b><small>Independent profile</small></div>
    </div>
    <section className="vc-admin-panel" id="identity">
-      <div className="vc-panel-header"><div><span className="section-kicker">1. PROFILE</span><h2>Applicant summary</h2><p>Review core details first. Expand the stored fields only when needed.</p></div></div>
-      <dl className="vc-editor-field-grid">
-        {(["full_name","email","phone","city","province","primary_role","account_status"] as const).map(key=><div key={key}><dt>{key.replaceAll("_"," ")}</dt><dd>{display(p[key])}</dd></div>)}
-      </dl>
-      <details className="vc-editor-record"><summary>Show all stored registration fields</summary>
-        <dl className="vc-editor-field-grid">{noInternal(Object.entries(p)).map(([k,value])=><div key={k}><dt>{k.replaceAll("_"," ")}</dt><dd>{display(value)}</dd></div>)}</dl>
-      </details>
-      <div className="vc-editor-note"><strong>Registration source:</strong> VetConnect account profile (exact submitter/IP/source attribution not available in this record). Created {stamp(p.created_at)}. Last profile update {stamp(p.updated_at)}.</div>
+    <div className="vc-panel-header"><div><span className="section-kicker">OVERVIEW</span><h2>Applicant overview</h2><p>Current relevant profile information, shown once for easy review.</p></div></div>
+    <dl className="vc-editor-field-grid">
+     {overviewFacts.map(([name,value])=><div key={name}><dt>{name}</dt><dd>{name==="Experience"?String(value)+" years":display(value)}</dd></div>)}
+    </dl>
+    {pr?.public_summary&&<div className="vc-dossier-biography"><h3>Professional biography</h3><p>{String(pr.public_summary)}</p></div>}
    </section>
    <section className="vc-admin-panel" id="linked">
-      <div className="vc-panel-header"><div><span className="section-kicker">LINKED WORKFLOWS</span><h2>Professional modules</h2><p>Open the relevant veterinarian, professional or company profile to inspect all stored fields.</p></div></div>
-      {canInspectPrivate? specRows.map(([title,row])=><details key={title} className="vc-editor-record">
-        <summary>{title} · {row?String(row.verification_status??"Created"):"Not submitted"}</summary>
-        {row?<dl className="vc-editor-field-grid">{noInternal(Object.entries(row)).map(([key,val])=><div key={key}><dt>{key.replaceAll("_"," ")}</dt><dd>{display(val)}</dd></div>)}</dl>:<p>This user has not completed this module.</p>}
-      </details>):<p>Specialist details are restricted to authorized verification staff.</p>}
-      {canInspectPrivate&&<details className="vc-editor-record"><summary>Education, experience and credentials · {(education.data??[]).length+(experience.data??[]).length+(credentials.data??[]).length} records</summary>
-       {([["Education",education.data],["Experience",experience.data],["Credentials",credentials.data]] as [string,Item[]|null][]).map(([title,records])=><div key={title}><h3>{title}</h3>{records?.length?records.map((item,i)=><dl key={String(item.id??i)} className="vc-editor-field-grid">{noInternal(Object.entries(item)).map(([k,value])=><div key={k}><dt>{k.replaceAll("_"," ")}</dt><dd>{display(value)}</dd></div>)}</dl>):<p>No records.</p>}</div>)}
-      </details>}
-      <div className="vc-editor-note"><strong>Company memberships:</strong> {(memberships.data??[]).length} record(s). {(memberships.data??[]).map(x=><span key={x.company_id}>Company {String(x.company_id).slice(0,8)} · {x.member_role} · {x.membership_status}; </span>)}</div>
-      <div className="vc-editor-note"><strong>Public visibility:</strong> {publicHref?<Link href={String(publicHref)} target="_blank" rel="noopener noreferrer">Open published profile in new tab ↗</Link>:"No verified public profile link for this account."} This does not rule out public content created through other organizations.</div>
+    <div className="vc-panel-header"><div><span className="section-kicker">ORIGINAL SUBMISSION</span><h2>Professional and registration details</h2><p>Additional submitted fields only. Identifiers, internal keys, approval flags and duplicated contact information are not shown here.</p></div></div>
+    {canInspectPrivate&&<details className="vc-editor-record"><summary>Registration details</summary>
+      {fields(p,["district","tehsil","registration_intent"]).filter(([key,value])=>key!=="tehsil"||value!==p.city).length?
+      <dl className="vc-editor-field-grid">{fields(p,["district","tehsil","registration_intent"]).filter(([key,value])=>key!=="tehsil"||value!==p.city).map(([key,value])=><div key={key}><dt>{labelFor(key)}</dt><dd>{display(value)}</dd></div>)}</dl>:
+      <p>No additional registration information to display.</p>}
+    </details>}
+    {canInspectPrivate&&[
+      {title:"Veterinarian",row:v,items:renderedVet},
+      {title:"Professional",row:pr,items:renderedProfessional},
+      {title:"Company",row:co,items:renderedCompany}
+     ].filter(section=>section.row&&section.items.length>0).map(section=>
+       <details key={section.title} className="vc-editor-record"><summary>{section.title} information</summary>
+        <dl className="vc-editor-field-grid">{section.items.map(([key,value])=><div key={key}><dt>{labelFor(key)}</dt><dd>{display(value)}</dd></div>)}</dl>
+       </details>)}
+    {canInspectPrivate&&((education.data??[]).length+(experience.data??[]).length+(credentials.data??[]).length)>0&&
+     <details className="vc-editor-record"><summary>Education, experience and professional credentials</summary>
+      {([["Education",education.data,["degree","institution","field_of_study"]],
+         ["Experience",experience.data,["designation","organization_name","responsibilities"]],
+         ["Credentials",credentials.data,["credential_type","issuing_authority"]]] as [string,Item[]|null,string[]][]).map(([title,records,keys])=>
+       records?.length?<div key={title}><h3>{title}</h3>{records.map((item,i)=><dl key={String(item.id??i)} className="vc-editor-field-grid">
+        {fields(item,keys).map(([key,value])=><div key={key}><dt>{labelFor(key)}</dt><dd>{display(value)}</dd></div>)}
+       </dl>)}</div>:null)}
+     </details>}
+    {!canInspectPrivate&&<p>Professional submissions require authorized review permission.</p>}
    </section>
    <section className="vc-admin-panel" id="uploads">
       <div className="vc-panel-header"><div><span className="section-kicker">FILE & SOURCE TRACE</span><h2>2. Documents · Supporting uploads</h2><p>Documents are listed from separately permissioned sources. Missing links do not establish that no file exists.</p></div></div>
@@ -240,8 +279,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
      {canRegulatory&&<div className="vc-editor-audit">{(verification.data??[]).map(row=><article key={row.id}><strong>{row.verification_type}: {row.status}</strong>
        <span>Reviewed: {stamp(row.reviewed_at)} · Reviewer: {row.reviewed_by||"Not recorded"}</span></article>)}</div>}
    </section>
-   <nav className="vc-customer-shortcuts" aria-label="Related management views">{allLinks.filter(x=>x.ok).map(x=><Link key={x.label} href={x.href}>{x.label}</Link>)}</nav>
    </div>
- </div></section><SiteFooter/>
+ </div></section>
  </main>;
 }
