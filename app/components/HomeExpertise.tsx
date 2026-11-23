@@ -18,10 +18,10 @@ export default function HomeExpertise({vets,clinics,professionals,onlineClinics}
   </div>
   <div className="vc-expertise-grid">
    <article className="vc-expertise-feature">
-    {onlineClinics[0]?<Photo url={onlineClinics[0].logo_url} name={onlineClinics[0].clinic_name}/>:<span className="vc-feature-icon" aria-hidden="true">💻</span>}
-    <div><span className="vc-feature-kicker">REMOTE VETERINARY SERVICES</span><h3>Online Consultations</h3>
-     <p>{onlineClinics.length>0?onlineClinics.length+" approved "+(onlineClinics.length===1?"practice lists":"practices list")+" tele-veterinary consultation. Request a time directly.":"Find veterinary clinics and check whether remote consultations are offered."}</p>
-     <Link href="/clinics?q=Tele-Veterinary+Consultation">Explore online consultation →</Link></div>
+    <div className="vc-online-booking-artwork"><img src="/images/vetconnect-online-vet-booking.svg" alt="Illustration of online veterinary video consultation and appointment scheduling" loading="lazy" decoding="async"/></div>
+    <div><span className="vc-feature-kicker">VETCONNECT SERVICES</span><h3>Online Booking &amp; Vet Online</h3>
+     <p>{onlineClinics.length>0?onlineClinics.length+" approved "+(onlineClinics.length===1?"practice lists":"practices list")+" tele-veterinary consultation. Request a time directly." :"Discover remote veterinary consultations and request appointments when participating clinicians publish availability."}</p>
+     <Link href="/clinics?q=Tele-Veterinary+Consultation">Explore online booking →</Link></div>
    </article>
    <article className="vc-expertise-feature">
     {professionals[0]?<Photo url={professionals[0].image_url} name={professionals[0].full_name}/>:<span className="vc-feature-icon" aria-hidden="true">👨‍🔬</span>}
