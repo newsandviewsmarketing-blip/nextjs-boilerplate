@@ -104,6 +104,7 @@ export default async function MarketplacePage({
   const query = (params.q ?? "").trim().toLowerCase();
   const city = (params.city ?? "").trim().toLowerCase();
   const selectedSector = (params.sector ?? "").trim().toLowerCase();
+  const selectedCategories = (params.category ?? "").split(",").map((item)=>item.trim().toLowerCase()).filter(Boolean);
   const visibleProducts = products.filter(
     (product) =>
       (!query ||
@@ -114,7 +115,7 @@ export default async function MarketplacePage({
       (!selectedSector || selectedSector === "all sectors" ||
         product.sector?.trim().toLowerCase() === selectedSector ||
         product.sectors?.some((item) => item.trim().toLowerCase() === selectedSector)) &&
-      (!params.category || product.category === params.category),
+      (!selectedCategories.length || selectedCategories.includes(product.category.trim().toLowerCase())),
   );
   const visibleSuppliers=suppliers.filter((company)=>{
    const matchesKeyword=!query||[company.company_name,company.business_type??""].join(" ").toLowerCase().includes(query);
@@ -162,7 +163,7 @@ export default async function MarketplacePage({
       <section id="suppliers" className="section compact-section">
         <div className="shell">
           <div className="section-heading"><span className="section-kicker">APPROVED COMPANY DIRECTORY</span><h2>Find animal-health suppliers</h2>
-            <p>Public company profiles are listed separately from product approvals. City is the company's registered public location, not confirmed product availability.</p>
+            <p>Public company profiles are listed separately from product approvals. City is the company&apos;s registered public location, not confirmed product availability.</p>
           </div>
           {visibleSuppliers.length===0?<div className="empty-state"><h3>No public companies match these filters.</h3><Link href="/companies">Browse all companies</Link></div>:
             <div className="company-grid">
@@ -196,7 +197,7 @@ export default async function MarketplacePage({
           </div>
           {params.category && (
             <div className="active-filter">
-              Category: <b>{params.category}</b> <Link href="/marketplace#products">Clear</Link>
+              Categories: <b>{(params.category??"").split(",").join(", ")}</b> <Link href="/marketplace#products">Clear</Link>
             </div>
           )}
           {visibleProducts.length === 0 ? (

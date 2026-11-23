@@ -187,3 +187,176 @@
 .vc-directory-tile small{font-size:.63rem;color:#627388;line-height:1.35;}
 @media(max-width:1100px){.vc-directory-tiles{grid-template-columns:repeat(4,minmax(0,1fr));}.vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:600px){.vc-expertise-section{padding:23px 0;}.vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}.vc-expertise-feature{gap:8px;}.vc-blueprint-photo,.vc-feature-icon{height:90px;}.vc-feature-icon{font-size:2.4rem;}.vc-expertise-feature>div:last-child{padding:0 10px 12px;}.vc-expertise-feature h3{font-size:.85rem;}.vc-expertise-feature p{font-size:.7rem;}.vc-expertise-feature a{font-size:.69rem;}.vc-expertise-feature .vc-feature-kicker{font-size:.56rem;}.vc-product-categories{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:7px;overscroll-behavior-inline:contain;}.vc-product-category{flex:0 0 104px;scroll-snap-align:start;}.vc-product-category strong{font-size:.68rem;}.vc-explore-section{padding:25px 0 29px;}.vc-directory-tiles{display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x mandatory;padding-bottom:9px;}.vc-directory-tile{flex:0 0 108px;scroll-snap-align:start;}.vc-directory-tile strong{font-size:.7rem;}.vc-directory-tile small{font-size:.59rem;}}
+
+/* Live-data veterinary cards: image is user-supplied public profile only, not an AI identity. */
+.vc-home-vet-strip-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:23px 0 12px;}
+.vc-home-vet-strip-head h3{font-size:1.16rem;color:#10284b;margin:5px 0 0;}
+.vc-home-vet-strip-head a{font-size:.78rem;font-weight:750;color:#184168;text-decoration:none;}
+.vc-home-vet-strip{display:flex;gap:10px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;padding:3px 0 10px;-webkit-overflow-scrolling:touch;}
+.vc-home-vet-mini{display:flex;flex:0 0 min(275px,75vw);align-items:center;gap:10px;padding:10px;background:#fff;border:1px solid #d9e5f2;border-radius:12px;scroll-snap-align:start;text-decoration:none;color:#173052;min-width:0;}
+.vc-home-vet-mini-photo{width:63px;height:63px;overflow:hidden;border-radius:10px;background:#f1f5fc;flex-shrink:0;display:grid;place-items:center;}
+.vc-home-vet-mini-photo img{width:100%;height:100%;object-fit:contain;}
+.vc-home-vet-mini>div:last-child{min-width:0;display:flex;flex-direction:column;gap:4px;}
+.vc-home-vet-mini strong{font-size:.81rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vc-home-vet-mini small{color:#58718a;font-size:.68rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vc-home-vet-mini span{color:#0a7158;font-weight:700;font-size:.65rem;}
+.vc-home-vet-mini:hover,.vc-home-vet-mini:focus-visible{border-color:#fa8400;outline-offset:2px;}
+.vc-home-empty-vets{font-size:.8rem;color:#536b80;}
+@media(max-width:600px){.vc-home-vet-strip-head{align-items:start;}.vc-home-vet-strip-head h3{font-size:1.02rem;}.vc-home-vet-mini{flex-basis:72vw;}}
+
+/* Verified-veterinarian ticker, keyboard-safe and motion-sensitive. */
+.vc-home-vet-track{display:flex;align-items:stretch;gap:10px;width:max-content;min-width:100%;}
+.vc-home-vet-group{display:flex;align-items:stretch;gap:10px;flex:0 0 auto;}
+.vc-home-vet-mini{width:275px;flex:0 0 275px;}
+@media(min-width:901px) and (prefers-reduced-motion:no-preference){
+ .vc-home-vet-animated .vc-home-vet-track{animation:vc-vet-carousel 95s linear infinite;}
+ .vc-home-vet-animated:hover .vc-home-vet-track,
+ .vc-home-vet-animated:focus-within .vc-home-vet-track{animation-play-state:paused;}
+}
+@keyframes vc-vet-carousel{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 5px))}}
+@media(max-width:900px), (prefers-reduced-motion:reduce){
+ .vc-home-vet-track{animation:none!important;transform:none!important;}
+ .vc-home-vet-group[aria-hidden="true"]{display:none;}
+}
+@media(max-width:600px){.vc-home-vet-mini{width:72vw;flex:0 0 72vw;}}
+
+/* VetConnect online booking illustration; full card text stays accessible HTML. */
+.vc-online-booking-artwork{width:100%;height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#edf4ff,#fff2e9);}
+.vc-online-booking-artwork img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;}
+@media(max-width:600px){.vc-online-booking-artwork{height:90px;}}
+
+/* Source art is cropped from the exact user-approved VetConnect blueprint board.
+   These are conceptual illustrations, never staff identity or availability evidence. */
+.vc-approved-art{width:100%;height:138px;display:block;background-color:#e8f0fa;background-image:url("/images/vetconnect-approved-blueprint-sprite.svg");background-repeat:no-repeat;background-size:2400px 1698px;}
+.vc-approved-art-online{background-position:-604px -471px;}
+.vc-approved-art-consultant{background-position:-840px -471px;}
+.vc-approved-art-clinic{background-position:-1074px -471px;}
+.vc-approved-art-lab{background-position:-1307px -471px;}
+.vc-home-hero .hero-copy{position:relative;}
+.vc-hero-approved-art{display:none;background-image:url("/images/vetconnect-approved-blueprint-sprite.svg");background-repeat:no-repeat;background-size:2236px 1582px;background-position:-930px -92px;background-color:transparent;}
+@media(min-width:1180px){
+ .vc-hero-approved-art{position:absolute;display:block;width:150px;height:245px;right:-2px;top:2px;pointer-events:none;}
+ .vc-home-hero .hero-copy h1{max-width:calc(100% - 150px);font-size:clamp(2rem,3.1vw,3.2rem);}
+ .vc-home-hero .hero-copy .hero-lead{max-width:calc(100% - 135px);}
+}
+@media(min-width:901px) and (max-width:1179px){
+ .vc-hero-approved-art{display:none;}
+}
+@media(max-width:900px){
+ .vc-approved-art{height:120px;background-size:2000px 1415px;}
+ .vc-approved-art-online{background-position:-502px -392px;}
+ .vc-approved-art-consultant{background-position:-699px -392px;}
+ .vc-approved-art-clinic{background-position:-895px -392px;}
+ .vc-approved-art-lab{background-position:-1090px -392px;}
+}
+@media(max-width:600px){
+ .vc-approved-art{height:94px;background-size:1530px 1082px;}
+ .vc-approved-art-online{background-position:-385px -301px;}
+ .vc-approved-art-consultant{background-position:-535px -301px;}
+ .vc-approved-art-clinic{background-position:-684px -301px;}
+ .vc-approved-art-lab{background-position:-832px -301px;}
+ .vc-hero-approved-art{display:none;}
+}
+
+/* Blueprint product-category artwork: illustrative category symbols, not product listings. */
+.vc-category-photo{display:block;flex:0 0 70px;width:100px;height:56px;background-image:url("/images/vetconnect-approved-blueprint-sprite.svg");background-repeat:no-repeat;background-size:2400px 1698px;}
+.vc-category-photo-vaccines{background-position:-820px -1110px;}
+.vc-category-photo-medicines{background-position:-965px -1110px;}
+.vc-category-photo-feed{background-position:-1104px -1110px;}
+.vc-category-photo-supplements{background-position:-1263px -1110px;}
+.vc-category-photo-equipment{background-position:-1397px -1110px;}
+.vc-product-category{min-height:98px;}
+.vc-product-category strong{margin-top:3px;}
+@media(max-width:600px){
+ .vc-category-photo{flex-basis:50px;width:94px;height:50px;}
+ .vc-product-category{min-height:88px;}
+}
+
+/* High-resolution photo card sprite, created specifically for VetConnect Pakistan. */
+.vc-expertise-feature .vc-approved-art{
+  height:clamp(130px,13vw,175px);
+  width:100%;
+  background-image:url("/images/vetconnect-pakistan-services-photos.svg");
+  background-repeat:no-repeat;
+  background-size:200% auto;
+  background-color:#eef3f9;
+}
+.vc-expertise-feature .vc-approved-art-online{background-position:left top;}
+.vc-expertise-feature .vc-approved-art-consultant{background-position:right top;}
+.vc-expertise-feature .vc-approved-art-clinic{background-position:left bottom;}
+.vc-expertise-feature .vc-approved-art-lab{background-position:right bottom;}
+
+/* Responsive homepage refinement. Avoid fixed navigation or four cramped columns. */
+@media(max-width:767px){
+ .vc-homepage .site-header{position:relative!important;top:auto!important;z-index:10;}
+ .vc-homepage .vc-home-hero{padding:20px 0 22px;}
+ .vc-homepage .hero-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;}
+ .vc-homepage .hero-copy,.vc-homepage .hero-search-card{min-width:0;width:100%;max-width:100%;}
+ .vc-homepage .hero-copy h1{max-width:100%;font-size:clamp(1.65rem,7vw,2.2rem);line-height:1.13;}
+ .vc-homepage .hero-copy .hero-lead{max-width:100%;font-size:.88rem;}
+ .vc-homepage .vc-quick-search .vc-quick-tabs{scroll-snap-type:x proximity;overscroll-behavior-x:contain;}
+ .vc-homepage .vc-quick-search .vc-quick-tabs button{min-height:42px;scroll-snap-align:start;}
+ .vc-homepage .vc-quick-search .vc-quick-field input,
+ .vc-homepage .vc-quick-search .vc-quick-field select{font-size:16px;min-height:44px;}
+ .vc-homepage .vc-quick-search .button{min-height:44px;}
+ .vc-homepage .vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+ .vc-homepage .vc-expertise-feature{min-width:0;}
+ .vc-homepage .vc-expertise-feature .vc-approved-art{height:clamp(112px,23vw,155px);}
+ .vc-homepage .vc-expertise-feature h3{font-size:clamp(.88rem,2.8vw,1rem);}
+ .vc-homepage .vc-expertise-feature p{font-size:.75rem;line-height:1.45;}
+ .vc-homepage .vc-expertise-feature a{font-size:.74rem;overflow-wrap:anywhere;}
+ .vc-homepage .vc-home-job-track{scroll-padding-inline:5px;scroll-snap-type:x mandatory;}
+ .vc-homepage .vc-home-job-card,.vc-homepage .vc-job-action-card{scroll-snap-align:start;min-height:0;}
+ .vc-homepage .vc-home-heading{gap:7px;margin-bottom:14px;}
+ .vc-homepage .vc-market-lane-heading{align-items:flex-start;}
+ .vc-homepage .vc-market-lane-heading>span{font-size:.69rem;text-align:right;max-width:52%;}
+ .vc-homepage .vc-product-categories{scroll-snap-type:x mandatory;gap:9px;}
+ .vc-homepage .vc-product-category{flex:0 0 120px;scroll-snap-align:start;}
+ .vc-homepage .vc-home-vet-strip,.vc-homepage .vc-market-window{scrollbar-width:thin;}
+ .vc-homepage .vc-home-ad-frame{max-width:100%;overflow:hidden;}
+}
+@media(max-width:390px){
+ .vc-homepage .vc-expertise-grid{grid-template-columns:minmax(0,1fr);gap:12px;}
+ .vc-homepage .vc-expertise-feature{display:grid;grid-template-columns:42% minmax(0,1fr);gap:0;}
+ .vc-homepage .vc-expertise-feature .vc-approved-art{height:100%;min-height:148px;}
+ .vc-homepage .vc-expertise-feature>div:last-child{padding:12px 10px;}
+ .vc-homepage .vc-expertise-feature h3{font-size:.94rem;}
+ .vc-homepage .vc-expertise-feature p{font-size:.72rem;}
+ .vc-homepage .vc-quick-fields{grid-template-columns:1fr;}
+ .vc-homepage .vc-quick-keyword{grid-column:auto;}
+ .vc-homepage .vc-jobs-titlebar{align-items:start;}
+ .vc-homepage .vc-jobs-view-all{margin-top:3px;}
+}
+@media(prefers-reduced-motion:reduce){
+ .vc-homepage .vc-home-vet-animated .vc-home-vet-track{animation:none!important;}
+ .vc-homepage .vc-market-track{animation:none!important;}
+}
+
+/* Sharp vector category icons, no upscaled screenshot or invented product packshot. */
+.vc-homepage .vc-category-photo{
+ display:block;flex:0 0 70px;width:100px;height:70px;
+ background-image:url("/images/vetconnect-product-category-icons.svg");
+ background-size:500px 100px;
+ background-repeat:no-repeat;
+}
+.vc-homepage .vc-category-photo-vaccines{background-position:0 -14px;}
+.vc-homepage .vc-category-photo-medicines{background-position:-100px -14px;}
+.vc-homepage .vc-category-photo-feed{background-position:-200px -14px;}
+.vc-homepage .vc-category-photo-supplements{background-position:-300px -14px;}
+.vc-homepage .vc-category-photo-equipment{background-position:-400px -14px;}
+/* Hero portrait uses the crisp concept artwork rather than enlarged blueprint thumbnail. */
+@media(min-width:1180px){
+ .vc-homepage .vc-hero-approved-art{
+  width:160px;height:222px;right:0;top:0;
+  background-image:url("/images/vetconnect-pakistan-services-photos.svg");
+  background-size:auto 444px;
+  background-position:left top;
+  background-repeat:no-repeat;
+  border-radius:15px;
+  box-shadow:0 7px 26px rgba(15,41,78,.08);
+ }
+}
+@media(max-width:600px){
+ .vc-homepage .vc-category-photo{flex-basis:68px;width:100px;height:68px;}
+ .vc-homepage .vc-product-category{min-height:101px;}
+}
