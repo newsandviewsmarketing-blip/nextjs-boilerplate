@@ -30,8 +30,8 @@ export default function HomeMarketLanes({companies,products}:{companies:HomeComp
     </div>:<div className="vc-market-empty">Browse published businesses. <Link href="/companies">Explore companies</Link></div>}
     <div className="vc-market-lane-heading"><h3>Product categories</h3><span>Browse available approved listings by category</span></div>
     <div className="vc-product-categories">
-     {[{name:"Vaccines",icon:"💉",q:"vaccine"},{name:"Medicines",icon:"💊",q:"medicine"},{name:"Feed & Nutrition",icon:"🌾",q:"feed"},{name:"Supplements",icon:"🧴",q:"supplement"},{name:"Equipment",icon:"🔬",q:"equipment"}].map(item=>
-      <Link key={item.q} href={"/marketplace?q="+encodeURIComponent(item.q)} className="vc-product-category">
+     {[{name:"Vaccines",icon:"💉",categories:"Vaccines"},{name:"Medicines",icon:"💊",categories:"Medicines"},{name:"Feed & Nutrition",icon:"🌾",categories:"Poultry Feed,Dairy Feed,Pet Food,Fish Feed,Feed Additives"},{name:"Supplements",icon:"🧴",categories:"Nutritional Supplements"},{name:"Equipment",icon:"🔬",categories:"Farm Equipment,Diagnostics"}].map(item=>
+      <Link key={item.name} href={"/marketplace?category="+encodeURIComponent(item.categories)+"#products"} className="vc-product-category">
        <span role="img" aria-label={item.name}>{item.icon}</span><strong>{item.name}</strong>
       </Link>)}
     </div>
