@@ -5,6 +5,7 @@ import SiteFooter from "./components/SiteFooter";
 import SectorJobSlider,{type CurrentJobSlide} from "./components/SectorJobSlider";
 import HomeMarketLanes,{type HomeCompany,type HomeProduct} from "./components/HomeMarketLanes";
 import HomeQuickSearch from "./components/HomeQuickSearch";
+import HomeVerifiedVeterinarians,{type FeaturedVet} from "./components/HomeVerifiedVeterinarians";
 import HomeAdPlacement from "./components/HomeAdPlacement";
 import "./home-focused.css";
 import {isSupabaseConfigured} from "@/lib/supabase/config";
@@ -71,8 +72,23 @@ async function loadHomepageMarket():Promise<{companies:HomeCompany[];products:Ho
  }));
  return {companies,products};
 }
+async function loadFeaturedVeterinarians():Promise<FeaturedVet[]>{
+ if(!isSupabaseConfigured())return [];
+ const supabase=await createClient();
+ const fields="user_id,full_name,city,specialization,veterinary_sector,qualifications,years_experience,image_url,profile_verified,pvmc_verified";
+ const [registered,managed]=await Promise.all([
+  supabase.from("public_veterinarians").select(fields).eq("profile_verified",true).eq("pvmc_verified",true).limit(12),
+  supabase.from("public_managed_veterinarians").select(fields).eq("profile_verified",true).eq("pvmc_verified",true).limit(12),
+ ]);
+ const unique=new Map<string,FeaturedVet>();
+ for(const item of [...(registered.data??[]),...(managed.data??[])]) {
+  if(!item.user_id||!item.full_name||!item.profile_verified||!item.pvmc_verified)continue;
+  unique.set(item.user_id,{user_id:item.user_id,full_name:item.full_name,city:item.city,specialization:item.specialization,veterinary_sector:item.veterinary_sector,qualifications:item.qualifications,years_experience:item.years_experience,image_url:item.image_url,pvmc_verified:true});
+ }
+ return [...unique.values()].sort((a,b)=>a.full_name.localeCompare(b.full_name)).slice(0,4);
+}
 export default async function Home() {
- const [currentJobs,market]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket()]);
+ const [currentJobs,market,featuredVets]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket(),loadFeaturedVeterinarians()]);
  return (
     <main className="vc-homepage">
       <SiteHeader />
@@ -81,8 +97,8 @@ export default async function Home() {
         <div className="shell hero-grid">
           <div className="hero-copy">
             <div className="eyebrow"><span/> VETCONNECT PAKISTAN</div>
-            <h1>Connecting veterinary expertise with <em>farmers, animal owners and industry.</em></h1>
-            <p className="hero-lead">Find veterinary clinics and professionals, discover sector-specific jobs, and connect with animal-health companies across Pakistan.</p>
+            <h1>Connecting <em>certified veterinarians</em> with farmers, animal owners and industry.</h1>
+            <p className="hero-lead">Pakistan’s veterinary and animal-health professional network. Find trusted expertise, clinics and services, with opportunities in careers and the animal-health marketplace.</p>
             <div className="hero-actions">
               <Link href="/vets" className="button button-primary">Find a Veterinarian</Link>
               <Link href="/jobs" className="button button-secondary">Browse Jobs</Link>
@@ -91,6 +107,7 @@ export default async function Home() {
           <HomeQuickSearch />
         </div>
       </section>
+      <HomeVerifiedVeterinarians vets={featuredVets}/>
       <section className="section jobs-featured-below-hero">
         <div className="shell">
           <SectorJobSlider jobs={currentJobs}/>
