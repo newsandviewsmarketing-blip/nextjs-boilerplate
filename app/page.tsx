@@ -99,7 +99,11 @@ async function loadHomepageExpertise():Promise<{vets:HomeVet[];clinics:HomeClini
  const {data:teleServices}=teleId?await supabase.from("clinic_services").select("clinic_id").eq("service_id",teleId).eq("is_public",true).eq("is_active",true).eq("booking_enabled",true):{data:[] as {clinic_id:string}[]};
  const teleClinicIds=new Set((teleServices??[]).map(row=>row.clinic_id));
  const approvedClinics=(clinics.data??[]).filter(row=>row.slug&&row.clinic_name&&row.profile_verified);
- return {vets:[...vets.values()].slice(0,24),
+ // Sort by objective public-profile completeness, not clinical skill or popularity.
+ // A profile photo is optional; missing one must not exclude a professional.
+ const profileCompleteness=(vet:HomeVet)=>[vet.city,vet.veterinary_sector,vet.specialization,vet.image_url].filter(value=>typeof value==="string"&&value.trim().length>0).length;
+ const sortedVets=[...vets.values()].sort((a,b)=>profileCompleteness(b)-profileCompleteness(a)||a.full_name.localeCompare(b.full_name));
+ return {vets:sortedVets.slice(0,24),
    clinics:approvedClinics.slice(0,8).map(row=>({slug:row.slug,clinic_name:row.clinic_name,city:row.city,facility_type:row.facility_type,logo_url:row.logo_url,species:row.species??[]})),
    onlineClinics:approvedClinics.filter(row=>teleClinicIds.has(row.id)).map(row=>({slug:row.slug,clinic_name:row.clinic_name,city:row.city,logo_url:row.logo_url})),
    professionals:[...pros.values()].slice(0,8)};
