@@ -377,7 +377,7 @@ export default async function AdminPage({
           return <article className="admin-review-card" key={row.user_id} id={`registration-review-${row.user_id}`}>
             <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {[profile?.city||submittedDetails.city,profile?.province||submittedDetails.province].filter(Boolean).join(", ")||"City not provided"}</p><p>Application ID: {row.user_id}</p></div><span className="status-pill">Pending</span></div>
             <PrintReviewButton targetId={`registration-review-${row.user_id}`} />
-            <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
+            <details><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
             <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
             <p><b>Sector:</b> {sectorLabel}</p><p><b>Category:</b> {categoryLabel}</p>
             <p><b>Subcategory / Expertise:</b> {subcategoryLabel}</p>
@@ -442,7 +442,7 @@ export default async function AdminPage({
                     <span className="status-pill">Pending</span>
                   </div>
                   <PrintReviewButton targetId={`profile-${row.record_source ?? "account"}-${String(row.entity_id || row.user_id)}`} />
-                  <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
+                  <details><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
                   <dl className="review-details">
                     <div><dt>Sector</dt><dd>{sector}</dd></div>
                     <div><dt>Category</dt><dd>{type}</dd></div>
@@ -580,6 +580,7 @@ export default async function AdminPage({
           </div>}
       </div>
       <div id="review-panel-products" data-review-panel="products" role="tabpanel" aria-labelledby="review-tab-products">
+      {effectivePermissions.has("products.manage") && <>
           <div className="section-heading admin-product-heading">
             <span id="pending-products" className="section-kicker vc-review-target">PRODUCT MODERATION</span>
             <h2>Marketplace submissions.</h2>
@@ -628,8 +629,10 @@ export default async function AdminPage({
               </article>
             ))}
           </div>
+      </>}
       </div>
       <div id="review-panel-regulatory" data-review-panel="regulatory" role="tabpanel" aria-labelledby="review-tab-regulatory">
+      {effectivePermissions.has("regulatory.review") && <>
           <div className="section-heading admin-product-heading"><span className="section-kicker">REGULATORY REVIEW</span><h2>Product registration evidence.</h2><p>Product-profile approval and regulatory verification are recorded separately.</p></div>
           <div className="admin-review-list">
             {regulatoryRows.length === 0 && <div className="empty-state"><h2>No regulatory records are waiting for review.</h2></div>}
@@ -637,8 +640,10 @@ export default async function AdminPage({
         
                    </div>
 
+      </>}
       </div>
       <div id="review-panel-jobs" data-review-panel="jobs" role="tabpanel" aria-labelledby="review-tab-jobs">
+      {effectivePermissions.has("jobs.manage") && <>
           <div className="section-heading admin-product-heading" id="jobs-review">
             <span className="section-kicker">JOB MODERATION</span>
             <h2>Employer opportunities.</h2>
@@ -730,6 +735,7 @@ export default async function AdminPage({
               </article>
             ))}
           </div>
+      </>}
       </div>
       </div>
         </div>
