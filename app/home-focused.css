@@ -133,3 +133,26 @@
  .vc-home-ad-placeholder{min-height:65px;}
 }
 @media(prefers-reduced-motion:reduce){.vc-home-job-track{scroll-behavior:auto!important;}.vc-market-track{animation:none!important;}}
+
+/* Unified five-category search: one row, fields change per selected category. */
+.vc-homepage .vc-quick-search .vc-quick-tabs{display:flex;flex-wrap:nowrap;align-items:stretch;gap:3px;overflow-x:auto;max-width:100%;padding:4px;background:#f0f4f8;border-radius:10px;scrollbar-width:thin;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;}
+.vc-homepage .vc-quick-search .vc-quick-tabs button{flex:1 0 auto;min-width:0;white-space:nowrap;border:0;border-radius:7px;padding:10px 6px;font-size:clamp(.6rem,.8vw,.72rem);line-height:1.25;font-weight:750;color:#486079;background:transparent;cursor:pointer;}
+.vc-homepage .vc-quick-search .vc-quick-tabs button.is-active{color:#fff;background:#142d58;}
+.vc-homepage .vc-quick-search .vc-quick-tabs button:focus-visible{outline:3px solid #ff8500;outline-offset:2px;}
+.vc-homepage .vc-quick-search form{display:grid;gap:12px;}
+.vc-homepage .vc-quick-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0;}
+.vc-homepage .vc-quick-field{min-width:0;}
+.vc-homepage .vc-quick-field label{display:block;font-size:.75rem;font-weight:750;color:#24415f;margin:0 0 5px;}
+.vc-homepage .vc-quick-field input,.vc-homepage .vc-quick-field select{width:100%;min-width:0;max-width:100%;min-height:40px;font-size:.83rem;}
+.vc-homepage .vc-quick-keyword{grid-column:1/-1;}
+.vc-homepage .vc-quick-disclaimer{font-size:.66rem;color:#657589;line-height:1.4;margin:8px 0 0;}
+@media(max-width:650px){
+ .vc-homepage .vc-quick-search .vc-quick-tabs{margin-inline:-1px;}
+ .vc-homepage .vc-quick-search .vc-quick-tabs button{flex:0 0 auto;padding:10px 9px;font-size:.72rem;}
+ .vc-homepage .vc-quick-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+ .vc-homepage .vc-quick-field input,.vc-homepage .vc-quick-field select{font-size:.78rem;}
+}
+@media(max-width:355px){
+ .vc-homepage .vc-quick-fields{grid-template-columns:1fr;}
+ .vc-homepage .vc-quick-keyword{grid-column:auto;}
+}
