@@ -174,6 +174,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
         {fields(item,keys).map(([key,value])=><div key={key}><dt>{labelFor(key)}</dt><dd>{display(value)}</dd></div>)}
        </dl>)}</div>:null)}
      </details>}
+    {canInspectPrivate&&(memberships.data??[]).length>0&&<details className="vc-editor-record"><summary>Organization affiliations</summary><dl className="vc-editor-field-grid">{(memberships.data??[]).map((membership,i)=><div key={i}><dt>Affiliation {i+1}</dt><dd>{String(membership.member_role).replaceAll("_"," ")} · {String(membership.membership_status).replaceAll("_"," ")}</dd></div>)}</dl></details>}
     {!canInspectPrivate&&<p>Professional submissions require authorized review permission.</p>}
    </section>
    <section className="vc-admin-panel" id="uploads">
