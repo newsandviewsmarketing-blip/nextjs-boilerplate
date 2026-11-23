@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useRef,useState} from "react";
+import {useEffect,useState} from "react";
 
 type Section="registration"|"profiles"|"credentials"|"products"|"regulatory"|"jobs";
 const sections: {id:Section;label:string;hashes:string[]}[]=[
@@ -19,7 +19,6 @@ export default function ReviewWorkspaceTabs({allowed,counts}:{
   counts:Partial<Record<Section,number>>;
 }){
   const [selected,setSelected]=useState<Section>(allowed[0]??"registration");
-  const root=useRef<HTMLDivElement>(null);
   useEffect(()=>{
     const sync=()=>{
       const target=sectionForHash(window.location.hash);
@@ -30,11 +29,11 @@ export default function ReviewWorkspaceTabs({allowed,counts}:{
     return ()=>window.removeEventListener("hashchange",sync);
   },[allowed.join("|")]);
   useEffect(()=>{
-    const parent=root.current?.parentElement;
+    const parent=document.querySelector<HTMLElement>(".vc-review-workspace");
     if(parent)parent.dataset.active=selected;
     return ()=>{if(parent)parent.dataset.active="registration";};
   },[selected]);
-  return <div ref={root} className="vc-review-tab-list" role="tablist" aria-label="Select review queue">
+  return <div className="vc-review-tab-list" role="tablist" aria-label="Select review queue">
     {sections.filter(s=>allowed.includes(s.id)).map(s=><button key={s.id} type="button"
       id={`review-tab-${s.id}`} role="tab"
       aria-controls={`review-panel-${s.id}`}
