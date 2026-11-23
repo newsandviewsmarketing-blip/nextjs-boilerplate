@@ -133,3 +133,29 @@
  .vc-home-ad-placeholder{min-height:65px;}
 }
 @media(prefers-reduced-motion:reduce){.vc-home-job-track{scroll-behavior:auto!important;}.vc-market-track{animation:none!important;}}
+
+/* Vet-first discovery: clear directory entry, trusted profiles, responsive contact paths */
+.vc-vet-discovery{background:#fff;padding:clamp(28px,4vw,48px) 0;}
+.vc-vet-discovery-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px;}
+.vc-vet-discovery-head h2{font-size:clamp(1.5rem,2.6vw,2.15rem);line-height:1.17;letter-spacing:-.025em;color:#12264b;margin:8px 0;}
+.vc-vet-discovery-head p{max-width:700px;color:#617186;font-size:.9rem;line-height:1.55;margin:4px 0 0;}
+.vc-vet-discovery-all{white-space:nowrap;color:#123958;font-weight:800;text-decoration:none;font-size:.88rem;}
+.vc-vet-discovery-all:hover,.vc-vet-discovery-all:focus-visible{text-decoration:underline;}
+.vc-vet-discovery-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;}
+.vc-featured-vet{display:flex;flex-direction:column;min-width:0;gap:10px;border:1px solid #dbe5ee;border-radius:14px;background:#fff;padding:16px;box-shadow:0 5px 18px rgba(11,35,70,.035);}
+.vc-vet-card-top{display:flex;gap:11px;align-items:center;min-width:0;}
+.vc-vet-portrait{width:64px;height:64px;flex:none;overflow:hidden;border-radius:12px;background:#edf3fa;color:#14365b;display:grid;place-items:center;font-weight:850;font-size:1.22rem;}
+.vc-vet-portrait img.profile-photo{height:100%;width:100%;object-fit:cover;object-position:center;}
+.vc-vet-card-identity{min-width:0;}
+.vc-vet-card-identity h3{font-size:.94rem;line-height:1.23;margin:0 0 3px;color:#12284a;overflow-wrap:anywhere;}
+.vc-vet-card-identity p{font-size:.77rem;color:#657589;margin:0;}
+.vc-vet-credential{display:inline-block;margin-top:5px;background:#e7f5ed;color:#176244;border-radius:5px;padding:4px 6px;font-size:.64rem;font-weight:750;line-height:1.2;}
+.vc-vet-expertise{font-size:.86rem;font-weight:700;color:#2d4564;margin:2px 0 0;line-height:1.35;}
+.vc-vet-credentials{font-size:.76rem;color:#62748a;margin:0;line-height:1.4;}
+.vc-vet-profile-action{display:block;text-align:center;margin-top:auto;padding:10px 8px;text-decoration:none;background:#f77b0b;color:#fff;border-radius:8px;font-weight:750;font-size:.75rem;}
+.vc-vet-profile-action:hover,.vc-vet-profile-action:focus-visible{background:#d96500;}
+.vc-vet-directory-empty{background:#f5f8fc;border:1px solid #e0e8ef;border-radius:12px;padding:18px;color:#526883;font-size:.87rem;line-height:1.5;}
+.vc-vet-directory-empty a{font-weight:800;color:#0e456a;}
+@media(max-width:1024px){.vc-vet-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:600px){.vc-vet-discovery{padding:22px 0;}.vc-vet-discovery-head{display:block;margin-bottom:13px;}.vc-vet-discovery-head h2{font-size:1.4rem;}.vc-vet-discovery-head p{font-size:.81rem;margin-bottom:10px;}.vc-vet-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}.vc-featured-vet{padding:11px;gap:7px;}.vc-vet-card-top{align-items:flex-start;gap:7px;}.vc-vet-portrait{width:43px;height:43px;border-radius:8px;font-size:.9rem;}.vc-vet-card-identity h3{font-size:.79rem;}.vc-vet-card-identity p{font-size:.67rem;}.vc-vet-credential{font-size:.56rem;padding:3px 4px;}.vc-vet-expertise{font-size:.76rem;}.vc-vet-credentials{font-size:.68rem;}.vc-vet-profile-action{font-size:.67rem;padding:9px 4px;}}
+@media(max-width:355px){.vc-vet-discovery-grid{grid-template-columns:1fr;}.vc-vet-portrait{width:54px;height:54px;}}
