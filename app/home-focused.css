@@ -203,3 +203,19 @@
 .vc-home-vet-mini:hover,.vc-home-vet-mini:focus-visible{border-color:#fa8400;outline-offset:2px;}
 .vc-home-empty-vets{font-size:.8rem;color:#536b80;}
 @media(max-width:600px){.vc-home-vet-strip-head{align-items:start;}.vc-home-vet-strip-head h3{font-size:1.02rem;}.vc-home-vet-mini{flex-basis:72vw;}}
+
+/* Verified-veterinarian ticker, keyboard-safe and motion-sensitive. */
+.vc-home-vet-track{display:flex;align-items:stretch;gap:10px;width:max-content;min-width:100%;}
+.vc-home-vet-group{display:flex;align-items:stretch;gap:10px;flex:0 0 auto;}
+.vc-home-vet-mini{width:275px;flex:0 0 275px;}
+@media(min-width:901px) and (prefers-reduced-motion:no-preference){
+ .vc-home-vet-animated .vc-home-vet-track{animation:vc-vet-carousel 95s linear infinite;}
+ .vc-home-vet-animated:hover .vc-home-vet-track,
+ .vc-home-vet-animated:focus-within .vc-home-vet-track{animation-play-state:paused;}
+}
+@keyframes vc-vet-carousel{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 5px))}}
+@media(max-width:900px), (prefers-reduced-motion:reduce){
+ .vc-home-vet-track{animation:none!important;transform:none!important;}
+ .vc-home-vet-group[aria-hidden="true"]{display:none;}
+}
+@media(max-width:600px){.vc-home-vet-mini{width:72vw;flex:0 0 72vw;}}
