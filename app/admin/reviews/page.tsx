@@ -6,6 +6,8 @@ import FormSubmitButton from "../../components/FormSubmitButton";
 import AdminNav from "../components/AdminNav";
 import PrintReviewButton from "./PrintReviewButton";
 import ReviewDocumentsPanel from "./ReviewDocumentsPanel";
+import ReviewWorkspaceTabs from "./ReviewWorkspaceTabs";
+import "./review-workspace.css";
 import {
   reviewProductAction,
   reviewProfileAction,
@@ -276,7 +278,7 @@ export default async function AdminPage({
   }
 
   return (
-    <main>
+    <main className="vc-review-page">
       <SiteHeader />
       <section className="dashboard-hero">
         <div className="shell dashboard-hero-row">
@@ -293,53 +295,6 @@ export default async function AdminPage({
 
     <div className="admin-control-content">
       <FormMessage {...params} />
-
-      {effectivePermissions.has("profiles.review") && <section className="admin-review-section">
-        <div className="section-heading"><span className="section-kicker">REGISTRATION REVIEW</span><h2>New account applications</h2><p>Private identity and qualification files are visible only to authorized reviewers. Approval is required before the account profile becomes public.</p></div>
-        {(registrationRows??[]).length===0 ? <p className="form-help">No registrations are waiting for review.</p> : (registrationRows??[]).map(row=>{
-          const profile=registrationProfileMap.get(row.user_id);
-          const docs=registrationDocsMap.get(row.user_id)??[];
-          const submittedDetails=registrationDetailMap.get(row.user_id)??{};
-          const detailEntries=Object.entries(submittedDetails).filter(([key,value])=>
-            !["sector_ids","subcategory_ids"].includes(key) &&
-            (typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0)
-          );
-          const displayList=(key:string)=>Array.isArray(submittedDetails[key])?
-            (submittedDetails[key] as unknown[]).filter(value=>typeof value==="string"&&value.trim()).join(", "):"";
-          const sectorLabel=displayList("practice_areas")||displayList("industry_sectors")||
-            String(submittedDetails.industry_sector||"Not supplied");
-          const categoryLabel=displayList("professional_types")||
-            String(submittedDetails.professional_type||profile?.primary_role||"Not supplied");
-          const subcategoryLabel=displayList("specializations")||
-            String(submittedDetails.specialization_other||"Not supplied");
-          return <article className="admin-review-card" key={row.user_id} id={`registration-review-${row.user_id}`}>
-            <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {[profile?.city||submittedDetails.city,profile?.province||submittedDetails.province].filter(Boolean).join(", ")||"City not provided"}</p><p>Application ID: {row.user_id}</p></div><span className="status-pill">Pending</span></div>
-            <PrintReviewButton targetId={`registration-review-${row.user_id}`} />
-            <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
-            <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
-            <p><b>Sector:</b> {sectorLabel}</p><p><b>Category:</b> {categoryLabel}</p>
-            <p><b>Subcategory / Expertise:</b> {subcategoryLabel}</p>
-            <p>Sector reference ID(s): {Array.isArray(submittedDetails.sector_ids) && submittedDetails.sector_ids.length ? submittedDetails.sector_ids.join(", ") : "Not mapped"}</p>
-            <p>Subcategory reference ID(s): {Array.isArray(submittedDetails.subcategory_ids) && submittedDetails.subcategory_ids.length ? submittedDetails.subcategory_ids.join(", ") : Array.isArray(submittedDetails.specializations) && submittedDetails.specializations.length ? submittedDetails.specializations.map((value:unknown)=>specialtyIdFor(String(value)) || "Not mapped").join(", ") : "Not mapped"}</p>
-            {detailEntries.length>0&&<dl className="review-details">
-              {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
-            </dl>}</details>
-            <details><summary><b>2. Documents · {docs.length} attached</b></summary>
-              <ReviewDocumentsPanel veterinarian={profile?.primary_role==="veterinarian"} documents={docs.map((doc,i)=>({key:doc.storage_path+"-"+i,kind:doc.document_type,filename:doc.original_filename,status:doc.verification_status,url:doc.signed_url}))}/>
-            </details>
-            <details><summary><b>3. Review &amp; Decision</b></summary>
-            <form action={reviewRegistrationSubmissionAction}>
-              <input type="hidden" name="user_id" value={row.user_id}/>
-              <label>Reviewer note <textarea name="reason" maxLength={1000} placeholder="For clinic approval, record PVMC registry source, registration status and verification details (at least 25 characters)."/></label>
-              {row.registration_intent==="clinic"&&<p className="form-help">Approving registration activates the organization account only. Its clinic stays private and pending until clinical services, opening hours and a separate PVMC facility review are completed.</p>}
-              <div className="review-actions">
-                <FormSubmitButton className="button button-primary" pendingLabel="Approving…" name="decision" value="approved">Approve registration</FormSubmitButton>
-                <FormSubmitButton className="button button-secondary" pendingLabel="Returning…" name="decision" value="rejected">Return for changes</FormSubmitButton>
-              </div>
-            </form></details>
-          </article>;
-        })}
-      </section>}
       <div className="admin-summary">
 
             
@@ -381,6 +336,75 @@ export default async function AdminPage({
               <span>Jobs</span>
             </article>
           </div>
+
+      <ReviewWorkspaceTabs
+        allowed={[
+          ...(canReviewProfiles?["registration","profiles","credentials"] as const:[]),
+          ...(effectivePermissions.has("products.manage")?["products"] as const:[]),
+          ...(effectivePermissions.has("regulatory.review")?["regulatory"] as const:[]),
+          ...(effectivePermissions.has("jobs.manage")?["jobs"] as const:[]),
+        ]}
+        counts={{
+          registration:(registrationRows??[]).length,
+          profiles:pending.length,
+          credentials:credentialRows.length,
+          products:productRows.length,
+          regulatory:regulatoryRows.length,
+          jobs:jobRows.length
+        }}
+      />
+
+
+      <div className="vc-review-workspace" data-active={canReviewProfiles?"registration":effectivePermissions.has("products.manage")?"products":effectivePermissions.has("regulatory.review")?"regulatory":"jobs"}>
+      <div id="review-panel-registration" data-review-panel="registration" role="tabpanel" aria-labelledby="review-tab-registration">
+            {effectivePermissions.has("profiles.review") && <section className="admin-review-section">
+        <div className="section-heading"><span className="section-kicker">REGISTRATION REVIEW</span><h2>New account applications</h2><p>Private identity and qualification files are visible only to authorized reviewers. Approval is required before the account profile becomes public.</p></div>
+        {(registrationRows??[]).length===0 ? <p className="form-help">No registrations are waiting for review.</p> : (registrationRows??[]).map(row=>{
+          const profile=registrationProfileMap.get(row.user_id);
+          const docs=registrationDocsMap.get(row.user_id)??[];
+          const submittedDetails=registrationDetailMap.get(row.user_id)??{};
+          const detailEntries=Object.entries(submittedDetails).filter(([key,value])=>
+            !["sector_ids","subcategory_ids"].includes(key) &&
+            (typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0)
+          );
+          const displayList=(key:string)=>Array.isArray(submittedDetails[key])?
+            (submittedDetails[key] as unknown[]).filter(value=>typeof value==="string"&&value.trim()).join(", "):"";
+          const sectorLabel=displayList("practice_areas")||displayList("industry_sectors")||
+            String(submittedDetails.industry_sector||"Not supplied");
+          const categoryLabel=displayList("professional_types")||
+            String(submittedDetails.professional_type||profile?.primary_role||"Not supplied");
+          const subcategoryLabel=displayList("specializations")||
+            String(submittedDetails.specialization_other||"Not supplied");
+          return <article className="admin-review-card" key={row.user_id} id={`registration-review-${row.user_id}`}>
+            <div className="review-header"><div><span className="module-tag">{profile?.primary_role??"Professional"}</span><h3>{profile?.full_name??profile?.email??"Applicant"}</h3><p>{profile?.email} · {[profile?.city||submittedDetails.city,profile?.province||submittedDetails.province].filter(Boolean).join(", ")||"City not provided"}</p><p>Application ID: {row.user_id}</p></div><span className="status-pill">Pending</span></div>
+            <PrintReviewButton targetId={`registration-review-${row.user_id}`} />
+            <details><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
+            <p>Track: {row.registration_intent||row.student_track||"standard"}</p>
+            <p><b>Sector:</b> {sectorLabel}</p><p><b>Category:</b> {categoryLabel}</p>
+            <p><b>Subcategory / Expertise:</b> {subcategoryLabel}</p>
+            <p>Sector reference ID(s): {Array.isArray(submittedDetails.sector_ids) && submittedDetails.sector_ids.length ? submittedDetails.sector_ids.join(", ") : "Not mapped"}</p>
+            <p>Subcategory reference ID(s): {Array.isArray(submittedDetails.subcategory_ids) && submittedDetails.subcategory_ids.length ? submittedDetails.subcategory_ids.join(", ") : Array.isArray(submittedDetails.specializations) && submittedDetails.specializations.length ? submittedDetails.specializations.map((value:unknown)=>specialtyIdFor(String(value)) || "Not mapped").join(", ") : "Not mapped"}</p>
+            {detailEntries.length>0&&<dl className="review-details">
+              {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
+            </dl>}</details>
+            <details><summary><b>2. Documents · {docs.length} attached</b></summary>
+              <ReviewDocumentsPanel veterinarian={profile?.primary_role==="veterinarian"} documents={docs.map((doc,i)=>({key:doc.storage_path+"-"+i,kind:doc.document_type,filename:doc.original_filename,status:doc.verification_status,url:doc.signed_url}))}/>
+            </details>
+            <details><summary><b>3. Review &amp; Decision</b></summary>
+            <form action={reviewRegistrationSubmissionAction}>
+              <input type="hidden" name="user_id" value={row.user_id}/>
+              <label>Reviewer note <textarea name="reason" maxLength={1000} placeholder="For clinic approval, record PVMC registry source, registration status and verification details (at least 25 characters)."/></label>
+              {row.registration_intent==="clinic"&&<p className="form-help">Approving registration activates the organization account only. Its clinic stays private and pending until clinical services, opening hours and a separate PVMC facility review are completed.</p>}
+              <div className="review-actions">
+                <FormSubmitButton className="button button-primary" pendingLabel="Approving…" name="decision" value="approved">Approve registration</FormSubmitButton>
+                <FormSubmitButton className="button button-secondary" pendingLabel="Returning…" name="decision" value="rejected">Return for changes</FormSubmitButton>
+              </div>
+            </form></details>
+          </article>;
+        })}
+      </section>}
+      </div>
+      <div id="review-panel-profiles" data-review-panel="profiles" role="tabpanel" aria-labelledby="review-tab-profiles">
           {canReviewProfiles && <div id="pending-profiles" className="admin-review-list vc-review-target">
             {pending.length === 0 && (
               <div className="empty-state">
@@ -419,7 +443,7 @@ export default async function AdminPage({
                     <span className="status-pill">Pending</span>
                   </div>
                   <PrintReviewButton targetId={`profile-${row.record_source ?? "account"}-${String(row.entity_id || row.user_id)}`} />
-                  <details open><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
+                  <details><summary><b>1. Profile · Sector / Category / Subcategory</b></summary>
                   <dl className="review-details">
                     <div><dt>Sector</dt><dd>{sector}</dd></div>
                     <div><dt>Category</dt><dd>{type}</dd></div>
@@ -525,6 +549,8 @@ export default async function AdminPage({
               );
             })}
           </div>}
+      </div>
+      <div id="review-panel-credentials" data-review-panel="credentials" role="tabpanel" aria-labelledby="review-tab-credentials">
           {canReviewProfiles && <div className="section-heading admin-product-heading">
             <span id="credential-checks" className="section-kicker vc-review-target">VETERINARY CREDENTIAL REVIEW</span>
             <h2>PVMC verification is separate from profile approval.</h2>
@@ -553,6 +579,9 @@ export default async function AdminPage({
               );
             })}
           </div>}
+      </div>
+      <div id="review-panel-products" data-review-panel="products" role="tabpanel" aria-labelledby="review-tab-products">
+      {effectivePermissions.has("products.manage") && <>
           <div className="section-heading admin-product-heading">
             <span id="pending-products" className="section-kicker vc-review-target">PRODUCT MODERATION</span>
             <h2>Marketplace submissions.</h2>
@@ -601,6 +630,10 @@ export default async function AdminPage({
               </article>
             ))}
           </div>
+      </>}
+      </div>
+      <div id="review-panel-regulatory" data-review-panel="regulatory" role="tabpanel" aria-labelledby="review-tab-regulatory">
+      {effectivePermissions.has("regulatory.review") && <>
           <div className="section-heading admin-product-heading"><span className="section-kicker">REGULATORY REVIEW</span><h2>Product registration evidence.</h2><p>Product-profile approval and regulatory verification are recorded separately.</p></div>
           <div className="admin-review-list">
             {regulatoryRows.length === 0 && <div className="empty-state"><h2>No regulatory records are waiting for review.</h2></div>}
@@ -608,6 +641,10 @@ export default async function AdminPage({
         
                    </div>
 
+      </>}
+      </div>
+      <div id="review-panel-jobs" data-review-panel="jobs" role="tabpanel" aria-labelledby="review-tab-jobs">
+      {effectivePermissions.has("jobs.manage") && <>
           <div className="section-heading admin-product-heading" id="jobs-review">
             <span className="section-kicker">JOB MODERATION</span>
             <h2>Employer opportunities.</h2>
@@ -699,7 +736,9 @@ export default async function AdminPage({
               </article>
             ))}
           </div>
-
+      </>}
+      </div>
+      </div>
         </div>
       </div>
     </section>
