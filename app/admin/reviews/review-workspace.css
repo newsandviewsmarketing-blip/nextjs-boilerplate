@@ -1,0 +1,18 @@
+.vc-review-page .vc-review-workspace [data-review-panel]{display:none;}
+.vc-review-page .vc-review-workspace[data-active="registration"] [data-review-panel="registration"],
+.vc-review-page .vc-review-workspace[data-active="profiles"] [data-review-panel="profiles"],
+.vc-review-page .vc-review-workspace[data-active="credentials"] [data-review-panel="credentials"],
+.vc-review-page .vc-review-workspace[data-active="products"] [data-review-panel="products"],
+.vc-review-page .vc-review-workspace[data-active="regulatory"] [data-review-panel="regulatory"],
+.vc-review-page .vc-review-workspace[data-active="jobs"] [data-review-panel="jobs"]{display:block;}
+.vc-review-page .vc-review-tab-list{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 16px;padding:10px;border-radius:14px;background:#f2f5fa;border:1px solid #dfe6ef;}
+.vc-review-page .vc-review-tab{display:inline-flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #d7e0ee;border-radius:9px;background:#fff;color:#153052;font:inherit;font-size:.84rem;font-weight:700;padding:11px 14px;cursor:pointer;min-height:44px;}
+.vc-review-page .vc-review-tab.is-active{background:#10294f;color:#fff;border-color:#10294f;}
+.vc-review-page .vc-review-tab-count{display:inline-flex;justify-content:center;min-width:25px;padding:3px 7px;border-radius:99px;background:#eef2f8;color:#183d62;font-variant-numeric:tabular-nums;}
+.vc-review-page .vc-review-tab.is-active .vc-review-tab-count{background:#fff;color:#10294f;}
+.vc-review-page .vc-review-tab:focus-visible{outline:3px solid #f57a0b;outline-offset:3px;}
+.vc-review-page .admin-summary{margin:14px 0;}
+.vc-review-page .vc-review-workspace{min-width:0;}
+.vc-review-page [data-review-panel]{padding:8px 0 24px;min-width:0;}
+.vc-review-page .admin-review-card,.vc-review-page .admin-review-list article{margin-bottom:12px;}
+@media(max-width:650px){.vc-review-page .vc-review-tab-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:8px;}.vc-review-page .vc-review-tab{font-size:.75rem;padding:9px 10px;}.vc-review-page .admin-summary{grid-template-columns:repeat(2,minmax(0,1fr));}}
