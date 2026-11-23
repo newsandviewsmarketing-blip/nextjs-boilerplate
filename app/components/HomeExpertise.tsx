@@ -7,9 +7,6 @@ export type HomeClinic = {slug:string;clinic_name:string;city:string|null;facili
 export type HomeProfessional = {slug:string;full_name:string;professional_type:string;city:string|null;image_url:string|null};
 export type OnlineClinic = {slug:string;clinic_name:string;city:string|null;logo_url:string|null};
 
-function Photo({url,name}:{url:string|null;name:string}){
- return <div className="vc-blueprint-photo"><ProfilePhoto imageUrl={url} name={name} fallback={initials(name)}/></div>;
-}
 export default function HomeExpertise({vets,clinics,professionals,onlineClinics}:{vets:HomeVet[];clinics:HomeClinic[];professionals:HomeProfessional[];onlineClinics:OnlineClinic[]}){
  return <section className="vc-expertise-section" aria-labelledby="vc-expertise-title"><div className="shell">
   <div className="vc-expertise-heading"><span className="section-kicker">CONNECTED VETERINARY SERVICES</span>
