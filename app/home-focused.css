@@ -257,3 +257,17 @@
  .vc-approved-art-lab{background-position:-832px -301px;}
  .vc-hero-approved-art{display:none;}
 }
+
+/* Blueprint product-category artwork: illustrative category symbols, not product listings. */
+.vc-category-photo{display:block;flex:0 0 70px;width:100px;height:56px;background-image:url("/images/vetconnect-approved-blueprint-sprite.svg");background-repeat:no-repeat;background-size:2400px 1698px;}
+.vc-category-photo-vaccines{background-position:-820px -1110px;}
+.vc-category-photo-medicines{background-position:-965px -1110px;}
+.vc-category-photo-feed{background-position:-1104px -1110px;}
+.vc-category-photo-supplements{background-position:-1263px -1110px;}
+.vc-category-photo-equipment{background-position:-1397px -1110px;}
+.vc-product-category{min-height:98px;}
+.vc-product-category strong{margin-top:3px;}
+@media(max-width:600px){
+ .vc-category-photo{flex-basis:50px;width:94px;height:50px;}
+ .vc-product-category{min-height:88px;}
+}
