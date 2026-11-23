@@ -224,3 +224,36 @@
 .vc-online-booking-artwork{width:100%;height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#edf4ff,#fff2e9);}
 .vc-online-booking-artwork img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;}
 @media(max-width:600px){.vc-online-booking-artwork{height:90px;}}
+
+/* Source art is cropped from the exact user-approved VetConnect blueprint board.
+   These are conceptual illustrations, never staff identity or availability evidence. */
+.vc-approved-art{width:100%;height:138px;display:block;background-color:#e8f0fa;background-image:url("/images/vetconnect-approved-blueprint-sprite.svg");background-repeat:no-repeat;background-size:2400px 1698px;}
+.vc-approved-art-online{background-position:-604px -471px;}
+.vc-approved-art-consultant{background-position:-840px -471px;}
+.vc-approved-art-clinic{background-position:-1074px -471px;}
+.vc-approved-art-lab{background-position:-1307px -471px;}
+.vc-home-hero .hero-copy{position:relative;}
+.vc-hero-approved-art{display:none;background-image:url("/images/vetconnect-approved-blueprint-sprite.svg");background-repeat:no-repeat;background-size:2236px 1582px;background-position:-930px -92px;background-color:transparent;}
+@media(min-width:1180px){
+ .vc-hero-approved-art{position:absolute;display:block;width:150px;height:245px;right:-2px;top:2px;pointer-events:none;}
+ .vc-home-hero .hero-copy h1{max-width:calc(100% - 150px);font-size:clamp(2rem,3.1vw,3.2rem);}
+ .vc-home-hero .hero-copy .hero-lead{max-width:calc(100% - 135px);}
+}
+@media(min-width:901px) and (max-width:1179px){
+ .vc-hero-approved-art{display:none;}
+}
+@media(max-width:900px){
+ .vc-approved-art{height:120px;background-size:2000px 1415px;}
+ .vc-approved-art-online{background-position:-502px -392px;}
+ .vc-approved-art-consultant{background-position:-699px -392px;}
+ .vc-approved-art-clinic{background-position:-895px -392px;}
+ .vc-approved-art-lab{background-position:-1090px -392px;}
+}
+@media(max-width:600px){
+ .vc-approved-art{height:94px;background-size:1530px 1082px;}
+ .vc-approved-art-online{background-position:-385px -301px;}
+ .vc-approved-art-consultant{background-position:-535px -301px;}
+ .vc-approved-art-clinic{background-position:-684px -301px;}
+ .vc-approved-art-lab{background-position:-832px -301px;}
+ .vc-hero-approved-art{display:none;}
+}
