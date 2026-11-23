@@ -28,7 +28,14 @@ export default function HomeMarketLanes({companies,products}:{companies:HomeComp
       </div>)}
      </div>
     </div>:<div className="vc-market-empty">Browse published businesses. <Link href="/companies">Explore companies</Link></div>}
-    <div className="vc-market-lane-heading"><h3>Products</h3><span>Approved marketplace listings</span></div>
+    <div className="vc-market-lane-heading"><h3>Product categories</h3><span>Browse available approved listings by category</span></div>
+    <div className="vc-product-categories">
+     {[{name:"Vaccines",icon:"💉",q:"vaccine"},{name:"Medicines",icon:"💊",q:"medicine"},{name:"Feed & Nutrition",icon:"🌾",q:"feed"},{name:"Supplements",icon:"🧴",q:"supplement"},{name:"Equipment",icon:"🔬",q:"equipment"}].map(item=>
+      <Link key={item.q} href={"/marketplace?q="+encodeURIComponent(item.q)} className="vc-product-category">
+       <span role="img" aria-label={item.name}>{item.icon}</span><strong>{item.name}</strong>
+      </Link>)}
+    </div>
+    <div className="vc-market-lane-heading"><h3>Published products</h3><span>Approved marketplace listings</span></div>
     {products.length>0?<div className="vc-market-window" aria-label="Animal-health products, scroll horizontally">
      <div className={"vc-market-track vc-market-track-right"+(products.length<4?" vc-market-static":"")}>
       {[0,1].map(copy=><div className="vc-market-track-group" aria-hidden={copy===1} key={copy}>
