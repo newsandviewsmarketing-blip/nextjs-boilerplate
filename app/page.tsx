@@ -124,6 +124,7 @@ export default async function Home() {
               <Link href="/vets" className="button button-primary">Find a Veterinarian</Link>
               <Link href="/jobs" className="button button-secondary">Browse Jobs</Link>
             </div>
+            <div className="vc-hero-approved-art" role="img" aria-label="Illustrative Pakistani woman veterinary professional with cattle and small ruminants"/>
           </div>
           <HomeQuickSearch />
         </div>
