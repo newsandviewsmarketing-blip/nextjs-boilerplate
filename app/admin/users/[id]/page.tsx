@@ -82,19 +82,17 @@ export default async function AdminUserDossier({params,searchParams}:Props){
  const granted=new Set<string>(Array.isArray(permissions.data?.granted_permissions)?permissions.data.granted_permissions:[]);
  const revoked=new Set<string>(Array.isArray(permissions.data?.revoked_permissions)?permissions.data.revoked_permissions:[]);
  const vetCredentialIssues=v?credentialDataFlags(v as {qualifications?:string|null;pvmc_number?:string|null;pvmc_verification_status?:string|null}):[];
- const publicVet=accountStatus==="active"&&v?.verification_status==="approved"&&v?.pvmc_verification_status==="approved"&&vetCredentialIssues.length===0;
- const publicPro=accountStatus==="active"&&pr?.verification_status==="approved"&&pr?.profile_visibility==="public";
  const label=isSuspiciousProfileName(String(p.full_name??"")) ? `Flagged account · ${id.slice(0,8)}` : safeName(p.full_name||p.email||"Unnamed account");
  const photoUrl=typeof pr?.image_url==="string"&&pr.image_url.trim()?pr.image_url.trim():
    typeof v?.image_url==="string"&&v.image_url.trim()?v.image_url.trim():null;
  const overviewFacts:[string,unknown][]=[
-   ["Email",p.email],["Phone",p.phone],["City",p.city],["Province",p.province],
+   ["Email",p.email],["Phone",p.phone],
    ["Sector",v?.veterinary_sector],["Specialization",v?.specialization],
    ["Experience",v?.years_experience??pr?.years_experience],
    ["Current position",pr?.current_position],["Organization",pr?.organization_name],
  ].filter(([,value])=>value!==null&&value!==undefined&&value!=="");
- const vetFields=["qualifications","veterinary_sector","specialization","years_experience","services","public_summary"];
- const professionalFields=["headline","current_position","organization_name","skills","public_summary"];
+ const vetFields=["qualifications","veterinary_sector","specialization","years_experience","services"];
+ const professionalFields=["current_position","organization_name","skills"];
  const companyFields=["business_name","organization_type","public_summary"];
  const renderedVet=fields(v,vetFields.filter(key=>!["veterinary_sector","specialization","years_experience"].includes(key)));
  const renderedProfessional=fields(pr,professionalFields.filter(key=>!["current_position","organization_name"].includes(key)));
@@ -149,7 +147,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
     <dl className="vc-editor-field-grid">
      {overviewFacts.map(([name,value])=><div key={name}><dt>{name}</dt><dd>{name==="Experience"?String(value)+" years":display(value)}</dd></div>)}
     </dl>
-    {pr?.public_summary&&<div className="vc-dossier-biography"><h3>Professional biography</h3><p>{String(pr.public_summary)}</p></div>}
+    {typeof pr?.public_summary==="string"&&pr.public_summary.trim()&&<div className="vc-dossier-biography"><h3>Professional biography</h3><p>{String(pr.public_summary)}</p></div>}
    </section>
    <section className="vc-admin-panel" id="linked">
     <div className="vc-panel-header"><div><span className="section-kicker">ORIGINAL SUBMISSION</span><h2>Professional and registration details</h2><p>Additional submitted fields only. Identifiers, internal keys, approval flags and duplicated contact information are not shown here.</p></div></div>
@@ -198,7 +196,7 @@ export default async function AdminUserDossier({params,searchParams}:Props){
    </section>
    <section className="vc-admin-panel" id="actions">
      <div className="vc-panel-header"><div><span className="section-kicker">MANAGEMENT CONTROL</span><h2>Review, correct and restrict this record</h2><p>Actions are checked again on the server. No action on this page automatically verifies a PVMC number.</p></div></div>
-     {toEdit&&<details className="vc-editor-action"><summary>Edit identity & contact details</summary>
+     {toEdit&&<details className="vc-editor-action" name="dossier-actions"><summary>Edit identity & contact details</summary>
        <form action={correctUserDossierAction} className="vc-editor-form"><input type="hidden" name="user_id" value={id}/>
          {(["full_name","phone","province","district","tehsil","city"] as const).map(field=><div key={field}>
            <label htmlFor={`edit-${field}`}>{field.replaceAll("_"," ")}</label>
@@ -208,12 +206,12 @@ export default async function AdminUserDossier({params,searchParams}:Props){
          <FormSubmitButton className="button button-primary" pendingLabel="Saving correction…">Save account correction</FormSubmitButton>
        </form>
      </details>}
-     {isSuperAdmin&&canReview&&v&&<details className="vc-editor-action"><summary>Edit veterinarian non-credential fields</summary><form action={correctSpecialistDossierAction} className="vc-editor-form"><input type="hidden" name="user_id" value={id}/><input type="hidden" name="profile_kind" value="veterinarian"/>
+     {isSuperAdmin&&canReview&&v&&<details className="vc-editor-action" name="dossier-actions"><summary>Edit veterinarian non-credential fields</summary><form action={correctSpecialistDossierAction} className="vc-editor-form"><input type="hidden" name="user_id" value={id}/><input type="hidden" name="profile_kind" value="veterinarian"/>
        {(["qualifications","veterinary_sector","specialization"] as const).map(field=><div key={field}><label htmlFor={`vet-${field}`}>{field.replaceAll("_"," ")}</label><input id={`vet-${field}`} name={field} defaultValue={String(v[field]??"")} maxLength={500}/></div>)}
        <p className="vc-editor-form-foot">PVMC number, approval and credential status require the independent review controls.</p>
        <FormSubmitButton className="button button-primary" pendingLabel="Saving…">Save veterinarian corrections</FormSubmitButton>
      </form></details>}
-     {isSuperAdmin&&canReview&&pr&&<details className="vc-editor-action"><summary>Edit professional profile fields</summary><form action={correctSpecialistDossierAction} className="vc-editor-form"><input type="hidden" name="user_id" value={id}/><input type="hidden" name="profile_kind" value="professional"/>
+     {isSuperAdmin&&canReview&&pr&&<details className="vc-editor-action" name="dossier-actions"><summary>Edit professional profile fields</summary><form action={correctSpecialistDossierAction} className="vc-editor-form"><input type="hidden" name="user_id" value={id}/><input type="hidden" name="profile_kind" value="professional"/>
        {(["professional_type","headline","organization_name"] as const).map(field=><div key={field}><label htmlFor={`pro-${field}`}>{field.replaceAll("_"," ")}</label><input id={`pro-${field}`} name={field} defaultValue={String(pr[field]??"")} maxLength={500}/></div>)}
        <FormSubmitButton className="button button-primary" pendingLabel="Saving…">Save professional corrections</FormSubmitButton>
      </form></details>}
@@ -256,12 +254,12 @@ export default async function AdminUserDossier({params,searchParams}:Props){
         </form>:<form action={updateUserStatusAction}><input type="hidden" name="user_id" value={id}/><input type="hidden" name="return_to" value={`/admin/users/${id}`}/><input type="hidden" name="account_status" value="active"/>
           <FormSubmitButton className="button button-secondary" pendingLabel="Restoring…">Restore account access</FormSubmitButton></form>}
      </div>}
-     {canManage&&<details className="vc-editor-action"><summary>Staff role upgrades / downgrades</summary><form action={updateStaffRolesAction} className="vc-editor-decision"><input type="hidden" name="user_id" value={id}/><input type="hidden" name="return_to" value={`/admin/users/${id}`}/>
+     {canManage&&<details className="vc-editor-action" name="dossier-actions"><summary>Staff role upgrades / downgrades</summary><form action={updateStaffRolesAction} className="vc-editor-decision"><input type="hidden" name="user_id" value={id}/><input type="hidden" name="return_to" value={`/admin/users/${id}`}/>
         <fieldset><legend>Staff assignments</legend>{staffRoleOptions.map(role=><label className="checkbox-line" key={role.value}>
           <input type="checkbox" name="staff_roles" value={role.value} defaultChecked={roles.includes(role.value)}/>{role.label}</label>)}</fieldset>
         <FormSubmitButton className="button button-primary" pendingLabel="Updating roles…">Save staff roles</FormSubmitButton>
      </form></details>}
-     {canManage&&<details className="vc-editor-action"><summary>Individual permission overrides</summary><form className="vc-editor-decision" action={updateUserPermissionsAction}><input type="hidden" name="user_id" value={id}/><input type="hidden" name="return_to" value={`/admin/users/${id}`}/>
+     {canManage&&<details className="vc-editor-action" name="dossier-actions"><summary>Individual permission overrides</summary><form className="vc-editor-decision" action={updateUserPermissionsAction}><input type="hidden" name="user_id" value={id}/><input type="hidden" name="return_to" value={`/admin/users/${id}`}/>
        <p>Explicit denials override staff-role grants. Leave both boxes empty to inherit the role.</p>
        <div className="vc-editor-permissions">{permissionOptions.map(option=><div key={option.value}><strong>{option.label}</strong><small>{option.summary}</small>
          <label><input type="checkbox" name="granted_permissions" value={option.value} defaultChecked={granted.has(option.value)}/> Grant</label>
@@ -273,11 +271,10 @@ export default async function AdminUserDossier({params,searchParams}:Props){
    <section className="vc-admin-panel" id="history"><div className="vc-panel-header"><div><span className="section-kicker">ACCOUNTABILITY</span><h2>Review history & audit trail</h2>
      <p>Records are displayed only where previously logged. An empty log does not prove that no changes occurred.</p></div></div>
      {canManage?(audit.error?<p role="alert">Audit history could not be read.</p>:(audit.data??[]).length?<div className="vc-editor-audit">{(audit.data??[]).map(log=><article key={log.id}>
-       <strong>{log.action}</strong><span>{stamp(log.created_at)} · {log.entity_type}</span><span>Actor: {log.actor_id||"System or unknown"}</span>
-       {log.metadata&&<details><summary>Audit details</summary><pre>{JSON.stringify(log.metadata,null,2)}</pre></details>}
+       <strong>{log.action.replaceAll("_"," ").replaceAll("."," · ")}</strong><span>{stamp(log.created_at)} · {log.entity_type.replaceAll("_"," ")}</span>
      </article>)}</div>:<p>No audit entries were found for this account or its recorded actions.</p>):<p>Audit history requires account-management permission.</p>}
      {canRegulatory&&<div className="vc-editor-audit">{(verification.data??[]).map(row=><article key={row.id}><strong>{row.verification_type}: {row.status}</strong>
-       <span>Reviewed: {stamp(row.reviewed_at)} · Reviewer: {row.reviewed_by||"Not recorded"}</span></article>)}</div>}
+       <span>Reviewed: {stamp(row.reviewed_at)}</span></article>)}</div>}
    </section>
    </div>
  </div></section>
