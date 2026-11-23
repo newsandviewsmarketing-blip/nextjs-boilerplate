@@ -219,3 +219,8 @@
  .vc-home-vet-group[aria-hidden="true"]{display:none;}
 }
 @media(max-width:600px){.vc-home-vet-mini{width:72vw;flex:0 0 72vw;}}
+
+/* VetConnect online booking illustration; full card text stays accessible HTML. */
+.vc-online-booking-artwork{width:100%;height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#edf4ff,#fff2e9);}
+.vc-online-booking-artwork img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;}
+@media(max-width:600px){.vc-online-booking-artwork{height:90px;}}
