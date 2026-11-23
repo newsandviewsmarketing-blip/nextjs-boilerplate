@@ -80,7 +80,7 @@ async function loadHomepageExpertise():Promise<{vets:HomeVet[];clinics:HomeClini
  const [accountVets,assistedVets,clinics,accountPros,assistedPros]=await Promise.all([
   supabase.from("public_veterinarians").select("user_id,full_name,city,veterinary_sector,specialization,image_url,pvmc_verified,profile_verified").eq("profile_verified",true).eq("pvmc_verified",true).limit(40),
   supabase.from("public_managed_veterinarians").select("user_id,full_name,city,veterinary_sector,specialization,image_url,pvmc_verified,profile_verified").eq("profile_verified",true).eq("pvmc_verified",true).limit(12),
-  supabase.from("public_clinics").select("slug,clinic_name,city,facility_type,logo_url,species,profile_verified").eq("profile_verified",true).limit(40),
+  supabase.from("public_clinics").select("id,slug,clinic_name,city,facility_type,logo_url,species,profile_verified").eq("profile_verified",true).limit(40),
   supabase.from("public_professionals").select("slug,full_name,professional_type,city,image_url,profile_verified").eq("profile_verified",true).limit(12),
   supabase.from("public_managed_professionals").select("slug,full_name,professional_type,city,image_url,profile_verified").eq("profile_verified",true).limit(12)
  ]);
