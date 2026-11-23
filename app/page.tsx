@@ -6,7 +6,7 @@ import SectorJobSlider,{type CurrentJobSlide} from "./components/SectorJobSlider
 import HomeMarketLanes,{type HomeCompany,type HomeProduct} from "./components/HomeMarketLanes";
 import HomeQuickSearch from "./components/HomeQuickSearch";
 import HomeAdPlacement from "./components/HomeAdPlacement";
-import HomeExpertise, {type HomeVet, type HomeClinic, type HomeProfessional} from "./components/HomeExpertise";
+import HomeExpertise, {type HomeVet, type HomeClinic, type HomeProfessional, type OnlineClinic} from "./components/HomeExpertise";
 import HomeDirectories from "./components/HomeDirectories";
 import "./home-focused.css";
 import {isSupabaseConfigured} from "@/lib/supabase/config";
@@ -73,14 +73,14 @@ async function loadHomepageMarket():Promise<{companies:HomeCompany[];products:Ho
  }));
  return {companies,products};
 }
-async function loadHomepageExpertise():Promise<{vets:HomeVet[];clinics:HomeClinic[];professionals:HomeProfessional[]}>{
- const empty={vets:[],clinics:[],professionals:[]};
+async function loadHomepageExpertise():Promise<{vets:HomeVet[];clinics:HomeClinic[];professionals:HomeProfessional[];onlineClinics:OnlineClinic[]}>{
+ const empty={vets:[],clinics:[],professionals:[],onlineClinics:[]};
  if(!isSupabaseConfigured())return empty;
  const supabase=await createClient();
  const [accountVets,assistedVets,clinics,accountPros,assistedPros]=await Promise.all([
-  supabase.from("public_veterinarians").select("user_id,full_name,city,veterinary_sector,specialization,image_url,pvmc_verified,profile_verified").eq("profile_verified",true).eq("pvmc_verified",true).limit(12),
+  supabase.from("public_veterinarians").select("user_id,full_name,city,veterinary_sector,specialization,image_url,pvmc_verified,profile_verified").eq("profile_verified",true).eq("pvmc_verified",true).limit(40),
   supabase.from("public_managed_veterinarians").select("user_id,full_name,city,veterinary_sector,specialization,image_url,pvmc_verified,profile_verified").eq("profile_verified",true).eq("pvmc_verified",true).limit(12),
-  supabase.from("public_clinics").select("slug,clinic_name,city,facility_type,logo_url,species,profile_verified").eq("profile_verified",true).limit(12),
+  supabase.from("public_clinics").select("slug,clinic_name,city,facility_type,logo_url,species,profile_verified").eq("profile_verified",true).limit(40),
   supabase.from("public_professionals").select("slug,full_name,professional_type,city,image_url,profile_verified").eq("profile_verified",true).limit(12),
   supabase.from("public_managed_professionals").select("slug,full_name,professional_type,city,image_url,profile_verified").eq("profile_verified",true).limit(12)
  ]);
@@ -94,9 +94,15 @@ async function loadHomepageExpertise():Promise<{vets:HomeVet[];clinics:HomeClini
   if(row.slug&&row.full_name&&row.profile_verified)
    pros.set(row.slug,{slug:row.slug,full_name:row.full_name,professional_type:row.professional_type,city:row.city,image_url:row.image_url});
  }
- return {vets:[...vets.values()].slice(0,4),
-   clinics:(clinics.data??[]).filter(row=>row.slug&&row.clinic_name&&row.profile_verified).slice(0,4).map(row=>({slug:row.slug,clinic_name:row.clinic_name,city:row.city,facility_type:row.facility_type,logo_url:row.logo_url,species:row.species??[]})),
-   professionals:[...pros.values()].slice(0,4)};
+ const {data:teleCatalog}=await supabase.from("service_catalog").select("id").eq("slug","tele-veterinary-consultation").eq("is_active",true).limit(1);
+ const teleId=teleCatalog?.[0]?.id;
+ const {data:teleServices}=teleId?await supabase.from("clinic_services").select("clinic_id").eq("service_id",teleId).eq("is_public",true).eq("is_active",true).eq("booking_enabled",true):{data:[] as {clinic_id:string}[]};
+ const teleClinicIds=new Set((teleServices??[]).map(row=>row.clinic_id));
+ const approvedClinics=(clinics.data??[]).filter(row=>row.slug&&row.clinic_name&&row.profile_verified);
+ return {vets:[...vets.values()].slice(0,24),
+   clinics:approvedClinics.slice(0,8).map(row=>({slug:row.slug,clinic_name:row.clinic_name,city:row.city,facility_type:row.facility_type,logo_url:row.logo_url,species:row.species??[]})),
+   onlineClinics:approvedClinics.filter(row=>teleClinicIds.has(row.id)).map(row=>({slug:row.slug,clinic_name:row.clinic_name,city:row.city,logo_url:row.logo_url})),
+   professionals:[...pros.values()].slice(0,8)};
 }
 export default async function Home() {
  const [currentJobs,market,expertise]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket(),loadHomepageExpertise()]);
@@ -118,7 +124,7 @@ export default async function Home() {
           <HomeQuickSearch />
         </div>
       </section>
-      <HomeExpertise vets={expertise.vets} clinics={expertise.clinics} professionals={expertise.professionals}/>
+      <HomeExpertise vets={expertise.vets} clinics={expertise.clinics} professionals={expertise.professionals} onlineClinics={expertise.onlineClinics}/>
       <section className="section jobs-featured-below-hero">
         <div className="shell">
           <SectorJobSlider jobs={currentJobs}/>
