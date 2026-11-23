@@ -7,6 +7,7 @@ import AdminNav from "../components/AdminNav";
 import PrintReviewButton from "./PrintReviewButton";
 import ReviewDocumentsPanel from "./ReviewDocumentsPanel";
 import ReviewWorkspaceTabs from "./ReviewWorkspaceTabs";
+import "./review-workspace.css";
 import {
   reviewProductAction,
   reviewProfileAction,
