@@ -5,6 +5,7 @@ import FormMessage from "../../../components/FormMessage";
 import FormSubmitButton from "../../../components/FormSubmitButton";
 import AdminNav from "../../components/AdminNav";
 import DossierSectionTabs from "./DossierSectionTabs";
+import "./dossier-polish.css";
 import ReviewDocumentsPanel from "../../reviews/ReviewDocumentsPanel";
 import {getCurrentIdentity} from "@/lib/auth";
 import {getEffectiveAdminPermissions,permissionOptions,staffRoleOptions} from "@/lib/admin";
