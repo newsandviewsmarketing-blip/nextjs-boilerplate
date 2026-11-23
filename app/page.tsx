@@ -4,6 +4,8 @@ import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
 import SectorJobSlider,{type CurrentJobSlide} from "./components/SectorJobSlider";
 import HomeMarketLanes,{type HomeCompany,type HomeProduct} from "./components/HomeMarketLanes";
+import HomeQuickSearch from "./components/HomeQuickSearch";
+import HomeAdPlacement from "./components/HomeAdPlacement";
 import "./home-focused.css";
 import {isSupabaseConfigured} from "@/lib/supabase/config";
 import {createClient} from "@/lib/supabase/server";
@@ -72,45 +74,21 @@ async function loadHomepageMarket():Promise<{companies:HomeCompany[];products:Ho
 export default async function Home() {
  const [currentJobs,market]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket()]);
  return (
-    <main>
+    <main className="vc-homepage">
       <SiteHeader />
 
       <section className="hero vc-home-hero">
         <div className="shell hero-grid">
           <div className="hero-copy">
             <div className="eyebrow"><span/> VETCONNECT PAKISTAN</div>
-            <h1>Find veterinary care, jobs and animal-health suppliers.<em> All in one place.</em></h1>
-            <p className="hero-lead">Connect with veterinary professionals, discover sector-specific careers, and explore company products across Pakistan.</p>
+            <h1>Connecting veterinary expertise with <em>farmers, animal owners and industry.</em></h1>
+            <p className="hero-lead">Find veterinary clinics and professionals, discover sector-specific jobs, and connect with animal-health companies across Pakistan.</p>
             <div className="hero-actions">
               <Link href="/vets" className="button button-primary">Find a Veterinarian</Link>
               <Link href="/jobs" className="button button-secondary">Browse Jobs</Link>
             </div>
           </div>
-          <div className="hero-search-card">
-            <div className="search-card-head"><div><small>QUICK SEARCH</small><h2>Find a veterinarian</h2></div></div>
-            <form action="/vets" method="get">
-              <label htmlFor="vet-city">City</label>
-              <select id="vet-city" name="city" defaultValue="">
-                <option value="">All cities</option>
-                <option value="Faisalabad">Faisalabad</option>
-                <option value="Lahore">Lahore</option>
-                <option value="Islamabad">Islamabad</option>
-                <option value="Rawalpindi">Rawalpindi</option>
-                <option value="Multan">Multan</option>
-              </select>
-              <label htmlFor="vet-sector">Animal / sector</label>
-              <select id="vet-sector" name="sector" defaultValue="">
-                <option value="">All sectors</option>
-                <option value="Livestock">Livestock</option>
-                <option value="Dairy">Dairy</option>
-                <option value="Poultry">Poultry</option>
-                <option value="Pets">Pets</option>
-                <option value="Fisheries">Fisheries</option>
-                <option value="Equine">Equine</option>
-              </select>
-              <button className="button button-primary button-full" type="submit">Search professionals</button>
-            </form>
-          </div>
+          <HomeQuickSearch />
         </div>
       </section>
       <section className="section jobs-featured-below-hero">
@@ -118,35 +96,8 @@ export default async function Home() {
           <SectorJobSlider jobs={currentJobs}/>
         </div>
       </section>
-      <div className="shell vc-home-jobs-quicklinks" aria-label="More job options">
-        <Link href="/jobs">All jobs by sector →</Link>
-        <Link href="/dashboard/career/cv">Create or update your CV →</Link>
-        <Link href="/register?role=company#registration">Post a vacancy →</Link>
-      </div>
       <HomeMarketLanes companies={market.companies} products={market.products}/>
-      <section className="vc-home-discover">
-        <div className="shell">
-          <div className="vc-home-heading"><div><span className="section-kicker">EXPLORE VETCONNECT</span><h2>Where would you like to go?</h2></div></div>
-          <div className="vc-home-destinations">
-            <Link href="/vets"><strong>Veterinarians</strong><span>Find professional services for animals and farms</span></Link>
-            <Link href="/clinics"><strong>Clinics & Hospitals</strong><span>Find local clinical services</span></Link>
-            <Link href="/labs"><strong>Diagnostic Labs</strong><span>Explore testing services</span></Link>
-            <Link href="/jobs"><strong>Jobs & Careers</strong><span>Vacancies and candidate profiles</span></Link>
-            <Link href="/companies"><strong>Companies</strong><span>Browse animal-health businesses</span></Link>
-            <Link href="/marketplace"><strong>Marketplace</strong><span>Find products and suppliers</span></Link>
-          </div>
-          <div className="vc-home-minor-links">
-            <Link href="/learn">Learning & professional development →</Link>
-            <a href="https://vetnewsandviews.com" rel="noopener noreferrer" target="_blank">Veterinary News & Views →</a>
-          </div>
-        </div>
-      </section>
-      <section className="vc-home-join">
-        <div className="shell vc-home-join-inner">
-          <div><span className="section-kicker">JOIN VETCONNECT</span><h2>Create your professional or company profile</h2><p>For veterinarians, job seekers, clinics and animal-health businesses.</p></div>
-          <Link href="/register" className="button button-primary">Get Started →</Link>
-        </div>
-      </section>
+      <HomeAdPlacement />
       <SiteFooter />
     </main>
   );
