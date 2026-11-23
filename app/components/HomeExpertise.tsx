@@ -43,9 +43,15 @@ export default function HomeExpertise({vets,clinics,professionals,onlineClinics}
    </article>
   </div>
   <div className="vc-home-vet-strip-head"><div><span className="section-kicker">CERTIFIED VETERINARIANS</span><h3>Meet veterinary professionals</h3></div><Link href="/vets">View all veterinarians →</Link></div>
-  {vets.length?<div className="vc-home-vet-strip">{vets.map(vet=><Link key={vet.user_id} className="vc-home-vet-mini" href={"/vets/"+vet.user_id}>
-   <div className="vc-home-vet-mini-photo"><ProfilePhoto imageUrl={vet.image_url} name={vet.full_name} fallback={initials(vet.full_name)}/></div>
-   <div><strong>{vet.full_name}</strong><small>{[vet.specialization||vet.veterinary_sector,vet.city].filter(Boolean).join(" · ")||"Veterinarian"}</small><span>PVMC credential verified</span></div>
-  </Link>)}</div>:<p className="vc-home-empty-vets">No approved and credential-verified veterinarian profiles are currently listed. <Link href="/vets">Browse directory</Link></p>}
+  {vets.length?<div className={"vc-home-vet-strip"+(vets.length>4?" vc-home-vet-animated":"")} aria-label="Approved veterinarians; scroll to view more">
+   <div className="vc-home-vet-track">
+    {[0,...(vets.length>4?[1]:[])].map(copy=><div className="vc-home-vet-group" aria-hidden={copy===1} key={copy}>
+     {vets.map(vet=><Link tabIndex={copy===1?-1:undefined} key={vet.user_id} className="vc-home-vet-mini" href={"/vets/"+vet.user_id}>
+      <div className="vc-home-vet-mini-photo"><ProfilePhoto imageUrl={vet.image_url} name={vet.full_name} fallback={initials(vet.full_name)}/></div>
+      <div><strong>{vet.full_name}</strong><small>{[vet.specialization||vet.veterinary_sector,vet.city].filter(Boolean).join(" · ")||"Veterinarian"}</small><span>PVMC credential verified</span></div>
+     </Link>)}
+    </div>)}
+   </div>
+  </div>:<p className="vc-home-empty-vets">No approved and credential-verified veterinarian profiles are currently listed. <Link href="/vets">Browse directory</Link></p>}
  </div></section>;
 }
