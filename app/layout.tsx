@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import Script from "next/script";
 import "./globals.css";
 import { siteUrl } from "@/lib/seo";
 
@@ -36,6 +37,7 @@ const brandStructuredData = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
+  other: { "google-adsense-account": "ca-pub-3423484174950482" },
   other: { "google-adsense-account": "ca-pub-3423484174950482" },
 
   title: {
