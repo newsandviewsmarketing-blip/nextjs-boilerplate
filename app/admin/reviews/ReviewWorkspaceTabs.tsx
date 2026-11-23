@@ -33,15 +33,14 @@ export default function ReviewWorkspaceTabs({allowed,counts}:{
     if(parent)parent.dataset.active=selected;
     return ()=>{if(parent)parent.dataset.active="registration";};
   },[selected]);
-  return <div className="vc-review-tab-list" role="tablist" aria-label="Select review queue">
+  return <nav className="vc-review-tab-list" aria-label="Select review queue">
     {sections.filter(s=>allowed.includes(s.id)).map(s=><button key={s.id} type="button"
-      id={`review-tab-${s.id}`} role="tab"
+      id={`review-tab-${s.id}`}
       aria-controls={`review-panel-${s.id}`}
-      aria-selected={selected===s.id}
-      tabIndex={selected===s.id?0:-1}
+      aria-pressed={selected===s.id}
       className={selected===s.id?"vc-review-tab is-active":"vc-review-tab"}
       onClick={()=>{setSelected(s.id);window.history.replaceState(null,"",`#review-panel-${s.id}`);}}>
       {s.label} <span className="vc-review-tab-count">{counts[s.id]??0}</span>
     </button>)}
-  </div>;
+  </nav>;
 }
