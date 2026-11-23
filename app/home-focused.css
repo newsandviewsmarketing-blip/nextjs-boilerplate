@@ -331,3 +331,32 @@
  .vc-homepage .vc-home-vet-animated .vc-home-vet-track{animation:none!important;}
  .vc-homepage .vc-market-track{animation:none!important;}
 }
+
+/* Sharp vector category icons, no upscaled screenshot or invented product packshot. */
+.vc-homepage .vc-category-photo{
+ display:block;flex:0 0 70px;width:100px;height:70px;
+ background-image:url("/images/vetconnect-product-category-icons.svg");
+ background-size:500px 100px;
+ background-repeat:no-repeat;
+}
+.vc-homepage .vc-category-photo-vaccines{background-position:0 -14px;}
+.vc-homepage .vc-category-photo-medicines{background-position:-100px -14px;}
+.vc-homepage .vc-category-photo-feed{background-position:-200px -14px;}
+.vc-homepage .vc-category-photo-supplements{background-position:-300px -14px;}
+.vc-homepage .vc-category-photo-equipment{background-position:-400px -14px;}
+/* Hero portrait uses the crisp concept artwork rather than enlarged blueprint thumbnail. */
+@media(min-width:1180px){
+ .vc-homepage .vc-hero-approved-art{
+  width:160px;height:222px;right:0;top:0;
+  background-image:url("/images/vetconnect-pakistan-services-photos.svg");
+  background-size:auto 444px;
+  background-position:left top;
+  background-repeat:no-repeat;
+  border-radius:15px;
+  box-shadow:0 7px 26px rgba(15,41,78,.08);
+ }
+}
+@media(max-width:600px){
+ .vc-homepage .vc-category-photo{flex-basis:68px;width:100px;height:68px;}
+ .vc-homepage .vc-product-category{min-height:101px;}
+}
