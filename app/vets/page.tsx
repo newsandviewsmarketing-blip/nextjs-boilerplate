@@ -9,7 +9,6 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import {
   initials,
-  sampleVeterinarians,
   type PublicVeterinarian,
 } from "@/lib/directories";
 
@@ -30,7 +29,7 @@ export const dynamic = "force-dynamic";
 
 async function loadVeterinarians(): Promise<PublicVeterinarian[]> {
   if (!isSupabaseConfigured()) {
-    return sampleVeterinarians;
+    return [];
   }
 
   const supabase = await createClient();
@@ -50,10 +49,11 @@ async function loadVeterinarians(): Promise<PublicVeterinarian[]> {
       .order("full_name"),
   ]);
 
-  return [
-    ...(account.data ?? []),
-    ...(managed.data ?? []),
-  ] as PublicVeterinarian[];
+  const unique = new Map<string, PublicVeterinarian>();
+  for (const vet of [...(account.data ?? []), ...(managed.data ?? [])] as PublicVeterinarian[]) {
+    if (vet.user_id && vet.full_name) unique.set(vet.user_id, vet);
+  }
+  return [...unique.values()];
 }
 
 /* -------------------------------------------------------
@@ -165,7 +165,7 @@ export default async function VeterinarianDirectoryPage({
   );
 
   return (
-    <main>
+    <main className="vc-vet-directory">
       <SiteHeader />
 
       {/* ---------------------------------------------------
@@ -175,16 +175,13 @@ export default async function VeterinarianDirectoryPage({
       <section className="page-hero">
         <div className="shell">
           <span className="section-kicker">
-            VERIFIED VETERINARIAN DIRECTORY
+            VETERINARY PROFESSIONAL NETWORK
           </span>
 
-          <h1>Find the right veterinarian.</h1>
+          <h1>Find veterinary expertise near you.</h1>
 
           <p>
-            Search veterinarians by animal sector, location,
-            specialization and available veterinary services.
-            Public listings require VetConnect profile approval
-            and PVMC credential review.
+            Discover approved veterinary profiles by city, sector, specialization and service. Each profile clearly distinguishes VetConnect profile approval from PVMC credential verification.
           </p>
         </div>
       </section>
@@ -207,8 +204,8 @@ export default async function VeterinarianDirectoryPage({
 
               <span>
                 {showingSamples
-                  ? "Demo mode because the backend is not configured"
-                  : "Live verified directory"}
+                  ? "Sample profiles"
+                  : "Approved public veterinary listings"}
               </span>
             </div>
 
@@ -327,9 +324,9 @@ export default async function VeterinarianDirectoryPage({
                VETERINARIAN CARDS
             ----------------------------------------------- */
 
-            <div className="company-grid">
+            <div className="company-grid vc-vet-directory-grid">
               {visible.map((vet) => (
-                <article key={vet.user_id}>
+                <article className="vc-vet-directory-card" key={vet.user_id}>
 
                   {/* PHOTO */}
 
@@ -395,7 +392,7 @@ export default async function VeterinarianDirectoryPage({
 
                       <dd>
                         {vet.pvmc_verified
-                          ? "Verified"
+                          ? "PVMC Verified"
                           : vet.is_sample
                             ? "Sample"
                             : "Pending"}
@@ -432,7 +429,7 @@ export default async function VeterinarianDirectoryPage({
                     className="button button-primary button-full"
                     href={`/vets/${vet.user_id}`}
                   >
-                    View veterinarian profile
+                    View profile & contact details
                   </Link>
                 </article>
               ))}
