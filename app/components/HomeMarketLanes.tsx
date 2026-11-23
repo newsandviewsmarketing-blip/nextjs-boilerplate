@@ -31,9 +31,9 @@ export default function HomeMarketLanes({companies,products}:{companies:HomeComp
     <div className="vc-market-lane-heading"><h3>Product categories</h3><span>Browse available approved listings by category</span></div>
     <div className="vc-product-categories">
      {[{name:"Vaccines",icon:"💉",categories:"Vaccines"},{name:"Medicines",icon:"💊",categories:"Medicines"},{name:"Feed & Nutrition",icon:"🌾",categories:"Poultry Feed,Dairy Feed,Pet Food,Fish Feed,Feed Additives"},{name:"Supplements",icon:"🧴",categories:"Nutritional Supplements"},{name:"Equipment",icon:"🔬",categories:"Farm Equipment,Diagnostics"}].map(item=>
-      <Link key={item.name} href={"/marketplace?category="+encodeURIComponent(item.categories)+"#products"} className="vc-product-category">
+      ["Feed & Nutrition","Equipment"].includes(item.name)?<Link key={item.name} href={"/marketplace?category="+encodeURIComponent(item.categories)+"#products"} className="vc-product-category">
        <span role="img" aria-label={item.name}>{item.icon}</span><strong>{item.name}</strong>
-      </Link>)}
+      </Link>:<div key={item.name} className="vc-product-category" aria-label={item.name+" category information"}><span role="img" aria-label={item.name}>{item.icon}</span><strong>{item.name}</strong></div>)}
     </div>
     <div className="vc-market-lane-heading"><h3>Published products</h3><span>Approved marketplace listings</span></div>
     {products.length>0?<div className="vc-market-window" aria-label="Animal-health products, scroll horizontally">
