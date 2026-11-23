@@ -1,0 +1,31 @@
+/* Private VetConnect dossier: one focused view at a time, no duplicate public navigation. */
+.vc-editor-dossier .vc-admin-banner{padding:20px 0;}
+.vc-editor-dossier .vc-admin-banner-content{gap:18px;}
+.vc-editor-dossier .vc-dossier-identity{display:flex;align-items:center;gap:17px;min-width:0;}
+.vc-editor-dossier .vc-dossier-photo{width:80px;height:80px;flex:0 0 80px;display:flex;align-items:center;justify-content:center;background:#e6edf5;color:#183354;border-radius:14px;overflow:hidden;font-size:32px;font-weight:800;border:2px solid rgba(255,255,255,.6);}
+.vc-editor-dossier .vc-dossier-photo img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
+.vc-editor-dossier .vc-dossier-identity h1{margin:3px 0 4px;}
+.vc-editor-dossier .vc-editor-tabs{display:flex;gap:6px;flex-wrap:wrap;background:#f0f4f8;padding:9px;border-radius:12px;margin-bottom:16px;}
+.vc-editor-dossier .vc-editor-tabs button{min-height:42px;font-size:.78rem;padding:8px 12px;cursor:pointer;white-space:normal;text-align:center;}
+.vc-editor-dossier .vc-editor-tabs button:focus-visible{outline:3px solid #f57a0b;outline-offset:2px;}
+.vc-editor-dossier #identity,.vc-editor-dossier #linked,.vc-editor-dossier #uploads,.vc-editor-dossier #actions,.vc-editor-dossier #history{display:none;}
+.vc-editor-dossier[data-dossier-tab="overview"] #identity,
+.vc-editor-dossier[data-dossier-tab="submission"] #linked,
+.vc-editor-dossier[data-dossier-tab="documents"] #uploads,
+.vc-editor-dossier[data-dossier-tab="review"] #actions,
+.vc-editor-dossier[data-dossier-tab="audit"] #history{display:block;}
+.vc-editor-dossier .vc-editor-metrics{margin:0 0 14px;grid-template-columns:repeat(4,minmax(0,1fr));}
+.vc-editor-dossier .vc-editor-metrics .vc-admin-metric{min-height:92px;padding:13px;}
+.vc-editor-dossier .vc-editor-metrics .vc-admin-metric b{font-size:clamp(.91rem,1.6vw,1.1rem);}
+.vc-editor-dossier .vc-admin-panel{padding:clamp(16px,2vw,24px);}
+.vc-editor-dossier .vc-dossier-biography{margin-top:16px;padding:14px 16px;background:#f5f8fc;border-radius:10px;}
+.vc-editor-dossier .vc-dossier-biography h3{margin:0 0 6px;font-size:14px;}
+.vc-editor-dossier .vc-dossier-biography p{margin:0;white-space:pre-wrap;line-height:1.6;}
+.vc-editor-dossier #linked .vc-editor-record{margin:8px 0;padding:12px;}
+.vc-editor-dossier #linked .vc-editor-record>summary{font-size:.88rem;}
+.vc-editor-dossier #linked .vc-editor-field-grid>div{padding:9px 0;}
+.vc-editor-dossier #actions .vc-editor-action{margin:9px 0;}
+.vc-editor-dossier .vc-editor-audit article{max-width:100%;overflow-wrap:anywhere;}
+@media(max-width:850px){.vc-editor-dossier .vc-editor-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.vc-editor-dossier .vc-admin-banner-content{align-items:flex-start;}}
+@media(max-width:600px){.vc-editor-dossier .vc-dossier-photo{width:62px;height:62px;flex-basis:62px;font-size:25px;}.vc-editor-dossier .vc-admin-banner-content{flex-direction:column;}.vc-editor-dossier .vc-editor-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}.vc-editor-dossier .vc-editor-tabs button{width:100%;}.vc-editor-dossier .vc-editor-metrics{gap:7px;}.vc-editor-dossier .vc-editor-metrics .vc-admin-metric{padding:10px;min-height:88px;}.vc-editor-dossier .vc-editor-field-grid{grid-template-columns:1fr;}}
+@media print{.vc-editor-dossier .admin-control-sidebar,.vc-editor-dossier .vc-editor-tabs,.vc-editor-dossier .vc-admin-actions{display:none!important;}.vc-editor-dossier #identity,.vc-editor-dossier #linked,.vc-editor-dossier #uploads,.vc-editor-dossier #history{display:block!important;}.vc-editor-dossier #actions{display:none!important;}.vc-editor-dossier .vc-admin-main{width:100%!important;}.vc-editor-dossier .vc-editor-record{break-inside:avoid;}}
