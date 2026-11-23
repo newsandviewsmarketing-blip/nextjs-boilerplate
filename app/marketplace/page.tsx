@@ -163,7 +163,7 @@ export default async function MarketplacePage({
       <section id="suppliers" className="section compact-section">
         <div className="shell">
           <div className="section-heading"><span className="section-kicker">APPROVED COMPANY DIRECTORY</span><h2>Find animal-health suppliers</h2>
-            <p>Public company profiles are listed separately from product approvals. City is the company's registered public location, not confirmed product availability.</p>
+            <p>Public company profiles are listed separately from product approvals. City is the company&apos;s registered public location, not confirmed product availability.</p>
           </div>
           {visibleSuppliers.length===0?<div className="empty-state"><h3>No public companies match these filters.</h3><Link href="/companies">Browse all companies</Link></div>:
             <div className="company-grid">
