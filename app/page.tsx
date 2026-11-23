@@ -38,7 +38,7 @@ async function loadVerifiedCurrentJobs():Promise<CurrentJobSlide[]>{
    ["image/jpeg","image/png","image/webp"].includes(row.advert_image_mime??""))]));
  return current.map(job=>({
    id:job.id,slug:job.slug,title:job.title,
-   sector:job.sector && approvedSectors.has(job.sector.trim().toLowerCase()) ? job.sector.trim() : "Sector pending classification",
+   sector:job.sector && approvedSectors.has(job.sector.trim().toLowerCase()) ? job.sector.trim() : "Other sectors",
    company_name:job.company_name,location:job.city||job.province||"Pakistan",
    employment_type:job.employment_type,image_available:imageById.get(job.id)??false
   }));
