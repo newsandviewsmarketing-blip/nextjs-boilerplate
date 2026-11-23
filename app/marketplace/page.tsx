@@ -104,6 +104,7 @@ export default async function MarketplacePage({
   const query = (params.q ?? "").trim().toLowerCase();
   const city = (params.city ?? "").trim().toLowerCase();
   const selectedSector = (params.sector ?? "").trim().toLowerCase();
+  const selectedCategories = (params.category ?? "").split(",").map((item)=>item.trim().toLowerCase()).filter(Boolean);
   const visibleProducts = products.filter(
     (product) =>
       (!query ||
@@ -114,7 +115,7 @@ export default async function MarketplacePage({
       (!selectedSector || selectedSector === "all sectors" ||
         product.sector?.trim().toLowerCase() === selectedSector ||
         product.sectors?.some((item) => item.trim().toLowerCase() === selectedSector)) &&
-      (!params.category || product.category === params.category),
+      (!selectedCategories.length || selectedCategories.includes(product.category.trim().toLowerCase())),
   );
   const visibleSuppliers=suppliers.filter((company)=>{
    const matchesKeyword=!query||[company.company_name,company.business_type??""].join(" ").toLowerCase().includes(query);
@@ -196,7 +197,7 @@ export default async function MarketplacePage({
           </div>
           {params.category && (
             <div className="active-filter">
-              Category: <b>{params.category}</b> <Link href="/marketplace#products">Clear</Link>
+              Categories: <b>{(params.category??"").split(",").join(", ")}</b> <Link href="/marketplace#products">Clear</Link>
             </div>
           )}
           {visibleProducts.length === 0 ? (
