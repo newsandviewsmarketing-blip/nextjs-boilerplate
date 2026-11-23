@@ -187,3 +187,19 @@
 .vc-directory-tile small{font-size:.63rem;color:#627388;line-height:1.35;}
 @media(max-width:1100px){.vc-directory-tiles{grid-template-columns:repeat(4,minmax(0,1fr));}.vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:600px){.vc-expertise-section{padding:23px 0;}.vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}.vc-expertise-feature{gap:8px;}.vc-blueprint-photo,.vc-feature-icon{height:90px;}.vc-feature-icon{font-size:2.4rem;}.vc-expertise-feature>div:last-child{padding:0 10px 12px;}.vc-expertise-feature h3{font-size:.85rem;}.vc-expertise-feature p{font-size:.7rem;}.vc-expertise-feature a{font-size:.69rem;}.vc-expertise-feature .vc-feature-kicker{font-size:.56rem;}.vc-product-categories{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:7px;overscroll-behavior-inline:contain;}.vc-product-category{flex:0 0 104px;scroll-snap-align:start;}.vc-product-category strong{font-size:.68rem;}.vc-explore-section{padding:25px 0 29px;}.vc-directory-tiles{display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x mandatory;padding-bottom:9px;}.vc-directory-tile{flex:0 0 108px;scroll-snap-align:start;}.vc-directory-tile strong{font-size:.7rem;}.vc-directory-tile small{font-size:.59rem;}}
+
+/* Live-data veterinary cards: image is user-supplied public profile only, not an AI identity. */
+.vc-home-vet-strip-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:23px 0 12px;}
+.vc-home-vet-strip-head h3{font-size:1.16rem;color:#10284b;margin:5px 0 0;}
+.vc-home-vet-strip-head a{font-size:.78rem;font-weight:750;color:#184168;text-decoration:none;}
+.vc-home-vet-strip{display:flex;gap:10px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;padding:3px 0 10px;-webkit-overflow-scrolling:touch;}
+.vc-home-vet-mini{display:flex;flex:0 0 min(275px,75vw);align-items:center;gap:10px;padding:10px;background:#fff;border:1px solid #d9e5f2;border-radius:12px;scroll-snap-align:start;text-decoration:none;color:#173052;min-width:0;}
+.vc-home-vet-mini-photo{width:63px;height:63px;overflow:hidden;border-radius:10px;background:#f1f5fc;flex-shrink:0;display:grid;place-items:center;}
+.vc-home-vet-mini-photo img{width:100%;height:100%;object-fit:contain;}
+.vc-home-vet-mini>div:last-child{min-width:0;display:flex;flex-direction:column;gap:4px;}
+.vc-home-vet-mini strong{font-size:.81rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vc-home-vet-mini small{color:#58718a;font-size:.68rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vc-home-vet-mini span{color:#0a7158;font-weight:700;font-size:.65rem;}
+.vc-home-vet-mini:hover,.vc-home-vet-mini:focus-visible{border-color:#fa8400;outline-offset:2px;}
+.vc-home-empty-vets{font-size:.8rem;color:#536b80;}
+@media(max-width:600px){.vc-home-vet-strip-head{align-items:start;}.vc-home-vet-strip-head h3{font-size:1.02rem;}.vc-home-vet-mini{flex-basis:72vw;}}
