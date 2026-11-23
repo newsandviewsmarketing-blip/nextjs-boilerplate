@@ -271,3 +271,63 @@
  .vc-category-photo{flex-basis:50px;width:94px;height:50px;}
  .vc-product-category{min-height:88px;}
 }
+
+/* High-resolution photo card sprite, created specifically for VetConnect Pakistan. */
+.vc-expertise-feature .vc-approved-art{
+  height:clamp(130px,13vw,175px);
+  width:100%;
+  background-image:url("/images/vetconnect-pakistan-services-photos.svg");
+  background-repeat:no-repeat;
+  background-size:200% auto;
+  background-color:#eef3f9;
+}
+.vc-expertise-feature .vc-approved-art-online{background-position:left top;}
+.vc-expertise-feature .vc-approved-art-consultant{background-position:right top;}
+.vc-expertise-feature .vc-approved-art-clinic{background-position:left bottom;}
+.vc-expertise-feature .vc-approved-art-lab{background-position:right bottom;}
+
+/* Responsive homepage refinement. Avoid fixed navigation or four cramped columns. */
+@media(max-width:767px){
+ .vc-homepage .site-header{position:relative!important;top:auto!important;z-index:10;}
+ .vc-homepage .vc-home-hero{padding:20px 0 22px;}
+ .vc-homepage .hero-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;}
+ .vc-homepage .hero-copy,.vc-homepage .hero-search-card{min-width:0;width:100%;max-width:100%;}
+ .vc-homepage .hero-copy h1{max-width:100%;font-size:clamp(1.65rem,7vw,2.2rem);line-height:1.13;}
+ .vc-homepage .hero-copy .hero-lead{max-width:100%;font-size:.88rem;}
+ .vc-homepage .vc-quick-search .vc-quick-tabs{scroll-snap-type:x proximity;overscroll-behavior-x:contain;}
+ .vc-homepage .vc-quick-search .vc-quick-tabs button{min-height:42px;scroll-snap-align:start;}
+ .vc-homepage .vc-quick-search .vc-quick-field input,
+ .vc-homepage .vc-quick-search .vc-quick-field select{font-size:16px;min-height:44px;}
+ .vc-homepage .vc-quick-search .button{min-height:44px;}
+ .vc-homepage .vc-expertise-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+ .vc-homepage .vc-expertise-feature{min-width:0;}
+ .vc-homepage .vc-expertise-feature .vc-approved-art{height:clamp(112px,23vw,155px);}
+ .vc-homepage .vc-expertise-feature h3{font-size:clamp(.88rem,2.8vw,1rem);}
+ .vc-homepage .vc-expertise-feature p{font-size:.75rem;line-height:1.45;}
+ .vc-homepage .vc-expertise-feature a{font-size:.74rem;overflow-wrap:anywhere;}
+ .vc-homepage .vc-home-job-track{scroll-padding-inline:5px;scroll-snap-type:x mandatory;}
+ .vc-homepage .vc-home-job-card,.vc-homepage .vc-job-action-card{scroll-snap-align:start;min-height:0;}
+ .vc-homepage .vc-home-heading{gap:7px;margin-bottom:14px;}
+ .vc-homepage .vc-market-lane-heading{align-items:flex-start;}
+ .vc-homepage .vc-market-lane-heading>span{font-size:.69rem;text-align:right;max-width:52%;}
+ .vc-homepage .vc-product-categories{scroll-snap-type:x mandatory;gap:9px;}
+ .vc-homepage .vc-product-category{flex:0 0 120px;scroll-snap-align:start;}
+ .vc-homepage .vc-home-vet-strip,.vc-homepage .vc-market-window{scrollbar-width:thin;}
+ .vc-homepage .vc-home-ad-frame{max-width:100%;overflow:hidden;}
+}
+@media(max-width:390px){
+ .vc-homepage .vc-expertise-grid{grid-template-columns:minmax(0,1fr);gap:12px;}
+ .vc-homepage .vc-expertise-feature{display:grid;grid-template-columns:42% minmax(0,1fr);gap:0;}
+ .vc-homepage .vc-expertise-feature .vc-approved-art{height:100%;min-height:148px;}
+ .vc-homepage .vc-expertise-feature>div:last-child{padding:12px 10px;}
+ .vc-homepage .vc-expertise-feature h3{font-size:.94rem;}
+ .vc-homepage .vc-expertise-feature p{font-size:.72rem;}
+ .vc-homepage .vc-quick-fields{grid-template-columns:1fr;}
+ .vc-homepage .vc-quick-keyword{grid-column:auto;}
+ .vc-homepage .vc-jobs-titlebar{align-items:start;}
+ .vc-homepage .vc-jobs-view-all{margin-top:3px;}
+}
+@media(prefers-reduced-motion:reduce){
+ .vc-homepage .vc-home-vet-animated .vc-home-vet-track{animation:none!important;}
+ .vc-homepage .vc-market-track{animation:none!important;}
+}
