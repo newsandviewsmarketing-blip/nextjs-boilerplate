@@ -120,9 +120,9 @@ export default async function MarketplacePage({
   );
   const visibleSuppliers=suppliers.filter((company)=>{
    const matchesKeyword=!query||[company.company_name,company.business_type??""].join(" ").toLowerCase().includes(query);
-   const matchesCity=!city||city==="all cities"||matchesCity(company.city,city);
+   const matchesCityFilter=!city||city==="all cities"||matchesCity(company.city,city);
    const matchesSector=!selectedSector||selectedSector==="all sectors"||company.business_type?.toLowerCase().includes(selectedSector);
-   return matchesKeyword&&matchesCity&&matchesSector;
+   return matchesKeyword&&matchesCityFilter&&matchesSector;
   });
   const sectors = [...new Set(products.flatMap((product) => [product.sector,...(product.sectors ?? [])]).filter(Boolean))] as string[];
   const cities = uniqueCities([...products.map((product) => product.company_city),...suppliers.map((company) => company.city)]);
