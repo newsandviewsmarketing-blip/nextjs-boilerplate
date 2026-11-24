@@ -1,5 +1,6 @@
 import adminAreas from "../public/data/pakistan-administrative-hierarchy.json";
 import type { PublicJob } from "./jobs";
+import { canonicalCity } from "./city-normalization";
 
 const provinceAliases: Record<string,string> = {
   "islamabad capital territory": "islamabad",
@@ -46,7 +47,7 @@ export function locationSearchOptions(): string[] {
 }
 
 export function matchesJobLocation(job: PublicJob, search: string): boolean {
-  const term=clean(search);
+  const term=clean(canonicalCity(search));
   if (!term || term==="all cities" || term==="all locations") return true;
   const targetProvince = normalizeProvince(job.coverage?.province ?? job.province);
   const queryAreas=areaMap.get(normalizeProvince(search)) ?? [];
@@ -61,10 +62,10 @@ export function matchesJobLocation(job: PublicJob, search: string): boolean {
   // Province-wide jobs should appear in a city/district search in that province.
   if (scope==="province" && queryAreas.some(area => area.province===targetProvince)) return true;
 
-  const single = [job.city,job.district].some(s=>clean(s)===term);
+  const single = [job.city,job.district].some(s=>clean(canonicalCity(s))===term);
   if (!job.coverage) return single;
   return Boolean(single || job.coverage_areas?.some(area => {
-    if ([area.city,area.district,area.label].some(x=>clean(x)===term)) return true;
+    if ([area.city,area.district,area.label].some(x=>clean(canonicalCity(x))===term)) return true;
     // A district assignment includes tehsil/town matches within the same district.
     return area.district && queryAreas.some(queryArea =>
       queryArea.district===clean(area.district) &&
