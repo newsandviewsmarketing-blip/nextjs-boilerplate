@@ -476,3 +476,12 @@
    height:150px;
  }
 }
+
+/* Hero illustration intentionally removed: prioritize real approved member photography only. */
+.vc-homepage .vc-home-hero .vc-hero-approved-art{display:none!important;}
+@media(min-width:1180px){
+ .vc-homepage .vc-home-hero .hero-copy h1{max-width:670px;}
+ .vc-homepage .vc-home-hero .hero-copy .hero-lead{max-width:620px;}
+}
+.vc-homepage .vc-home-hero .hero-copy{min-width:0;}
+.vc-homepage .vc-quick-search .vc-quick-field select{background-color:#fff;}
