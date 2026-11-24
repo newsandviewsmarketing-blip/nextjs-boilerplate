@@ -1,3 +1,4 @@
+import { uniqueCities, matchesCity } from "@/lib/city-normalization";
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "./components/SiteHeader";
@@ -117,6 +118,7 @@ type QuickSearchOptions = {
  jobs: { cities:string[]; sectors:string[] };
 };
 const cleanOptions=(values:(string|null|undefined)[]):string[]=>[...new Set(values.map(value=>value?.trim()??"").filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+const cleanCityOptions=uniqueCities;
 async function loadHomeQuickSearchOptions():Promise<QuickSearchOptions>{
  const empty:QuickSearchOptions={
   vet:{cities:[],sectors:[]},clinics:{cities:[],types:[]},
@@ -140,13 +142,13 @@ async function loadHomeQuickSearchOptions():Promise<QuickSearchOptions>{
  const currentDate=new Date().toISOString().slice(0,10);
  const openJobs=(jobs.data??[]).filter(job=>!job.deadline||job.deadline>=currentDate);
  return {
-  vet:{cities:cleanOptions(vetRows.map(v=>v.city)),sectors:cleanOptions(vetRows.map(v=>v.veterinary_sector))},
-  clinics:{cities:cleanOptions((clinics.data??[]).flatMap(c=>[c.city,...(c.other_cities??[])])),
+  vet:{cities:cleanCityOptions(vetRows.map(v=>v.city)),sectors:cleanOptions(vetRows.map(v=>v.veterinary_sector))},
+  clinics:{cities:cleanCityOptions((clinics.data??[]).flatMap(c=>[c.city,...(c.other_cities??[])])),
    types:cleanOptions((clinics.data??[]).map(c=>c.facility_type))},
-  professionals:{cities:cleanOptions(proRows.map(p=>p.city)),types:cleanOptions(proRows.map(p=>p.professional_type))},
-  marketplace:{cities:cleanOptions((companies.data??[]).map(c=>c.city)),
+  professionals:{cities:cleanCityOptions(proRows.map(p=>p.city)),types:cleanOptions(proRows.map(p=>p.professional_type))},
+  marketplace:{cities:cleanCityOptions((companies.data??[]).map(c=>c.city)),
    sectors:cleanOptions((products.data??[]).flatMap(p=>[p.sector,...(p.sectors??[])]))},
-  jobs:{cities:cleanOptions(openJobs.map(j=>j.city)),sectors:cleanOptions(openJobs.map(j=>j.sector))}
+  jobs:{cities:cleanCityOptions(openJobs.map(j=>j.city)),sectors:cleanOptions(openJobs.map(j=>j.sector))}
  };
 }
 
