@@ -108,8 +108,50 @@ async function loadHomepageExpertise():Promise<{vets:HomeVet[];clinics:HomeClini
    onlineClinics:approvedClinics.filter(row=>teleClinicIds.has(row.id)).map(row=>({slug:row.slug,clinic_name:row.clinic_name,city:row.city,logo_url:row.logo_url})),
    professionals:[...pros.values()].slice(0,8)};
 }
+
+type QuickSearchOptions = {
+ vet: { cities:string[]; sectors:string[] };
+ clinics: { cities:string[]; types:string[] };
+ professionals: { cities:string[]; types:string[] };
+ marketplace: { cities:string[]; sectors:string[] };
+ jobs: { cities:string[]; sectors:string[] };
+};
+const cleanOptions=(values:(string|null|undefined)[]):string[]=>[...new Set(values.map(value=>value?.trim()??"").filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+async function loadHomeQuickSearchOptions():Promise<QuickSearchOptions>{
+ const empty:QuickSearchOptions={
+  vet:{cities:[],sectors:[]},clinics:{cities:[],types:[]},
+  professionals:{cities:[],types:[]},marketplace:{cities:[],sectors:[]},jobs:{cities:[],sectors:[]}
+ };
+ if(!isSupabaseConfigured())return empty;
+ const supabase=await createClient();
+ // Read only published/approved public directory sources. No private location or account tables.
+ const [vets,managedVets,clinics,pros,managedPros,companies,products,jobs]=await Promise.all([
+  supabase.from("public_veterinarians").select("city,veterinary_sector").eq("profile_verified",true).eq("pvmc_verified",true).limit(2000),
+  supabase.from("public_managed_veterinarians").select("city,veterinary_sector").eq("profile_verified",true).eq("pvmc_verified",true).limit(2000),
+  supabase.from("public_clinics").select("city,other_cities,facility_type").eq("profile_verified",true).limit(2000),
+  supabase.from("public_professionals").select("city,professional_type").eq("profile_verified",true).limit(2000),
+  supabase.from("public_managed_professionals").select("city,professional_type").eq("profile_verified",true).limit(2000),
+  supabase.from("public_company_directory").select("city").limit(2000),
+  supabase.from("products").select("sector,sectors").eq("verification_status","approved").eq("is_published",true).limit(2000),
+  supabase.from("public_jobs").select("city,sector,deadline").limit(2000)
+ ]);
+ const vetRows=[...(vets.data??[]),...(managedVets.data??[])];
+ const proRows=[...(pros.data??[]),...(managedPros.data??[])];
+ const currentDate=new Date().toISOString().slice(0,10);
+ const openJobs=(jobs.data??[]).filter(job=>!job.deadline||job.deadline>=currentDate);
+ return {
+  vet:{cities:cleanOptions(vetRows.map(v=>v.city)),sectors:cleanOptions(vetRows.map(v=>v.veterinary_sector))},
+  clinics:{cities:cleanOptions((clinics.data??[]).flatMap(c=>[c.city,...(c.other_cities??[])])),
+   types:cleanOptions((clinics.data??[]).map(c=>c.facility_type))},
+  professionals:{cities:cleanOptions(proRows.map(p=>p.city)),types:cleanOptions(proRows.map(p=>p.professional_type))},
+  marketplace:{cities:cleanOptions((companies.data??[]).map(c=>c.city)),
+   sectors:cleanOptions((products.data??[]).flatMap(p=>[p.sector,...(p.sectors??[])]))},
+  jobs:{cities:cleanOptions(openJobs.map(j=>j.city)),sectors:cleanOptions(openJobs.map(j=>j.sector))}
+ };
+}
+
 export default async function Home() {
- const [currentJobs,market,expertise]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket(),loadHomepageExpertise()]);
+ const [currentJobs,market,expertise,searchOptions]=await Promise.all([loadVerifiedCurrentJobs(),loadHomepageMarket(),loadHomepageExpertise(),loadHomeQuickSearchOptions()]);
  return (
     <main className="vc-homepage">
       <SiteHeader />
@@ -124,9 +166,9 @@ export default async function Home() {
               <Link href="/vets" className="button button-primary">Find a Veterinarian</Link>
               <Link href="/jobs" className="button button-secondary">Browse Jobs</Link>
             </div>
-            <div className="vc-hero-approved-art" role="img" aria-label="Illustrative Pakistani woman veterinary professional with cattle and small ruminants"/>
+
           </div>
-          <HomeQuickSearch />
+          <HomeQuickSearch options={searchOptions}/>
         </div>
       </section>
       <HomeExpertise vets={expertise.vets} clinics={expertise.clinics} professionals={expertise.professionals} onlineClinics={expertise.onlineClinics}/>
