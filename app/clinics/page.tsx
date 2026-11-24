@@ -1,3 +1,4 @@
+import { uniqueCities, matchesCity } from "@/lib/city-normalization";
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
@@ -30,9 +31,9 @@ export default async function ClinicsPage({ searchParams }: { searchParams: Prom
   const visible = clinics.filter((clinic) => {
     const serviceCities=[clinic.city,...(clinic.other_cities??[])].filter(Boolean);
     const text = `${clinic.clinic_name} ${clinic.facility_type} ${serviceCities.join(" ")} ${clinic.services.join(" ")} ${clinic.species.join(" ")}`.toLowerCase();
-    return (!q || text.includes(q)) && (!params.city || params.city === "All cities" || serviceCities.includes(params.city)) && (!params.type || params.type === "All facility types" || clinic.facility_type === params.type);
+    return (!q || text.includes(q)) && (!params.city || params.city === "All cities" || serviceCities.some(value => matchesCity(value,params.city))) && (!params.type || params.type === "All facility types" || clinic.facility_type === params.type);
   });
-  const cities = [...new Set(clinics.flatMap((item) => [item.city,...(item.other_cities??[])]).filter(Boolean))] as string[];
+  const cities = uniqueCities(clinics.flatMap((item) => [item.city,...(item.other_cities??[])]));
   const types = [...new Set(clinics.map((item) => item.facility_type))];
   const showingSamples = clinics.some((item) => item.is_sample);
 
