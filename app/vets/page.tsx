@@ -1,3 +1,4 @@
+import { uniqueCities, matchesCity } from "@/lib/city-normalization";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -105,7 +106,7 @@ export default async function VeterinarianDirectoryPage({
     const cityMatch =
       !city ||
       city === "all cities" ||
-      vet.city?.toLowerCase() === city;
+      matchesCity(vet.city,city);
 
     const sectorMatch =
       !sector ||
@@ -131,15 +132,7 @@ export default async function VeterinarianDirectoryPage({
      FILTER OPTIONS
   ------------------------------------------------------- */
 
-  const cities = [
-    ...new Set(
-      veterinarians
-        .map((vet) => vet.city)
-        .filter(Boolean),
-    ),
-  ] as string[];
-
-  cities.sort((a, b) => a.localeCompare(b));
+  const cities = uniqueCities(veterinarians.map((vet) => vet.city));
 
   const services = [
     ...new Set(
