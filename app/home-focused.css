@@ -414,3 +414,65 @@
   margin:4px auto 12px;
  }
 }
+
+
+/* Final job card layout: fixed visual frame, original uploads never cropped. */
+.vc-homepage .vc-home-job-card{
+  display:flex;
+  flex-direction:column;
+  text-align:center;
+  align-items:stretch;
+}
+.vc-homepage .vc-home-job-card .vc-job-poster-frame{
+  display:grid;
+  place-items:center;
+  width:100%;
+  min-width:0;
+  height:194px;
+  margin:0 auto 9px;
+  padding:6px;
+  box-sizing:border-box;
+  border-radius:12px;
+  background:#f8fafc;
+}
+.vc-homepage .vc-home-job-card .vc-job-poster-frame > .job-poster-thumbnail{
+  display:block;
+  position:relative;
+  flex:none;
+  width:min(146px,100%);
+  max-width:100%;
+  height:182px;
+  aspect-ratio:4/5;
+  margin:0 auto;
+  background:#f2f5f9;
+}
+.vc-homepage .vc-home-job-card .vc-job-poster-frame .job-poster-thumbnail__image{
+  object-fit:contain!important;
+  object-position:center!important;
+  width:100%!important;
+  height:100%!important;
+}
+.vc-homepage .vc-home-job-card > h3{
+  margin:7px auto 5px;
+  text-align:center!important;
+  width:100%;
+  min-height:2.4em;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  overflow:hidden;
+}
+.vc-homepage .vc-home-job-card > p{
+  text-align:center!important;
+  margin:3px auto;
+  width:100%;
+}
+.vc-homepage .vc-home-job-card > .module-tag{align-self:center;}
+.vc-homepage .vc-home-job-card > .button{margin-top:auto;}
+@media(max-width:700px){
+ .vc-homepage .vc-home-job-card .vc-job-poster-frame{height:165px;padding:5px;}
+ .vc-homepage .vc-home-job-card .vc-job-poster-frame > .job-poster-thumbnail{
+   width:min(120px,100%);
+   height:150px;
+ }
+}
