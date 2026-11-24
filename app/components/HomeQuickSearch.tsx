@@ -2,18 +2,25 @@
 import { useState } from "react";
 
 type SearchCategory = "vet" | "clinics" | "professionals" | "marketplace" | "jobs";
-const tabs: { id:SearchCategory; label:string; title:string; action:string; cta:string }[] = [
-  { id:"vet", label:"Find a Vet", title:"Find veterinary expertise", action:"/vets", cta:"Find veterinarians" },
-  { id:"clinics", label:"Clinics", title:"Find a veterinary clinic", action:"/clinics", cta:"Find clinics" },
-  { id:"professionals", label:"Professionals", title:"Find an animal-health professional", action:"/professionals", cta:"Find professionals" },
-  { id:"marketplace", label:"Marketplace", title:"Find animal-health products", action:"/marketplace", cta:"Search marketplace" },
-  { id:"jobs", label:"Jobs", title:"Find a career opportunity", action:"/jobs", cta:"Find jobs" },
+type SearchOptions={
+ vet:{cities:string[];sectors:string[]};
+ clinics:{cities:string[];types:string[]};
+ professionals:{cities:string[];types:string[]};
+ marketplace:{cities:string[];sectors:string[]};
+ jobs:{cities:string[];sectors:string[]};
+};
+const tabs: {id:SearchCategory;label:string;title:string;action:string;cta:string}[]=[
+ {id:"vet",label:"Find a Vet",title:"Find veterinary expertise",action:"/vets",cta:"Find veterinarians"},
+ {id:"clinics",label:"Clinics",title:"Find a veterinary clinic",action:"/clinics",cta:"Find clinics"},
+ {id:"professionals",label:"Professionals",title:"Find an animal-health professional",action:"/professionals",cta:"Find professionals"},
+ {id:"marketplace",label:"Marketplace",title:"Find animal-health products",action:"/marketplace",cta:"Search marketplace"},
+ {id:"jobs",label:"Jobs",title:"Find a career opportunity",action:"/jobs",cta:"Find jobs"}
 ];
-const sectors=["All sectors","Pets","Livestock","Poultry","Dairy","Fisheries","Aquaculture","Equine"];
-const jobSectors=["All sectors","Poultry","Dairy","Livestock","Sales & Marketing","Veterinary Services","Animal Health","Fisheries / Aquaculture","Academia / Research","Feed & Nutrition"];
-export default function HomeQuickSearch(){
+export default function HomeQuickSearch({options}:{options:SearchOptions}){
  const [selected,setSelected]=useState<SearchCategory>("vet");
- const current=tabs.find(t=>t.id===selected)!;
+ const current=tabs.find(tab=>tab.id===selected)!;
+ const cityOptions=options[selected].cities;
+ const sectors=selected==="vet"?options.vet.sectors:selected==="marketplace"?options.marketplace.sectors:selected==="jobs"?options.jobs.sectors:[];
  return <div className="hero-search-card vc-quick-search">
   <div className="search-card-head"><div><small>QUICK SEARCH</small><h2 id="quick-search-title">{current.title}</h2></div></div>
   <div className="vc-quick-tabs" role="group" aria-label="What would you like to find?">
@@ -22,20 +29,32 @@ export default function HomeQuickSearch(){
   </div>
   <form key={selected} action={current.action} method="get" aria-labelledby="quick-search-title">
    <div className="vc-quick-fields">
-    {selected!=="professionals"&&<div className="vc-quick-field">
+    <div className="vc-quick-field">
      <label htmlFor="quick-city">{selected==="jobs"?"Job location":selected==="marketplace"?"Supplier city":"City"}</label>
-     <input id="quick-city" name="city" type="search" placeholder="All cities (optional)" autoComplete="address-level2"/>
-    </div>}
+     <select id="quick-city" name="city" defaultValue="">
+      <option value="">All cities</option>
+      {cityOptions.map(city=><option key={city} value={city}>{city}</option>)}
+     </select>
+    </div>
     {(selected==="vet"||selected==="marketplace"||selected==="jobs")&&<div className="vc-quick-field">
-     <label htmlFor="quick-sector">{selected==="jobs"?"Job sector":"Animal / sector"}</label>
-     <select id="quick-sector" name="sector" defaultValue="All sectors">
-      {(selected==="jobs"?jobSectors:sectors).map(s=><option key={s} value={s}>{s}</option>)}
+     <label htmlFor="quick-sector">{selected==="jobs"?"Job sector":selected==="marketplace"?"Product sector":"Animal / sector"}</label>
+     <select id="quick-sector" name="sector" defaultValue="">
+      <option value="">All sectors</option>
+      {sectors.map(sector=><option key={sector} value={sector}>{sector}</option>)}
+     </select>
+    </div>}
+    {selected==="clinics"&&<div className="vc-quick-field">
+     <label htmlFor="quick-clinic-type">Clinic type</label>
+     <select id="quick-clinic-type" name="type" defaultValue="">
+      <option value="">All facility types</option>
+      {options.clinics.types.map(type=><option key={type} value={type}>{type}</option>)}
      </select>
     </div>}
     {selected==="professionals"&&<div className="vc-quick-field">
      <label htmlFor="quick-professional-type">Professional category</label>
-     <select id="quick-professional-type" name="type" defaultValue="All professional types">
-      {["All professional types","Veterinarian","Consultant","Animal Nutritionist","Researcher","Technologist","Farm Manager"].map(t=><option key={t}>{t}</option>)}
+     <select id="quick-professional-type" name="type" defaultValue="">
+      <option value="">All professional types</option>
+      {options.professionals.types.map(type=><option key={type} value={type}>{type}</option>)}
      </select>
     </div>}
     <div className="vc-quick-field vc-quick-keyword">
@@ -45,6 +64,6 @@ export default function HomeQuickSearch(){
    </div>
    <button type="submit" className="button button-primary button-full">{current.cta} →</button>
   </form>
-  <p className="vc-quick-disclaimer">{selected==="marketplace"?"Supplier city is a business location, not a stock-availability guarantee.":selected==="professionals"?"Professional profiles and clinical practice services are listed separately.":"Public listings depend on approved profiles and available services."}</p>
+  <p className="vc-quick-disclaimer">{selected==="marketplace"?"Supplier city indicates business location, not stock availability.":selected==="professionals"?"Professional profiles and clinical practice services are listed separately.":"Searches use published, approved records; availability is not guaranteed."}</p>
  </div>;
 }
