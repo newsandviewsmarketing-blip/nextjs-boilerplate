@@ -39,10 +39,13 @@ function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLText
 
 export default function PersistentForm({ storageKey, clearSaved = false, onInput, onChange, ...props }: Props) {
   const ref = useRef<HTMLFormElement>(null);
+  const restoring = useRef(false);
 
   useEffect(() => {
     const form = ref.current;
     if (!form) return;
+    restoring.current = true;
+    try {
     if (clearSaved) {
       localStorage.removeItem(storageKey);
       return;
@@ -66,11 +69,17 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
         if (typeof value === "string" || typeof value === "boolean") restoreControl(control, value);
       });
     } catch {
-      localStorage.removeItem(storageKey);
+      // Preserve unreadable drafts rather than silently deleting them.
+    }
+    } catch {
+      // Storage may be disabled; the form must remain usable.
+    } finally {
+      restoring.current = false;
     }
   }, [storageKey, clearSaved]);
 
   const save = (event: FormEvent<HTMLFormElement>) => {
+    if (restoring.current || clearSaved) return;
     const form = event.currentTarget;
     const saved: SavedForm = Object.create(null);
     const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
@@ -84,7 +93,11 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
         saved[key] = previous === undefined ? [value] : Array.isArray(previous) ? [...previous, value] : [previous, value];
       }
     });
-    localStorage.setItem(storageKey, JSON.stringify(saved));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+    } catch {
+      // Keep entered values in the form when browser storage is unavailable.
+    }
   };
 
   return (
