@@ -10,6 +10,7 @@ import { getCurrentIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   createClinicAction,
+  setClinicArchivedAction,
   respondClinicInvitationAction,
   setClinicAffiliationVisibilityAction,
 } from "./actions";
@@ -33,6 +34,7 @@ type ClinicRow = {
   is_published: boolean;
   emergency_service: boolean;
   updated_at: string;
+  archived_at?: string | null;
 };
 
 type MembershipRow = {
@@ -46,7 +48,7 @@ type MembershipRow = {
 export default async function ClinicWorkspacePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; section?: string }>;
 }) {
   const messages = await searchParams;
   const identity = await getCurrentIdentity();
@@ -59,13 +61,13 @@ export default async function ClinicWorkspacePage({
 
   const supabase = await createClient();
   const [
-    { data: owned, error: ownedError },
+    ownedResult,
     { data: memberships, error: membershipError },
   ] = await Promise.all([
     supabase
       .from("clinics")
       .select(
-        "id, slug, clinic_name, facility_type, city, province, verification_status, is_published, emergency_service, updated_at",
+        "id, slug, clinic_name, facility_type, city, province, verification_status, is_published, emergency_service, updated_at, archived_at",
       )
       .eq("owner_id", identity.userId)
       .order("updated_at", { ascending: false }),
@@ -78,13 +80,21 @@ export default async function ClinicWorkspacePage({
       .order("updated_at", { ascending: false }),
   ]);
 
-  const ownedClinics = (owned ?? []) as ClinicRow[];
+  const archiveAvailable = ownedResult.error?.code !== "42703";
+  const { data: owned, error: ownedError } = archiveAvailable ? ownedResult : await supabase
+    .from("clinics")
+    .select("id, slug, clinic_name, facility_type, city, province, verification_status, is_published, emergency_service, updated_at")
+    .eq("owner_id", identity.userId)
+    .order("updated_at", { ascending: false });
+  const allOwnedClinics = (owned ?? []) as ClinicRow[];
+  const archiveView = messages.section === "archive";
+  const ownedClinics = allOwnedClinics.filter(clinic => Boolean(clinic.archived_at) === archiveView);
   const membershipRows = (memberships ?? []) as MembershipRow[];
   const membershipClinicIds = membershipRows
     .map((row) => row.clinic_id)
     .filter(
       (id) =>
-        !ownedClinics.some((clinic) => clinic.id === id),
+        !allOwnedClinics.some((clinic) => clinic.id === id),
     );
 
   let affiliatedClinics: Pick<
@@ -118,13 +128,6 @@ export default async function ClinicWorkspacePage({
       title="Your clinic practice, in one place."
       description="Create a clinic draft, configure professional services and hours, manage staff and appointments, then request VetConnect review before public listing.">
       <section className="vcx-clinic-operations">
-       <div className="vcx-clinic-steps">
-        <div><b>01</b><span>Clinic identity & responsible veterinarian</span></div>
-        <div><b>02</b><span>Location, skills & services</span></div>
-        <div><b>03</b><span>Hours, slots & fees</span></div>
-        <div><b>04</b><span>Staff & admin publication review</span></div>
-       </div>
-       <p className="vcx-secondary">Clinic profile information remains private during setup. Only a reviewed and approved facility can become publicly listed. Saving a clinic does not verify a PVMC number.</p>
           <FormMessage {...messages} />
 
           {(ownedError || membershipError) && (
@@ -134,18 +137,17 @@ export default async function ClinicWorkspacePage({
           )}
 
           <div className="section-heading">
-            <span className="section-kicker">MY FACILITIES</span>
-            <h2>Practices and clinics you manage.</h2>
-            <p>
-              Each clinic has its own facility profile, weekly
-              hours, appointment inbox, services and team hierarchy.
-            </p>
+            <h2>Practices and clinics you manage</h2>
+            <nav className="vcx-clinic-sections" aria-label="Clinic lists">
+              <Link href="/dashboard/clinics" aria-current={!archiveView ? "page" : undefined}>Active clinics</Link>
+              {archiveAvailable && <Link href="/dashboard/clinics?section=archive" aria-current={archiveView ? "page" : undefined}>Archive</Link>}
+              {!archiveView && <Link href="/dashboard/clinics?section=new#new-clinic">Add clinic</Link>}
+            </nav>
           </div>
 
           {ownedClinics.length === 0 ? (
             <div className="empty-state">
-              <h2>No practice or clinic registered yet.</h2>
-              <p>Create your first clinic, poultry service or veterinary consultancy below.</p>
+              <h3>{archiveView ? "No archived clinics" : "No active clinics"}</h3>
             </div>
           ) : (
             <div className="company-grid clinic-workspace-grid">
@@ -179,17 +181,33 @@ export default async function ClinicWorkspacePage({
                     )}
                   </div>
 
-                  <Link
-                    className="button button-primary button-full"
-                    href={`/dashboard/clinics/${clinic.id}`}
-                  >
-                    Manage clinic
-                  </Link>
+                  {archiveView ? (
+                    <form action={setClinicArchivedAction}>
+                      <input type="hidden" name="clinic_id" value={clinic.id} />
+                      <input type="hidden" name="operation" value="restore" />
+                      <FormSubmitButton pendingLabel="Restoring…">Restore clinic</FormSubmitButton>
+                    </form>
+                  ) : <>
+                    <div className="card-actions">
+                      <Link className="button button-primary" href={`/dashboard/clinics/${clinic.id}`}>Manage</Link>
+                      <Link className="button button-secondary" href={`/dashboard/clinics/${clinic.id}?section=profile#clinic-identity`}>Edit profile</Link>
+                    </div>
+                    {archiveAvailable && <details>
+                      <summary>Archive clinic</summary>
+                      <p>Remove this clinic from the active list and public directory. You can restore it later as unpublished.</p>
+                      <form action={setClinicArchivedAction}>
+                        <input type="hidden" name="clinic_id" value={clinic.id} />
+                        <input type="hidden" name="operation" value="archive" />
+                        <FormSubmitButton pendingLabel="Archiving…">Confirm archive</FormSubmitButton>
+                      </form>
+                    </details>}
+                  </>}
                 </article>
               ))}
             </div>
           )}
 
+          {!archiveView && <>
           <div className="section-heading workspace-heading-gap">
             <span className="section-kicker">
               PROFESSIONAL AFFILIATIONS
@@ -347,10 +365,9 @@ export default async function ClinicWorkspacePage({
             </div>
           )}
 
-          <details className="vcx-clinic-new" open={ownedClinics.length===0}>
+          <details id="new-clinic" className="vcx-clinic-new" open={messages.section === "new"}>
            <summary><strong>Add a practice, clinic or veterinary service</strong><span>Begin a separate facility draft without changing your personal professional profile.</span></summary>
           <form
-            id="new-clinic"
             className="backend-form-card workspace-section-card workspace-heading-gap"
             action={createClinicAction}
           >
@@ -468,6 +485,7 @@ export default async function ClinicWorkspacePage({
             </FormSubmitButton>
           </form>
           </details>
+          </>}
       </section>
     </CareerWorkspaceFrame>
   );

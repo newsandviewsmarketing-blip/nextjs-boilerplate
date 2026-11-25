@@ -1007,3 +1007,35 @@ export async function createClinicRecordAction(formData: FormData) {
   revalidatePath(path);
   redirect(routeMessage(path, "message", record === "patient" ? "Patient saved." : "Customer saved.", "records"));
 }
+
+export async function setClinicArchivedAction(formData: FormData) {
+  const path = "/dashboard/clinics";
+  const clinicId = text(formData, "clinic_id");
+  const operation = text(formData, "operation");
+  const identity = await requireClinicUser(path);
+
+  if (!/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(clinicId) ||
+      !["archive", "restore"].includes(operation)) {
+    redirect(routeMessage(path, "error", "Choose a valid clinic and action."));
+  }
+
+  const archive = operation === "archive";
+  const supabase = await createClient();
+  const scoped = supabase.from("clinics")
+    .update({ archived_at: archive ? new Date().toISOString() : null })
+    .eq("id", clinicId).eq("owner_id", identity.userId);
+  const { data, error } = await (archive ? scoped.is("archived_at", null) : scoped.not("archived_at", "is", null))
+    .select("slug").maybeSingle();
+
+  if (error || !data) {
+    redirect(routeMessage(path, "error", "The clinic could not be updated. Refresh the list and try again.", archive ? "active" : "archive"));
+  }
+
+  revalidatePath(path);
+  revalidatePath(`${path}/${clinicId}`);
+  revalidatePath("/clinics");
+  revalidatePath(`/clinics/${data.slug}`);
+  revalidatePath("/");
+  redirect(routeMessage(path, "message", archive
+    ? "Clinic moved to Archive." : "Clinic restored as unpublished.", archive ? "active" : "archive"));
+}
