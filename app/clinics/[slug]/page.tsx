@@ -630,7 +630,7 @@ export default async function ClinicDetailPage({
       )}
 
       {appointmentEnabled && clinic.id && (
-        <section className="section compact-section">
+        <section id="appointment" className="section compact-section">
           <div className="shell two-col">
             <div>
               <span className="section-kicker">
@@ -646,7 +646,11 @@ export default async function ClinicDetailPage({
               </p>
             </div>
 
-            <form
+            {!identity ? (
+              <div><Link className="button button-primary" href={`/login?next=${encodeURIComponent("/clinics/" + encodeURIComponent(clinic.slug) + "#appointment")}`}>
+                Log in to request an appointment
+              </Link></div>
+            ) : <form
               className="backend-form-card"
               action={requestClinicAppointmentAction}
             >
@@ -762,7 +766,7 @@ export default async function ClinicDetailPage({
               <FormSubmitButton pendingLabel="Sending request...">
                 Send appointment request
               </FormSubmitButton>
-            </form>
+            </form>}
           </div>
         </section>
       )}
