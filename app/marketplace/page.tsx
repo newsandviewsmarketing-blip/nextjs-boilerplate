@@ -1,3 +1,4 @@
+import "./marketplace.css";
 import { uniqueCities, matchesCity } from "@/lib/city-normalization";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -128,7 +129,7 @@ export default async function MarketplacePage({
   const cities = uniqueCities([...products.map((product) => product.company_city),...suppliers.map((company) => company.city)]);
 
   return (
-    <main>
+    <main className="marketplace-page">
       <SiteHeader />
       <section className="page-hero marketplace-hero">
         <div className="shell">
@@ -152,9 +153,8 @@ export default async function MarketplacePage({
             <h2>Search by product need.</h2>
           </div>
           <div className="category-grid">
-            {productCategories.map((category, index) => (
+            {productCategories.map((category) => (
               <Link key={category} href={`/marketplace?category=${encodeURIComponent(category)}#products`}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
                 <b>{category}</b>
               </Link>
             ))}
@@ -184,7 +184,7 @@ export default async function MarketplacePage({
               <b>{visibleProducts.length} product listings</b>
               <span>Only approved published product listings. Supplier city does not confirm local stock.</span>
             </div>
-            <form className="market-search" method="get">
+            <form className="market-search" method="get" action="/marketplace#products" aria-label="Filter marketplace products">
               <input name="q" defaultValue={params.q ?? ""} placeholder="Product, brand or company" aria-label="Search products" />
               <input name="city" list="marketplace-supplier-cities" defaultValue={params.city ?? ""} placeholder="All cities" aria-label="Supplier city" />
               <datalist id="marketplace-supplier-cities">{cities.map((item)=><option key={item} value={item}/>)}</datalist>
