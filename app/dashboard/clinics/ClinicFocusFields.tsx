@@ -30,10 +30,12 @@ const SERVICE_GROUPS=[
 const ANIMAL_GROUPS=[
  {id:"pet",title:"Pets & companion animals",items:["Dogs","Cats","Rabbits","Pet Birds","Exotic Pets","Companion Animals"]},
  {id:"poultry",title:"Poultry production",items:["Poultry","Broiler Flocks","Layer Flocks","Breeder Flocks","Hatchery / Chicks"]},
- {id:"livestock",title:"Dairy, beef & small ruminants",items:["Cattle","Buffalo","Sheep","Goats","Dairy Cattle","Beef Cattle","Dairy Buffalo"]},
+ {id:"ruminants",title:"Small ruminants",items:["Sheep","Goats"]},
+ {id:"livestock",title:"Dairy & beef",items:["Cattle","Buffalo","Dairy Cattle","Beef Cattle","Dairy Buffalo"]},
  {id:"equine",title:"Equine",items:["Equine","Horses","Donkeys"]},
  {id:"aquaculture",title:"Aquaculture",items:["Fish / Aquaculture"]},
- {id:"other",title:"Other animals",items:["Camelids","Wildlife"]},
+ {id:"wildlife",title:"Wildlife",items:["Wildlife"]},
+ {id:"other",title:"Other animals",items:["Camelids"]},
 ] as const;
 
 function CheckboxCard({label,kind,checked,onChange}:{label:string;kind:"services"|"species";checked:boolean;onChange?:(checked:boolean)=>void}){
@@ -47,6 +49,7 @@ export default function ClinicFocusFields({services=[],species=[]}:Props){
  const visibleGroups = new Set(ANIMAL_GROUPS
   .filter(group=>group.items.some(label=>selectedSpecies.includes(label)))
   .map(group=>group.id));
+ if (visibleGroups.has("ruminants")) visibleGroups.add("livestock");
  const knownServices=new Set<string>(CLINIC_SERVICES);
  const knownSpecies=new Set<string>(CLINIC_SPECIES);
  const extras={services:services.filter(x=>!knownServices.has(x)).join(", "),species:species.filter(x=>!knownSpecies.has(x)).join(", ")};
@@ -60,10 +63,10 @@ export default function ClinicFocusFields({services=[],species=[]}:Props){
    <div className="vcx-clinic-choice-title"><span className="vcx-clinic-choice-number">01</span><div><h4 id="clinic-species-title">Animals you care for</h4><p>Select one or more animal groups. You can change these later.</p></div></div>
    <fieldset className="vcx-clinic-focus">
     <legend className="vcx-visually-hidden">Animal groups and species served</legend>
-    {ANIMAL_GROUPS.map(group=><div className="vcx-clinic-service-subgroup" key={group.title}>
-      <h6>{group.title}</h6>
+    {ANIMAL_GROUPS.map(group=><details className="vcx-clinic-service-subgroup" key={group.title} open={group.items.some(label=>species.includes(label))}>
+      <summary>{group.title}</summary>
       <div className="vcx-clinic-focus-grid">{group.items.map(label=><CheckboxCard key={label} label={label} kind="species" checked={species.includes(label)} onChange={checked=>setSelectedSpecies(previous=>checked?[...previous,label]:previous.filter(item=>item!==label))}/>)}</div>
-    </div>)}
+    </details>)}
     <label htmlFor="clinic_species_extra">Other species (optional)</label>
     <input id="clinic_species_extra" name="species_extra" defaultValue={extras.species} maxLength={350} placeholder="e.g. Camel, exotic pets"/>
    </fieldset>
@@ -74,10 +77,10 @@ export default function ClinicFocusFields({services=[],species=[]}:Props){
     <legend className="vcx-visually-hidden">Choose expertise and services</legend>
     {SERVICE_GROUPS.map(group=><div key={group.id} className="vcx-clinic-service-group" hidden={group.id!=="other"&&!visibleGroups.has(group.id)}>
       <h5>{group.title}</h5><p>{group.description}</p>
-      {group.sections.map(section=><div className="vcx-clinic-service-subgroup" key={section.title}>
-        <h6>{section.title}</h6>
+      {group.sections.map(section=><details className="vcx-clinic-service-subgroup" key={section.title}>
+        <summary>{section.title}</summary>
         <div className="vcx-clinic-focus-grid">{section.items.map(label=><CheckboxCard key={label} label={label} kind="services" checked={services.includes(label)}/>)}</div>
-      </div>)}
+      </details>)}
     </div>)}
     <label htmlFor="clinic_services_extra">Other expertise or service (optional)</label>
     <input id="clinic_services_extra" name="services_extra" defaultValue={extras.services} maxLength={350} placeholder="e.g. Equine field consultancy"/>

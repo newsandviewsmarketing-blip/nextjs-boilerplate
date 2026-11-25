@@ -154,10 +154,12 @@ export default async function ClinicManagePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; message?: string; section?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; section?: string; part?: string }>;
 }) {
   const { id } = await params;
   const messages = await searchParams;
+  const parts = [["identity","Identity"],["contact","Location & contact"],["focus","Animals & services"],["media","Logo & cover"]] as const;
+  const part = parts.find(([key]) => key === messages.part)?.[0] ?? "identity";
   const sections = [
     ["overview", "Overview"], ["registration", "Registration details"], ["profile", "Edit profile & media"],
     ["availability", "Availability"], ["services", "Services & fees"],
@@ -374,6 +376,11 @@ export default async function ClinicManagePage({
 
        </>}
        {section === "profile" && <>
+          <nav aria-label="Edit clinic profile" className="vcx-clinic-sections">
+            {parts.map(([key,label]) => <Link key={key} aria-current={part === key ? "page" : undefined}
+              href={`?section=profile&part=${key}`}>{label}</Link>)}
+          </nav>
+          {part === "media" && <>
           <div className="clinic-media-layout workspace-heading-gap">
             <article className="professional-photo-card">
               <div className="professional-photo-large">
@@ -460,7 +467,8 @@ export default async function ClinicManagePage({
             </form>
           </div>
 
-          <form id="clinic-identity"
+          </>}
+          {part !== "media" && <form key={part} id="clinic-identity"
             className="backend-form-card workspace-section-card workspace-heading-gap"
             action={updateClinicAction}
           >
@@ -470,11 +478,12 @@ export default async function ClinicManagePage({
               value={clinic.id}
             />
 
+            <input type="hidden" name="profile_part" value={part} />
             <div className="section-heading">
               <span className="section-kicker">
                 FACILITY PROFILE
               </span>
-              <h2>Public clinic information.</h2>
+              <h2>{parts.find(([key]) => key === part)?.[1]}</h2>
               <p>
                 Any substantive change will return an approved
                 clinic to verification review, by design.
@@ -482,6 +491,7 @@ export default async function ClinicManagePage({
             </div>
 
             <div className="form-grid">
+              {part === "identity" && <>
               <div>
                 <label htmlFor="clinic_name">
                   Clinic / facility name
@@ -509,6 +519,27 @@ export default async function ClinicManagePage({
                 <input id="edit-responsible-pvmc" name="responsible_veterinarian_pvmc" maxLength={70} defaultValue={clinic.responsible_veterinarian_pvmc??""}/>
                 <p className="form-help">Check registration with <a href="https://pvmc.gov.pk/Registration/Search" target="_blank" rel="noopener noreferrer">PVMC&apos;s official registry</a>. Entering a number does not verify it.</p>
               </div>
+              <div className="form-span-2">
+                <label htmlFor="description">
+                  Facility description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  defaultValue={clinic.description ?? ""}
+                />
+              </div>
+
+              <label className="checkbox-line">
+                <input
+                  type="checkbox"
+                  name="emergency_service"
+                  defaultChecked={clinic.emergency_service}
+                />{" "}
+                Emergency service available
+              </label>
+              </>}
+              {part === "contact" && <>
               <PakistanLocationFields
                 defaultProvince={clinic.province ?? ""}
                 defaultDistrict={clinic.district ?? ""}
@@ -558,45 +589,14 @@ export default async function ClinicManagePage({
                 />
               </div>
 
-              <div>
-                <label>Published hours summary</label>
-                <input
-                  value={clinic.working_hours ?? "Set weekly hours below"}
-                  readOnly
-                />
-                <p className="form-help">
-                  This summary is generated automatically from the
-                  weekly availability section.
-                </p>
-              </div>
-
-              <ClinicFocusFields services={clinic.services} species={clinic.species}/>
-
-              <div className="form-span-2">
-                <label htmlFor="description">
-                  Facility description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  defaultValue={clinic.description ?? ""}
-                />
-              </div>
-
-              <label className="checkbox-line">
-                <input
-                  type="checkbox"
-                  name="emergency_service"
-                  defaultChecked={clinic.emergency_service}
-                />{" "}
-                Emergency service available
-              </label>
+              </>}
+              {part === "focus" && <ClinicFocusFields services={clinic.services} species={clinic.species}/>}
             </div>
 
             <FormSubmitButton pendingLabel="Saving clinic...">
-              Save clinic profile
+              Save {parts.find(([key]) => key === part)?.[1]}
             </FormSubmitButton>
-          </form>
+          </form>}
 
        </>}
        {section === "availability" && <>
