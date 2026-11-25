@@ -8,10 +8,15 @@ type Props = ComponentProps<"form"> & {
 };
 
 type SavedValue = string | boolean;
-type SavedForm = Record<string, SavedValue>;
+type SavedForm = Record<string, SavedValue | SavedValue[]>;
+
+function controlKey(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) {
+  return control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")
+    ? JSON.stringify([control.name, control.type, control.value]) : control.name;
+}
 
 function readControlValue(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): SavedValue | null {
-  if (!control.name || control.type === "file") return null;
+  if (!control.name || control.type === "file" || control.type === "password" || control.disabled) return null;
   if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
     return control.checked;
   }
@@ -50,9 +55,15 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
       const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
         "input[name],select[name],textarea[name]",
       );
+      const offsets = new Map<string, number>();
       controls.forEach((control) => {
-        const value = saved[control.name];
-        if (value !== undefined) restoreControl(control, value);
+        if (readControlValue(control) === null) return;
+        const key = controlKey(control);
+        const values = saved[key];
+        const offset = offsets.get(key) ?? 0;
+        offsets.set(key, offset + 1);
+        const value = Array.isArray(values) ? values[offset] : offset === 0 ? values : undefined;
+        if (typeof value === "string" || typeof value === "boolean") restoreControl(control, value);
       });
     } catch {
       localStorage.removeItem(storageKey);
@@ -61,13 +72,17 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
 
   const save = (event: FormEvent<HTMLFormElement>) => {
     const form = event.currentTarget;
-    const saved: SavedForm = {};
+    const saved: SavedForm = Object.create(null);
     const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
       "input[name],select[name],textarea[name]",
     );
     controls.forEach((control) => {
       const value = readControlValue(control);
-      if (value !== null) saved[control.name] = value;
+      if (value !== null) {
+        const key = controlKey(control);
+        const previous = saved[key];
+        saved[key] = previous === undefined ? [value] : Array.isArray(previous) ? [...previous, value] : [previous, value];
+      }
     });
     localStorage.setItem(storageKey, JSON.stringify(saved));
   };
