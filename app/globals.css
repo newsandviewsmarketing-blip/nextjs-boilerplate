@@ -4136,3 +4136,28 @@ textarea:focus {
   .job-board .job-apply { grid-column: 2; }
   .current-job-slide .job-poster-thumbnail--compact { --job-poster-width: 100px; }
 }
+
+.vcx-appointment-calendar { margin-block: 1rem; }
+.vcx-appointment-calendar-controls { display: flex; flex-wrap: wrap; gap: .5rem; }
+.vcx-appointment-calendar-controls button {
+  border: 1px solid currentColor;
+  border-radius: .4rem;
+  padding: .4rem .65rem;
+}
+.vcx-appointment-calendar-controls [aria-pressed="true"] { font-weight: 700; }
+.vcx-appointment-weekdays,
+.vcx-appointment-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: .25rem;
+}
+.vcx-appointment-days { list-style: none; margin: 0; padding: 0; }
+.vcx-appointment-days li { border: 1px solid #cbd5e1; border-radius: .3rem; padding: .25rem; }
+.vcx-appointment-days .is-today { border-color: #c2410c; }
+.vcx-appointment-days time { display: block; font-weight: 700; }
+.vcx-appointment-days a { display: block; font-size: .8rem; overflow-wrap: anywhere; text-decoration: underline; }
+@media (max-width: 640px) {
+  .vcx-appointment-weekdays { display: none; }
+  .vcx-appointment-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vcx-appointment-days time::after { content: " · " attr(aria-label); font-size: .75rem; }
+}

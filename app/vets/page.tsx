@@ -37,7 +37,7 @@ async function loadVeterinarians(): Promise<PublicVeterinarian[]> {
   const supabase = await createClient();
 
   const select =
-    "user_id, full_name, qualifications, specialization, veterinary_sector, years_experience, city, province, district, tehsil, services, profile_verified, pvmc_verified, image_url, public_phone, contact_email, address, google_maps_url";
+    "user_id, full_name, qualifications, specialization, veterinary_sector, years_experience, city, province, district, tehsil, services, profile_verified, pvmc_verified, image_url, address, google_maps_url";
 
   const [account, managed] = await Promise.all([
     supabase

@@ -1,3 +1,4 @@
+import ClinicAppointmentCalendar from "../ClinicAppointmentCalendar";
 /* eslint-disable @next/next/no-img-element -- Approved Supabase Storage URLs are displayed directly. */
 
 import Link from "next/link";
@@ -332,7 +333,7 @@ export default async function ClinicManagePage({
             ["Services & rate card","#clinic-services","Consultation fees and bookable services"],
             ["Clinic team","#clinic-team","Owner and professional affiliations"],
             ["Appointments","#clinic-appointments","Manage incoming booking requests"]
-          ].map(([label,href,description])=><a key={href} href={href} className="vcx-clinic-workflow-item"><strong>{label}</strong><small>{description}</small></a>)}
+          ].map(([label,href,description])=><a key={href} href={href} className="vcx-clinic-workflow-item vcx-clinic-workflow-section"><strong>{label}</strong><small>{description}</small></a>)}
         </div>
        </nav>
        <section className="vcx-clinic-readiness" aria-label="Clinic publication readiness">
@@ -359,16 +360,16 @@ export default async function ClinicManagePage({
               <span>Public directory</span>
             </article>
             <article>
-              <b>{clinicServices.length}</b>
+              <b>{servicesResult.error ? "Unavailable" : clinicServices.length}</b>
               <span>Standardized services</span>
             </article>
             <article>
-              <b>{activeMembers.length}</b>
+              <b>{membersResult.error ? "Unavailable" : activeMembers.length}</b>
               <span>Active team links</span>
             </article>
             <article>
-              <b>{appointments.filter((row) => row.status === "new").length}</b>
-              <span>New appointments</span>
+              <b>{appointmentsResult.error ? "Unavailable" : appointments.filter((row) => row.status === "new").length}</b>
+              <span>New among recent requests</span>
             </article>
           </div>
 
@@ -960,8 +961,24 @@ export default async function ClinicManagePage({
               </p>
             </div>
 
+            {!appointmentsResult.error && (
+              <ClinicAppointmentCalendar
+                today={new Intl.DateTimeFormat("en-CA", {
+                  timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit",
+                }).format(new Date())}
+                appointments={appointments.flatMap(appointment => {
+                  const date = appointment.scheduled_date ?? appointment.preferred_date;
+                  return date ? [{
+                    id: appointment.id,
+                    date,
+                    time: appointment.scheduled_date ? appointment.scheduled_time : appointment.preferred_time,
+                    status: appointment.status,
+                  }] : [];
+                })}
+              />
+            )}
             <div className="workspace-record-list">
-              {appointments.length === 0 ? (
+              {appointmentsResult.error ? <p>Appointment requests are temporarily unavailable.</p> : appointments.length === 0 ? (
                 <p>No appointment requests yet.</p>
               ) : (
                 appointments.map((appointment) => {
@@ -970,7 +987,7 @@ export default async function ClinicManagePage({
                     : null;
 
                   return (
-                    <article key={appointment.id}>
+                    <article key={appointment.id} id={`appointment-${appointment.id}`}>
                       <div>
                         <h3>{appointment.contact_name}</h3>
                         <p>
