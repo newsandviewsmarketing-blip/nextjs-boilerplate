@@ -34,7 +34,7 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   const allowedKeys=[
     "province","city","institution_source","additional_qualifications","additional_institutions","additional_institution_sources","pvmc_number_pending",
     "experience_years","current_designation","current_workplace","professional_summary",
-    "pvmc_number","qualifications","institution","practice_areas","specializations","specialization_other",
+    "pvmc_number","pvmc_declaration","pvmc_declaration_version","pvmc_declared_at","qualifications","institution","practice_areas","specializations","specialization_other",
     "student_track","highest_qualification","study_program","student_college_registration_number",
     "pvmc_student_reference","academic_year","career_interest","professional_type","professional_types",
     "industry_sector","industry_sectors","organization_name","facility_type","company_type","company_types",
