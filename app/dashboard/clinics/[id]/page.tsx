@@ -1,3 +1,4 @@
+import ClinicUpcomingVisits from "../ClinicUpcomingVisits";
 import ClinicLegacySection from "../ClinicLegacySection";
 import ClinicRecords from "../ClinicRecords";
 import ClinicAppointmentCalendar from "../ClinicAppointmentCalendar";
@@ -35,6 +36,14 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function clinicTimestamp(value: string) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return "Unavailable";
+  return new Intl.DateTimeFormat("en-PK", {
+    dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Karachi",
+  }).format(date) + " PKT";
+}
+
 const dayNames = [
   "Sunday",
   "Monday",
@@ -46,6 +55,8 @@ const dayNames = [
 ];
 
 type ClinicRow = {
+  created_at: string;
+  updated_at: string;
   id: string;
   slug: string;
   clinic_name: string;
@@ -148,9 +159,9 @@ export default async function ClinicManagePage({
   const { id } = await params;
   const messages = await searchParams;
   const sections = [
-    ["overview", "Overview"], ["profile", "Profile & media"],
+    ["overview", "Overview"], ["registration", "Registration details"], ["profile", "Edit profile & media"],
     ["availability", "Availability"], ["services", "Services & fees"],
-    ["team", "Team"], ["appointments", "Appointments"], ["records", "Customers & patients"],
+    ["team", "Team"], ["appointments", "Appointment inbox"], ["upcoming", "Upcoming visits"], ["records", "Customers & patients"],
   ] as const;
   const section = sections.find(([key]) => key === messages.section)?.[0] ?? "overview";
   const identity = await getCurrentIdentity();
@@ -173,7 +184,7 @@ export default async function ClinicManagePage({
     supabase
       .from("clinics")
       .select(
-        "id, slug, clinic_name, responsible_veterinarian_name, responsible_veterinarian_pvmc, facility_type, description, province, district, tehsil, city, address, public_phone, public_email, website, working_hours, emergency_service, services, species, verification_status, rejection_reason, is_published, logo_url, cover_image_url",
+        "id, created_at, updated_at, slug, clinic_name, responsible_veterinarian_name, responsible_veterinarian_pvmc, facility_type, description, province, district, tehsil, city, address, public_phone, public_email, website, working_hours, emergency_service, services, species, verification_status, rejection_reason, is_published, logo_url, cover_image_url",
       )
       .eq("id", id)
       .eq("owner_id", identity.userId)
@@ -313,6 +324,26 @@ export default async function ClinicManagePage({
        {loadingErrors.length > 0 && (
          <p role="status" className="form-message form-message-error">Some clinic information is temporarily unavailable.</p>
        )}
+       {section === "registration" && (
+         <section className="backend-form-card workspace-section-card">
+           <h2>Clinic registration details</h2>
+           <dl className="clinic-registration-facts">
+             {[
+               ["Clinic", clinic.clinic_name], ["Practice type", clinic.facility_type],
+               ["Registration saved", clinicTimestamp(clinic.created_at)],
+               ["Last clinic profile update", clinicTimestamp(clinic.updated_at)],
+               ["Responsible veterinarian", clinic.responsible_veterinarian_name],
+               ["Submitted PVMC number", clinic.responsible_veterinarian_pvmc],
+               ["Location", [clinic.city, clinic.district, clinic.province].filter(Boolean).join(", ")],
+               ["Address", clinic.address], ["Public phone", clinic.public_phone],
+               ["Public email", clinic.public_email], ["Website", clinic.website],
+               ["Animals served", clinic.species?.join(", ")], ["Practice services", clinic.services?.join(", ")],
+             ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not provided"}</dd></div>)}
+           </dl>
+           <Link href={`/dashboard/clinics/${id}?section=profile#clinic-identity`}>Edit clinic details</Link>
+         </section>
+       )}
+       {section === "upcoming" && <ClinicUpcomingVisits clinicId={clinic.id} />}
        {section === "overview" && <>
        <section className="vcx-clinic-readiness" aria-label="Clinic publication readiness">
          <div><span className="vcx-eyebrow">FACILITY REVIEW</span><h2>{readinessIssues.length===0?"Core clinic details ready for VetConnect review":"Complete your clinic before publication"}</h2>
