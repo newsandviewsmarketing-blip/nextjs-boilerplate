@@ -372,6 +372,15 @@ test("job coverage matching honors province-wide, selected districts, cities and
       target: ts.default.ScriptTarget.ES2022,
     },
   }).outputText;
+  const cityModule = { exports: {} };
+  const cityCompiled = ts.default.transpileModule(read("lib/city-normalization.ts"), {
+    compilerOptions: { module: ts.default.ModuleKind.CommonJS, target: ts.default.ScriptTarget.ES2022 },
+  }).outputText;
+  vm.runInNewContext(cityCompiled, {
+    module: cityModule,
+    exports: cityModule.exports,
+    require: (name) => { throw new Error("Unexpected city module import: " + name); },
+  });
   const exported = { exports: {} };
   const geo = JSON.parse(read("public/data/pakistan-administrative-hierarchy.json"));
   vm.runInNewContext(compiled, {
@@ -379,6 +388,7 @@ test("job coverage matching honors province-wide, selected districts, cities and
     exports: exported.exports,
     require: (name) => {
       if (name === "../public/data/pakistan-administrative-hierarchy.json") return geo;
+      if (name === "./city-normalization") return cityModule.exports;
       throw new Error("Unexpected module import: " + name);
     },
   });
