@@ -1,3 +1,4 @@
+import { uniqueCities, matchesCity } from "@/lib/city-normalization";
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
@@ -81,9 +82,9 @@ export default async function JobsPage({
   const page = Math.min(requestedPage,pages);
   const shownJobs = visibleJobs.slice((page-1)*pageSize,page*pageSize);
   const pageUrl=(next:number)=>"/jobs?"+new URLSearchParams({...(params.q?{q:params.q}:{}),...(params.city&&params.city!=="All cities"?{city:params.city}:{}),...(params.sector&&params.sector!=="All sectors"?{sector:params.sector}:{}),page:String(next)}).toString()+"#jobs";
-  const cities = [...new Set([
+  const cities = uniqueCities([
     ...jobs.flatMap(job => [job.city, job.coverage?.province, ...(job.coverage_areas?.map(a=>a.city || a.district || a.label) ?? [])]),
-  ].filter((name):name is string=>Boolean(name)))].sort((a,b)=>a.localeCompare(b));
+  ]);
   const sectors=[...new Set(jobs.map(j=>j.sector).filter((x):x is string=>Boolean(x)))].sort();
   const preferredSectors=["Poultry","Dairy","Livestock","Sales & Marketing","Veterinary Services","Feed & Nutrition","Pharmaceutical / Industry","Animal Health","Fisheries / Aquaculture","Academia / Research","Laboratory / Diagnostics","Pets / Companion Animals","Agriculture","Food Safety","Wildlife / Conservation"];
   const browseSectors=[...new Set([...preferredSectors,...sectors])];
