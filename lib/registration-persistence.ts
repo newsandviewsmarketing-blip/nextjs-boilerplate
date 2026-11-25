@@ -1,3 +1,4 @@
+import {parseCompanyClassification} from "@/lib/company-classification";
 import {isPakistanLocationInProvince} from "@/lib/pakistan-locations";
 import {createClient} from "@/lib/supabase/server";
 import {PRACTICE_AREAS,SPECIALIZATIONS,PROFESSIONAL_CATEGORIES} from "@/lib/registration-categories";
@@ -49,6 +50,16 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
       categoryDetails[key]=["additional_qualifications","additional_institutions","additional_institution_sources"].includes(key)
         ? value.map((item:string)=>item.trim())
         : [...new Set(value.map((item:string)=>item.trim()).filter(Boolean))];
+  }
+  // Preserve validated classification in the private pending registration only.
+  // Canonical company assignment must occur through the approved company workflow.
+  if(role==="company" && meta.company_classification !== undefined && meta.company_classification !== ""){
+    const raw=meta.company_classification;
+    const classification=typeof raw==="string" ? parseCompanyClassification(raw) : null;
+    if(!classification)return "Please check your company classification before saving.";
+    categoryDetails.company_classification=JSON.stringify(classification);
+    categoryDetails.industry_sector=classification[0].sector;
+    categoryDetails.industry_sectors=classification.map(row=>row.sector);
   }
   // Resolve sector/specialization canonical IDs using trusted active master data.
   // Names are retained for backward compatibility; no user-supplied ID is trusted.
