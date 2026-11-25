@@ -1,3 +1,4 @@
+import {parseCompanyClassification} from "@/lib/company-classification";
 import {registrationInstitution} from "@/lib/registration-institutions";
 import { isPakistanLocation, isPakistanLocationInProvince, PAKISTAN_PROVINCES } from "@/lib/pakistan-locations";
 
@@ -169,6 +170,12 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     data.industry_sector=types[0];
     data.company_types=types;
     data.industry_sectors=types;
+    const classificationRaw=field(form,"company_classification");
+    if(classificationRaw){
+      const classification=parseCompanyClassification(classificationRaw);
+      if(!classification)return {error:"Choose valid company sectors, subsectors and business activities.",data:{}};
+      data.company_classification=JSON.stringify(classification);
+    }
   }else if(role==="laboratory"){
     for(const k of ["organization_name","laboratory_type","laboratory_registration_number","tests_offered","lab_location"])
       if(!required(k,250))return {error:"Laboratory name, registration, services and address are required.",data:{}};
