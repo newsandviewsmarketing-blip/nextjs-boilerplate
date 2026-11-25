@@ -11,7 +11,9 @@ export default async function AdminNav({roles,activeGroup}:{roles:AccountRole[];
   const assist=(["profiles.create","companies.create","clinics.manage","laboratories.manage","products.create","jobs.create"] as const).some(allowed);
   const groups:{title:string;items:Entry[]}[]=[
     {title:"Dashboard",items:[
-      {name:"Overview & latest updates",href:"/admin",permission:"admin.view"},
+      {name:"Overview & platform figures",href:"/admin",permission:"admin.view"},
+      {name:"Recent activity",href:"/admin?panel=activity",permission:"admin.view"},
+      {name:"Operational pulse",href:"/admin?panel=operations",permission:"admin.view"},
     ]},
     {title:"Registrations & people",items:[
       {name:"Veterinarians",href:"/admin/users?role=veterinarian",permission:"users.manage"},
@@ -32,8 +34,10 @@ export default async function AdminNav({roles,activeGroup}:{roles:AccountRole[];
     ]},
     {title:"Jobs & HR",items:[
       {name:"Jobs workspace",href:"/admin/jobs",permission:"jobs.manage"},
+      {name:"Job applications",href:"/admin/applications",permission:"jobs.manage"},
     ]},
     {title:"Approvals",items:[
+      {name:"Approval dashboard",href:"/admin?panel=approvals",permission:"admin.view"},
       {name:"Profile & organization reviews",href:"/admin/reviews",permission:"profiles.review"},
       {name:"Veterinarian PVMC checks",href:"/admin/reviews#credential-checks",permission:"regulatory.review"},
       {name:"PVMC evidence rechecks",href:"/admin/credential-recheck",permission:"regulatory.review"},
