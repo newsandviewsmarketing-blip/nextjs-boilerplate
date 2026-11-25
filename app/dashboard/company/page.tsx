@@ -236,8 +236,8 @@ export default async function CompanyDashboardPage({
     if (scopedJobIds.length > 0) {
     const { data, error } = await supabase
       .from("job_applications")
-      .in("job_id", scopedJobIds)
       .select("id, job_id, candidate_user_id, status, applied_at, cv_document_id, cv_source, cv_snapshot")
+      .in("job_id", scopedJobIds)
       .order("applied_at", { ascending: false })
       .limit(25);
 
