@@ -53,11 +53,13 @@ export async function persistRegisteredCategoryDetails(supabase:Db,userId:string
   }
   // Preserve validated classification in the private pending registration only.
   // Canonical company assignment must occur through the approved company workflow.
-  if(role==="company" && meta.company_classification !== undefined){
+  if(role==="company" && meta.company_classification !== undefined && meta.company_classification !== ""){
     const raw=meta.company_classification;
     const classification=typeof raw==="string" ? parseCompanyClassification(raw) : null;
     if(!classification)return "Please check your company classification before saving.";
     categoryDetails.company_classification=JSON.stringify(classification);
+    categoryDetails.industry_sector=classification[0].sector;
+    categoryDetails.industry_sectors=classification.map(row=>row.sector);
   }
   // Resolve sector/specialization canonical IDs using trusted active master data.
   // Names are retained for backward compatibility; no user-supplied ID is trusted.
