@@ -16,9 +16,14 @@ export default function CompanyClassificationFields({ initial = [] }: { initial?
       const row = rows.find(item => item.sector === sector);
       return <div key={sector}>
         <label className="checkbox-line"><input type="checkbox" checked={!!row}
-          onChange={event => setRows(current => event.target.checked
-            ? [...current, {sector, subsectors: [], activities: []}]
-            : current.filter(item => item.sector !== sector))}/>{sector.replaceAll("_", " ")}</label>
+          onChange={event => {
+            const checked = event.target.checked;
+            if (!checked && row && (row.subsectors.length || row.activities.length) &&
+                !window.confirm("Remove this sector and its selected subsectors and activities?")) return;
+            setRows(current => checked
+              ? [...current, {sector, subsectors: [], activities: []}]
+              : current.filter(item => item.sector !== sector));
+          }}/>{sector.replaceAll("_", " ")}</label>
         {row && <div>
           <p>Subsectors</p><div className="service-checkbox-grid">{options.map(value =>
             <label className="checkbox-line" key={value}><input type="checkbox" checked={row.subsectors.includes(value)}
@@ -29,6 +34,6 @@ export default function CompanyClassificationFields({ initial = [] }: { initial?
         </div>}
       </div>;
     })}
-    <input type="hidden" name="company_classification" value={JSON.stringify(rows)}/>
+    <input type="hidden" name="company_classification" value={rows.length ? JSON.stringify(rows) : ""}/>
   </fieldset>;
 }
