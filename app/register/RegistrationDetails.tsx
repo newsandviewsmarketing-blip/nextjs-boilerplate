@@ -1,4 +1,5 @@
 "use client";
+import CompanyClassificationFields from "@/app/components/CompanyClassificationFields";
 import AwardingInstitutionField from "./AwardingInstitutionField";
 import { useRef, useState } from "react";
 import { PRACTICE_AREAS, SPECIALIZATIONS, PROFESSIONAL_CATEGORIES, VETERINARY_QUALIFICATIONS, ACADEMIC_QUALIFICATIONS, STUDENT_PROGRAMS_BY_TRACK } from "@/lib/registration-categories";
@@ -122,6 +123,7 @@ function CompanyRegistrationFields() {
       {activities.map(activity=><input type="hidden" name="industry_sectors" value={activity} key={"sector-"+activity}/>)}
       <small>At least one activity is required. Management contacts are added after registration.</small>
     </fieldset>
+    <CompanyClassificationFields/>
   </>;
 }
 
