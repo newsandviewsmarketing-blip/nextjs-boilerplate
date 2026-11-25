@@ -421,3 +421,16 @@ test("registration evidence follows one veterinarian-only PVMC policy without re
  assert.equal((migration.match(/required_types := array\[\]::text\[\]/g)||[]).length,2);
  assert.match(migration,/create or replace view public.public_clinics as/);
 });
+
+
+test("Company classification is wired through registration validation and private persistence",()=>{
+ const fields=read("app/register/RegistrationDetails.tsx");
+ const component=read("app/components/CompanyClassificationFields.tsx");
+ const gate=read("lib/registration-categories.ts");
+ const persist=read("lib/registration-persistence.ts");
+ assert.ok(fields.includes("<CompanyClassificationFields/>"));
+ assert.ok(component.includes('name="company_classification"'));
+ assert.ok(gate.includes("parseCompanyClassification(classificationRaw)"));
+ assert.ok(persist.includes("parseCompanyClassification(raw)"));
+ assert.ok(persist.includes("categoryDetails.industry_sectors=classification.map(row=>row.sector)"));
+});
