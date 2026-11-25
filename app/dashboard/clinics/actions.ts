@@ -154,8 +154,9 @@ export async function createClinicAction(formData: FormData) {
 export async function updateClinicAction(formData: FormData) {
   const id = text(formData, "clinic_id");
   const path = `/dashboard/clinics/${id}`;
+  const part = text(formData, "profile_part") || "all";
   const sectionMessage = (path: string, kind: "error" | "message", message: string) =>
-    routeMessage(path, kind, message, "profile");
+    routeMessage(path, kind, message, "profile") + "&part=" + encodeURIComponent(part);
   const identity = await requireClinicUser(path);
   if (!id) {
     redirect(
@@ -168,28 +169,34 @@ export async function updateClinicAction(formData: FormData) {
   }
 
   const clinicName = text(formData, "clinic_name");
-  if (!clinicName) {
+  if (!["identity","contact","focus","all"].includes(part)) redirect(path);
+  const identityPart = part === "identity" || part === "all";
+  if (identityPart && !clinicName) {
     redirect(
       sectionMessage(path, "error", "Clinic name is required."),
     );
   }
 
   const facility=resolveClinicFacilityType(formData);
-  if(facility.error){
+  if(identityPart && facility.error){
     redirect(sectionMessage(path,"error",facility.error));
   }
   const focusServices=clinicFocusEntries(formData,"services");
   const focusSpecies=clinicFocusEntries(formData,"species");
   
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("clinics")
     .update({
+      ...(identityPart && {
       clinic_name: clinicName,
       responsible_veterinarian_name: nullableText(formData, "responsible_veterinarian_name"),
       responsible_veterinarian_pvmc: nullableText(formData, "responsible_veterinarian_pvmc"),
       facility_type: facility.value,
       description: nullableText(formData, "description"),
+      emergency_service: formData.get("emergency_service") === "on",
+      }),
+      ...((part === "contact" || part === "all") && {
       province: nullableText(formData, "province"),
       district: nullableText(formData, "district"),
       tehsil: nullableText(formData, "tehsil"),
@@ -198,16 +205,17 @@ export async function updateClinicAction(formData: FormData) {
       public_phone: nullableText(formData, "public_phone"),
       public_email: nullableText(formData, "public_email"),
       website: nullableText(formData, "website"),
-      emergency_service:
-        formData.get("emergency_service") === "on",
+      }),
+      ...((part === "focus" || part === "all") && {
       services: focusServices,
       species: focusSpecies,
+      }),
     })
     .eq("id", id)
-    .eq("owner_id", identity.userId);
+    .eq("owner_id", identity.userId).select("id").maybeSingle();
 
-  if (error) {
-    redirect(sectionMessage(path, "error", error.message));
+  if (error || !data) {
+    redirect(sectionMessage(path, "error", error?.message || "Clinic update unavailable."));
   }
 
   revalidatePath(path);
@@ -216,7 +224,7 @@ export async function updateClinicAction(formData: FormData) {
     sectionMessage(
       path,
       "message",
-      "Clinic profile saved and returned to verification review if substantive details changed.",
+      "Saved at " + new Intl.DateTimeFormat("en-PK", { timeZone: "Asia/Karachi", hour: "2-digit", minute: "2-digit" }).format(new Date()) + " PKT.",
     ),
   );
 }
