@@ -20,26 +20,33 @@ const SERVICE_GROUPS=[
  {id:"equine",title:"Equine & field practice",description:"Horses and other equids, field visits and focused care",sections:[
   {title:"Equine services",items:["Equine General Practice","Equine Lameness Assessment","Equine Dentistry","Equine Ultrasound","Equine Reproductive Services"]},
  ]},
+ {id:"aquaculture",title:"Aquaculture practice",description:"Services for fish and aquatic production",sections:[
+  {title:"Aquatic animal health",items:["Aquaculture Health"]},
+ ]},
  {id:"other",title:"General & shared services",description:"Only choose services actually available at this facility",sections:[
-  {title:"General clinical services",items:["Consultation","Vaccination","Diagnostics","Surgery","Preventive Care","Emergency Care","Biosecurity","Aquaculture Health","Laboratory Referral"]},
+  {title:"General clinical services",items:["Consultation","Vaccination","Diagnostics","Surgery","Preventive Care","Emergency Care","Biosecurity","Laboratory Referral"]},
  ]},
 ] as const;
 const ANIMAL_GROUPS=[
- {title:"Pets & companion animals",items:["Dogs","Cats","Rabbits","Pet Birds","Exotic Pets","Companion Animals"]},
- {title:"Poultry production",items:["Poultry","Broiler Flocks","Layer Flocks","Breeder Flocks","Hatchery / Chicks"]},
- {title:"Dairy, beef & small ruminants",items:["Cattle","Buffalo","Sheep","Goats","Dairy Cattle","Beef Cattle","Dairy Buffalo"]},
- {title:"Equine & other animals",items:["Equine","Horses","Donkeys","Camelids","Fish / Aquaculture","Wildlife"]},
+ {id:"pet",title:"Pets & companion animals",items:["Dogs","Cats","Rabbits","Pet Birds","Exotic Pets","Companion Animals"]},
+ {id:"poultry",title:"Poultry production",items:["Poultry","Broiler Flocks","Layer Flocks","Breeder Flocks","Hatchery / Chicks"]},
+ {id:"livestock",title:"Dairy, beef & small ruminants",items:["Cattle","Buffalo","Sheep","Goats","Dairy Cattle","Beef Cattle","Dairy Buffalo"]},
+ {id:"equine",title:"Equine",items:["Equine","Horses","Donkeys"]},
+ {id:"aquaculture",title:"Aquaculture",items:["Fish / Aquaculture"]},
+ {id:"other",title:"Other animals",items:["Camelids","Wildlife"]},
 ] as const;
-type Tab="pet"|"poultry"|"livestock"|"equine"|"other"|"all";
 
-function CheckboxCard({label,kind,checked}:{label:string;kind:"services"|"species";checked:boolean}){
+function CheckboxCard({label,kind,checked,onChange}:{label:string;kind:"services"|"species";checked:boolean;onChange?:(checked:boolean)=>void}){
  return <label className="vcx-clinic-focus-pill" key={label}>
-  <input type="checkbox" name={kind+"_selected"} value={label} defaultChecked={checked}/>
+  <input type="checkbox" name={kind+"_selected"} value={label} defaultChecked={checked} onChange={event=>onChange?.(event.currentTarget.checked)}/>
   <span>{label}</span>
  </label>;
 }
 export default function ClinicFocusFields({services=[],species=[]}:Props){
- const [active,setActive]=useState<Tab>("pet");
+ const [selectedSpecies,setSelectedSpecies]=useState(species);
+ const visibleGroups = new Set(ANIMAL_GROUPS
+  .filter(group=>group.items.some(label=>selectedSpecies.includes(label)))
+  .map(group=>group.id));
  const knownServices=new Set<string>(CLINIC_SERVICES);
  const knownSpecies=new Set<string>(CLINIC_SPECIES);
  const extras={services:services.filter(x=>!knownServices.has(x)).join(", "),species:species.filter(x=>!knownSpecies.has(x)).join(", ")};
@@ -55,21 +62,17 @@ export default function ClinicFocusFields({services=[],species=[]}:Props){
     <legend className="vcx-visually-hidden">Animal groups and species served</legend>
     {ANIMAL_GROUPS.map(group=><div className="vcx-clinic-service-subgroup" key={group.title}>
       <h6>{group.title}</h6>
-      <div className="vcx-clinic-focus-grid">{group.items.map(label=><CheckboxCard key={label} label={label} kind="species" checked={species.includes(label)}/>)}</div>
+      <div className="vcx-clinic-focus-grid">{group.items.map(label=><CheckboxCard key={label} label={label} kind="species" checked={species.includes(label)} onChange={checked=>setSelectedSpecies(previous=>checked?[...previous,label]:previous.filter(item=>item!==label))}/>)}</div>
     </div>)}
     <label htmlFor="clinic_species_extra">Other species (optional)</label>
     <input id="clinic_species_extra" name="species_extra" defaultValue={extras.species} maxLength={350} placeholder="e.g. Camel, exotic pets"/>
    </fieldset>
   </section>
   <section className="vcx-clinic-choice-section" aria-labelledby="clinic-services-title">
-   <div className="vcx-clinic-choice-title"><span className="vcx-clinic-choice-number">02</span><div><h4 id="clinic-services-title">Expertise & services</h4><p>Choose pet, poultry, livestock or equine services. Options in other categories remain selected when you switch tabs.</p></div></div>
-   <div className="vcx-clinic-service-tabs" role="group" aria-label="Filter service categories">
-    {([{id:"pet",label:"Pets"},{id:"poultry",label:"Poultry"},{id:"livestock",label:"Livestock"},{id:"equine",label:"Equine"},{id:"other",label:"General"},{id:"all",label:"All"}] as const).map(tab=>
-     <button key={tab.id} type="button" onClick={()=>setActive(tab.id)} aria-pressed={active===tab.id} className={active===tab.id?"is-active":""}>{tab.label}</button>)}
-   </div>
+   <div className="vcx-clinic-choice-title"><span className="vcx-clinic-choice-number">02</span><div><h4 id="clinic-services-title">Expertise & services</h4><p>Service categories follow your animal selections. Existing service choices stay saved when you change the animals you serve.</p></div></div>
    <fieldset className="vcx-clinic-focus">
     <legend className="vcx-visually-hidden">Choose expertise and services</legend>
-    {SERVICE_GROUPS.map(group=><div key={group.id} className="vcx-clinic-service-group" style={{display:active==="all"||active===group.id?"block":"none"}}>
+    {SERVICE_GROUPS.map(group=><div key={group.id} className="vcx-clinic-service-group" hidden={group.id!=="other"&&!visibleGroups.has(group.id)}>
       <h5>{group.title}</h5><p>{group.description}</p>
       {group.sections.map(section=><div className="vcx-clinic-service-subgroup" key={section.title}>
         <h6>{section.title}</h6>

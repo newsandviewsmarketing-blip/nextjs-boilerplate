@@ -434,6 +434,7 @@
 .vcx-clinic-workflow-count{white-space:nowrap;background:#edf4ff;border-radius:10px;padding:9px 11px;color:#234a7d;font-size:12px;font-weight:850}
 .vcx-clinic-workflow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .vcx-clinic-workflow-item{display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;column-gap:10px;row-gap:3px;border:1px solid #e1e8f2;border-radius:11px;padding:13px;background:#f9fbfe;text-decoration:none}
+.vcx-clinic-workflow-item.vcx-clinic-workflow-section{grid-template-columns:minmax(0,1fr)}
 .vcx-clinic-workflow-item:hover{background:#fff6ed;border-color:#f6ceab}
 .vcx-clinic-workflow-number{grid-row:span 2;background:#fff0e3;color:#a85700;width:30px;height:30px;display:grid;place-items:center;font-size:11px;font-weight:850;border-radius:9px}
 .vcx-clinic-workflow-item strong{font-size:12px;color:#21385b}

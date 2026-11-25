@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 async function loadProfessionals(): Promise<PublicProfessional[]> {
   if (!isSupabaseConfigured()) return sampleProfessionals;
   const supabase = await createClient();
-  const select="user_id, slug, full_name, professional_type, headline, current_position, organization_name, city, province, district, tehsil, public_summary, years_experience, skills, profile_verified, image_url, public_phone, contact_email, address, google_maps_url";
+  const select="user_id, slug, full_name, professional_type, headline, current_position, organization_name, city, province, district, tehsil, public_summary, years_experience, skills, profile_verified, image_url, address, google_maps_url";
   const [account,managed]=await Promise.all([
     supabase.from("public_professionals").select(select).order("full_name"),
     supabase.from("public_managed_professionals").select(select).order("full_name"),
