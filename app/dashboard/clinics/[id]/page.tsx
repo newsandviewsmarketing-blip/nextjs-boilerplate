@@ -1,3 +1,4 @@
+import ClinicRecords from "../ClinicRecords";
 import ClinicAppointmentCalendar from "../ClinicAppointmentCalendar";
 /* eslint-disable @next/next/no-img-element -- Approved Supabase Storage URLs are displayed directly. */
 
@@ -141,10 +142,16 @@ export default async function ClinicManagePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; section?: string }>;
 }) {
   const { id } = await params;
   const messages = await searchParams;
+  const sections = [
+    ["overview", "Overview"], ["profile", "Profile & media"],
+    ["availability", "Availability"], ["services", "Services & fees"],
+    ["team", "Team"], ["appointments", "Appointments"], ["records", "Customers & patients"],
+  ] as const;
+  const section = sections.find(([key]) => key === messages.section)?.[0] ?? "overview";
   const identity = await getCurrentIdentity();
   if (!identity) {
     redirect(
@@ -291,74 +298,24 @@ export default async function ClinicManagePage({
          <Link className="vcx-button vcx-button-outline" href="/career/connections">All my connections</Link>
         </div>
        </div>
-       <section className="vcx-clinic-workflow" aria-label="Clinic setup progress">
-        <div className="vcx-clinic-workflow-heading">
-          <div><span className="vcx-eyebrow">NEXT STEPS</span><h2>Set up your practice for bookings and public listing</h2>
-          <p>Complete your service details, opening hours and team information. The public listing is enabled only after VetConnect approval.</p></div>
-          <span className="vcx-clinic-workflow-count">{[
-            Boolean(clinic.clinic_name && clinic.city && clinic.address),
-            availability.some(day=>day.is_open),
-            clinicServices.some(service=>service.is_active&&service.is_public),
-            clinic.verification_status==="approved"&&clinic.is_published
-          ].filter(Boolean).length} / 4 steps</span>
-        </div>
-        <div className="vcx-clinic-workflow-grid">
-          <a href="#clinic-identity" className="vcx-clinic-workflow-item">
-            <span className="vcx-clinic-workflow-number">01</span><strong>Clinic details</strong>
-            <small>{clinic.clinic_name && clinic.city && clinic.address?"Basic details entered":"Complete location and identity"}</small>
-          </a>
-          <a href="#clinic-hours" className="vcx-clinic-workflow-item">
-            <span className="vcx-clinic-workflow-number">02</span><strong>Timings & slots</strong>
-            <small>{availability.some(day=>day.is_open)?"Opening days saved":"Set weekdays, breaks and booking slots"}</small>
-          </a>
-          <a href="#clinic-services" className="vcx-clinic-workflow-item">
-            <span className="vcx-clinic-workflow-number">03</span><strong>Services & fees</strong>
-            <small>{clinicServices.some(service=>service.is_active&&service.is_public)?"Public service offering saved":"Select catalogue service, fee and duration"}</small>
-          </a>
-          <a href="#clinic-team" className="vcx-clinic-workflow-item">
-            <span className="vcx-clinic-workflow-number">04</span><strong>Review & public page</strong>
-            <small>{clinic.verification_status==="approved"&&clinic.is_published?"Public listing active":"Team, PVMC and VetConnect approval"}</small>
-          </a>
-        </div>
-        <p className="form-help">Service focus choices in the clinic profile are not automatically bookable. To accept online requests, add an active catalogue service below, enable booking for it, and activate appointment hours.</p>
-        {clinic.is_published&&<Link className="vcx-button vcx-button-outline" href={`/clinics/${clinic.slug}`}>View public clinic profile</Link>}
-       </section>
-       <nav aria-label="My Clinic workspace" className="vcx-clinic-workflow">
-        <div className="vcx-clinic-workflow-heading"><div><span className="vcx-eyebrow">MY CLINIC</span><h2>Practice management workspace</h2><p>Choose a section to manage your practice.</p></div></div>
-        <div className="vcx-clinic-workflow-grid">
-          {[
-            ["Clinic registration & profile","#clinic-identity","Identity, location and professional credentials"],
-            ["Calendar & availability","#clinic-hours","Weekly hours and booking slots"],
-            ["Holidays & special dates","#clinic-date-exceptions","Date-specific schedule changes"],
-            ["Services & rate card","#clinic-services","Consultation fees and bookable services"],
-            ["Clinic team","#clinic-team","Owner and professional affiliations"],
-            ["Appointments","#clinic-appointments","Manage incoming booking requests"]
-          ].map(([label,href,description])=><a key={href} href={href} className="vcx-clinic-workflow-item vcx-clinic-workflow-section"><strong>{label}</strong><small>{description}</small></a>)}
-        </div>
+       <nav className="vcx-clinic-sections" aria-label="My Clinic sections">
+         {sections.map(([key, label]) => (
+           <Link key={key} href={`/dashboard/clinics/${clinic.id}?section=${key}`}
+             aria-current={section === key ? "page" : undefined}>{label}</Link>
+         ))}
        </nav>
+       <FormMessage error={messages.error} message={messages.message} />
+       {loadingErrors.length > 0 && (
+         <p role="status" className="form-message form-message-error">Some clinic information is temporarily unavailable.</p>
+       )}
+       {section === "overview" && <>
        <section className="vcx-clinic-readiness" aria-label="Clinic publication readiness">
          <div><span className="vcx-eyebrow">FACILITY REVIEW</span><h2>{readinessIssues.length===0?"Core clinic details ready for VetConnect review":"Complete your clinic before publication"}</h2>
           <p>Saving the clinic does not verify a veterinarian&apos;s registration. VetConnect administrators separately review credentials and facility information before publishing.</p></div>
          {readinessIssues.length>0?<ul>{readinessIssues.map(issue=><li key={issue}>{issue}</li>)}</ul>:
           <p className="vcx-secondary">Core fields are present. Administrator credential verification and publication approval are still required.</p>}
        </section>
-          <FormMessage {...messages} />
-
-          {loadingErrors.length > 0 && (
-            <div className="form-message form-message-error">
-              {loadingErrors[0]?.message}
-            </div>
-          )}
-
           <div className="admin-summary">
-            <article>
-              <b>{clinic.verification_status}</b>
-              <span>Verification status</span>
-            </article>
-            <article>
-              <b>{clinic.is_published ? "Live" : "Hidden"}</b>
-              <span>Public directory</span>
-            </article>
             <article>
               <b>{servicesResult.error ? "Unavailable" : clinicServices.length}</b>
               <span>Standardized services</span>
@@ -379,6 +336,8 @@ export default async function ClinicManagePage({
             </div>
           )}
 
+       </>}
+       {section === "profile" && <>
           <div className="clinic-media-layout workspace-heading-gap">
             <article className="professional-photo-card">
               <div className="professional-photo-large">
@@ -393,10 +352,6 @@ export default async function ClinicManagePage({
                   FACILITY MEDIA
                 </span>
                 <h2>Logo and cover image</h2>
-                <p>
-                  Images are stored in VetConnect&apos;s Supabase
-                  Storage profile-media bucket.
-                </p>
               </div>
             </article>
 
@@ -607,6 +562,8 @@ export default async function ClinicManagePage({
             </FormSubmitButton>
           </form>
 
+       </>}
+       {section === "availability" && <>
           <CompactClinicHours clinicId={clinic.id} existing={availability} action={saveClinicAvailabilityAction}/>
 
           <section className="backend-form-card workspace-section-card vcx-clinic-special-dates" aria-labelledby="clinic-date-exceptions">
@@ -655,14 +612,14 @@ export default async function ClinicManagePage({
             </>}
           </section>
 
-          <div className="workspace-two-column workspace-heading-gap">
-            <section className="backend-form-card workspace-section-card">
+       </>}
+       {section === "services" && <section className="backend-form-card workspace-section-card">
               <ClinicRateCard clinicId={clinic.id} catalogue={catalog} offerings={clinicServices}
                 addAction={addClinicServiceAction} removeAction={removeClinicServiceAction}
                 submitButton={<FormSubmitButton pendingLabel="Saving service...">Add service to rate card</FormSubmitButton>}/>
-            </section>
+            </section>}
 
-            <section className="backend-form-card workspace-section-card">
+       {section === "team" && <section className="backend-form-card workspace-section-card">
               <div className="section-heading">
                 <span className="section-kicker">
                   TEAM HIERARCHY
@@ -945,10 +902,10 @@ export default async function ClinicManagePage({
                   Invite professional
                 </FormSubmitButton>
               </form>
-            </section>
-          </div>
+            </section>}
 
-          <section className="backend-form-card workspace-section-card workspace-heading-gap">
+       {section === "records" && <ClinicRecords clinicId={clinic.id} />}
+       {section === "appointments" && <section className="backend-form-card workspace-section-card workspace-heading-gap">
             <div className="section-heading">
               <span className="section-kicker">
                 APPOINTMENT REQUESTS
@@ -1121,7 +1078,7 @@ export default async function ClinicManagePage({
                 })
               )}
             </div>
-          </section>
+          </section>}
       </section>
     </CareerWorkspaceFrame>
   );

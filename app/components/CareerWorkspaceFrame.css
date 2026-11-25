@@ -518,3 +518,22 @@
 .vcx-consultation-mode small{font-size:10px;line-height:1.45;color:#64758a}
 .vcx-rate-extras-title{font-size:13px;color:#203f63;margin:4px 0 0}
 @media(max-width:780px){.vcx-consultation-mode-grid{grid-template-columns:1fr}}
+
+.vcx-clinic-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  min-width: 0;
+}
+.vcx-clinic-sections a {
+  color: #142c54;
+  background: white;
+  border: 1px solid #dce5f1;
+  border-radius: .5rem;
+  padding: .5rem .75rem;
+}
+.vcx-clinic-sections a[aria-current="page"] {
+  background: #142c54;
+  color: white;
+  border-color: #142c54;
+}
