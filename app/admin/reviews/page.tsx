@@ -364,7 +364,7 @@ export default async function AdminPage({
           const docs=registrationDocsMap.get(row.user_id)??[];
           const submittedDetails=registrationDetailMap.get(row.user_id)??{};
           const detailEntries=Object.entries(submittedDetails).filter(([key,value])=>
-            !["sector_ids","subcategory_ids"].includes(key) &&
+            !["sector_ids","subcategory_ids","pvmc_declaration","pvmc_declaration_version","pvmc_declared_at"].includes(key) &&
             (typeof value==="string"?value.length>0:Array.isArray(value)&&value.length>0)
           );
           const displayList=(key:string)=>Array.isArray(submittedDetails[key])?
@@ -387,6 +387,7 @@ export default async function AdminPage({
             {detailEntries.length>0&&<dl className="review-details">
               {detailEntries.map(([key,value])=><div key={key}><dt>{key.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" ")}</dt><dd>{Array.isArray(value)?value.join(", "):String(value)}</dd></div>)}
             </dl>}</details>
+            {(profile?.primary_role==="veterinarian"||row.registration_intent==="clinic")&&<div className="vc-editor-note"><h4>PVMC declaration — independent verification pending</h4><p><strong>Applicant declaration:</strong> {submittedDetails.pvmc_declaration==="true"?"Accepted by applicant (self-declared)":"Not recorded"}</p><p><strong>Registration number:</strong> {String(submittedDetails.pvmc_number||"Not supplied")}</p>{row.registration_intent==="clinic"&&<p><strong>Responsible veterinarian:</strong> {String(submittedDetails.responsible_veterinarian||"Not supplied")}</p>}<p><strong>Declaration version:</strong> {String(submittedDetails.pvmc_declaration_version||"Not recorded")} · <strong>Submitted:</strong> {String(submittedDetails.pvmc_declared_at||"Not recorded")}</p><p>Applicant-supplied information is not official PVMC confirmation. Review supporting documents, record the evidence source and registration status, and retain pending credential status if independent verification is unavailable. Account review is separate from practice authorization.</p></div>}
             <details><summary><b>2. Documents · {docs.length} attached</b></summary>
               <ReviewDocumentsPanel veterinarian={profile?.primary_role==="veterinarian"} documents={docs.map((doc,i)=>({key:doc.storage_path+"-"+i,kind:doc.document_type,filename:doc.original_filename,status:doc.verification_status,url:doc.signed_url}))}/>
             </details>
