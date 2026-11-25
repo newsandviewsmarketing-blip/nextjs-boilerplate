@@ -55,6 +55,9 @@ export async function requestClinicAppointmentAction(
   const preferredTime = v(formData, "preferred_time");
   const reason = v(formData, "reason");
   const path = `/clinics/${encodeURIComponent(slug)}`;
+  const identity = await getCurrentIdentity();
+  if (!identity) redirect(`/login?next=${encodeURIComponent(path + "#appointment")}`);
+
 
   if (
     !clinicId ||
@@ -119,7 +122,6 @@ export async function requestClinicAppointmentAction(
       redirect(`${path}?error=${encodeURIComponent("Choose a future appointment time for today.")}`);
     }
   }
-  const identity = await getCurrentIdentity();
   const supabase = await createClient();
 
   const { data: availability, error: availabilityError } =
@@ -270,10 +272,10 @@ export async function requestClinicAppointmentAction(
     .from("clinic_appointment_requests")
     .insert({
       clinic_id: clinicId,
-      requester_id: identity?.userId ?? null,
+      requester_id: identity.userId,
       contact_name: contactName,
       contact_email:
-        contactEmail || identity?.email || null,
+        contactEmail || identity.email || null,
       contact_phone: contactPhone || null,
       animal_species: animalSpecies || null,
       service_id: serviceId || null,
