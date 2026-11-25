@@ -537,3 +537,12 @@
   color: white;
   border-color: #142c54;
 }
+
+.clinic-registration-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.clinic-registration-facts dt { color: #536174; font-size: .875rem; }
+.clinic-registration-facts dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
