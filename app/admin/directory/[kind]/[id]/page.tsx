@@ -27,10 +27,10 @@ const correctionFields={
  job:[]
 } as const;
 const ts=(at:unknown)=>typeof at==="string"&&at?new Date(at).toLocaleString("en-PK",{timeZone:"Asia/Karachi"}):"Not recorded";
-const show=(value:unknown)=>value===null||value===undefined||value===""?"Not provided":typeof value==="object"?JSON.stringify(value):String(value);
+const show=(value:unknown)=>value===null||value===undefined||value===""?"Not provided":Array.isArray(value)?value.map(item=>typeof item==="object"?JSON.stringify(item):String(item)).join(", "):typeof value==="object"?JSON.stringify(value):typeof value==="boolean"?(value?"Yes":"No"):String(value);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function AdminDirectoryDossier({params,searchParams}:{params:Promise<{kind:string;id:string}>;searchParams:Promise<{error?:string;message?:string}>}){
+export default async function AdminDirectoryDossier({params,searchParams}:{params:Promise<{kind:string;id:string}>;searchParams:Promise<{error?:string;message?:string;panel?:string}>}){
  const {kind,id}=await params,feedback=await searchParams;
  const config=sourceMap[kind as keyof typeof sourceMap];
  if(!config||!uuid.test(id))notFound();
@@ -56,6 +56,8 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
    supabase.from("products").select("id,product_name,verification_status").eq("company_id",id).limit(50),
    supabase.from("jobs").select("id,title,verification_status").eq("company_id",id).limit(50)
  ]):null;
+ const panels=["record-data","related-records","record-files","record-actions","record-audit"] as const;
+ const activePanel=feedback.error?"record-actions":panels.find(panel=>panel===feedback.panel)??"record-data";
  const primary=kind!=="job"?correctionFields[kind as Exclude<keyof typeof correctionFields,"job">]:[];
  return <main className="vc-admin-page vc-editor-dossier">
   <SiteHeader/>
@@ -70,13 +72,13 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
     <div className="admin-control-content vc-admin-main">
       <FormMessage {...feedback}/>
       {isSuspiciousProfileName(name)&&<div className="vc-editor-alert"><strong>Potential promotional wording in the title/name</strong><p>Review this record before taking an approval or publication decision. Untrusted outbound links are intentionally not rendered as clickable URLs.</p></div>}
-      <nav className="vc-editor-tabs" aria-label="Record navigation"><a href="#record-data">Submitted record</a><a href="#related-records">Related modules</a><a href="#record-files">Supporting files</a><a href="#record-actions">Actions</a><a href="#record-audit">Audit trail</a></nav>
-      <section className="vc-admin-panel" id="record-data"><div className="vc-panel-header"><div><span className="section-kicker">SAVED FORM DATA</span><h2>All available fields</h2>
+      <nav className="vc-editor-tabs" aria-label="Record navigation"><Link href={`/admin/directory/${kind}/${id}?panel=record-data`} aria-current={activePanel==="record-data"?"page":undefined}>Submitted record</Link><Link href={`/admin/directory/${kind}/${id}?panel=related-records`} aria-current={activePanel==="related-records"?"page":undefined}>Related modules</Link><Link href={`/admin/directory/${kind}/${id}?panel=record-files`} aria-current={activePanel==="record-files"?"page":undefined}>Supporting files</Link><Link href={`/admin/directory/${kind}/${id}?panel=record-actions`} aria-current={activePanel==="record-actions"?"page":undefined}>Actions</Link><Link href={`/admin/directory/${kind}/${id}?panel=record-audit`} aria-current={activePanel==="record-audit"?"page":undefined}>Audit trail</Link></nav>
+      <section className="vc-admin-panel" id="record-data" hidden={activePanel!=="record-data"}><div className="vc-panel-header"><div><span className="section-kicker">SAVED FORM DATA</span><h2>Record overview</h2>
         <p>The values below come from this record&apos;s current database row, not necessarily the original submission snapshot.</p></div></div>
-        <dl className="vc-editor-field-grid">{Object.entries(data).filter(([key])=>!/(token|secret|storage_path|private_notes)/i.test(key)).map(([field,value])=><div key={field}><dt>{field.replaceAll("_"," ")}</dt><dd>{show(value)}</dd></div>)}</dl>
+        <dl className="vc-editor-field-grid">{Object.entries(data).filter(([key,value])=>!/(token|secret|storage_path|private_notes)/i.test(key)&&!(kind==="clinic"&&(/(^id$|_id$|_url$|^slug$|^created_by$|^verified_by$)/i.test(key)||value===null||value===undefined||value===""))).map(([field,value])=><div key={field}><dt>{field.replaceAll("_"," ")}</dt><dd>{show(value)}</dd></div>)}</dl>
         <div className="vc-editor-note"><b>Trace:</b> Created {ts(data.created_at)}, updated {ts(data.updated_at)}. Recorded creator: {data.created_by? <Link href={`/admin/users/${data.created_by}`} target="_blank" rel="noopener noreferrer">{String(data.created_by)} ↗</Link>:"Not recorded"}. The creator identifier is not a verified statement about the person who physically entered the data.</div>
       </section>
-      <section className="vc-admin-panel" id="related-records"><div className="vc-panel-header"><div><span className="section-kicker">LINKED SUBJECTS</span><h2>Related business records</h2></div></div>
+      <section className="vc-admin-panel" id="related-records" hidden={activePanel!=="related-records"}><div className="vc-panel-header"><div><span className="section-kicker">LINKED SUBJECTS</span><h2>Related business records</h2></div></div>
         {linked?<>
           <h3>Products ({linked[0].data?.length??0} listed)</h3>
           <div className="vc-editor-file-list">{(linked[0].data??[]).map(row=><div key={row.id}><strong>{row.product_name}</strong><span>{row.verification_status}</span>
@@ -89,14 +91,14 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
           <p>No separately joined product or job records are listed for this record type. For account-linked information, use the appropriate person/account dossier.</p>}
         <div className="vc-editor-note"><strong>Publication:</strong> {publicHref?<Link href={publicHref} target="_blank" rel="noopener noreferrer">Verified public route ↗</Link>:"No published public route in this record."} The admin record is never indexed as a public directory page.</div>
       </section>
-      <section className="vc-admin-panel" id="record-files"><div className="vc-panel-header"><div><span className="section-kicker">MEDIA & DOCUMENT PROVENANCE</span><h2>Linked upload records</h2></div></div>
+      <section className="vc-admin-panel" id="record-files" hidden={activePanel!=="record-files"}><div className="vc-panel-header"><div><span className="section-kicker">MEDIA & DOCUMENT PROVENANCE</span><h2>Linked upload records</h2></div></div>
         {documents.error?<p role="alert">Supporting file metadata is unavailable.</p>:files.length?<div className="vc-editor-file-list">{files.map(doc=><div key={doc.id}><strong>{doc.original_name}</strong>
           <span>{doc.document_kind} · uploaded {ts(doc.created_at)}</span><span>Uploader reference: {doc.created_by??"Not captured"}</span>
           {doc.href?<a href={doc.href} target="_blank" rel="noopener noreferrer">Open authorized attachment in new tab ↗</a>:<small>File access not available</small>}
         </div>)}</div>:<p>No staff-managed attachments are linked to this record. Media supplied through other owner workflows may be stored separately.</p>}
       </section>
-      <section className="vc-admin-panel" id="record-actions"><div className="vc-panel-header"><div><span className="section-kicker">EDITORIAL CONTROL</span><h2>Edit, review and manage</h2></div></div>
-        {canEdit&&kind!=="company"&&<details className="vc-editor-action" open><summary>Edit this {kind.replaceAll("_"," ")} record</summary>
+      <section className="vc-admin-panel" id="record-actions" hidden={activePanel!=="record-actions"}><div className="vc-panel-header"><div><span className="section-kicker">EDITORIAL CONTROL</span><h2>Edit, review and manage</h2></div></div>
+        {canEdit&&kind!=="company"&&<details className="vc-editor-action"><summary>Edit this {kind.replaceAll("_"," ")} record</summary>
           <form action={correctDirectoryRecordAction} className="vc-editor-form"><input type="hidden" name="record_kind" value={kind}/><input type="hidden" name="record_id" value={id}/>
           {primary.map(field=><div key={field}><label htmlFor={`dir-${field}`}>{field.replaceAll("_"," ")}</label>
              {field==="description"||field==="public_summary"?<textarea id={`dir-${field}`} name={field} maxLength={1800} defaultValue={String(data[field]??"")}/>:<input id={`dir-${field}`} name={field} maxLength={250} defaultValue={String(data[field]??"")}/>}
@@ -110,7 +112,8 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
             <input type="hidden" name="profile_type" value={specialistType}/><input type="hidden" name="record_source" value={kind==="managed_person"?"managed_people":kind==="company"?"companies":kind==="clinic"?"clinics":"laboratories"}/>
             <input type="hidden" name="user_id" value={id}/><input type="hidden" name="entity_id" value={id}/>
             <input type="hidden" name="return_to" value={`/admin/directory/${kind}/${id}`}/>
-            <label htmlFor="directory-review-note">Reviewer note / verification or rejection reason</label><input id="directory-review-note" name="reason" placeholder="Record evidence and decision"/>
+            {kind==="clinic"&&!approved&&<p role="note"><strong>Before approving:</strong> confirm the PVMC registry and credential evidence, then record the source and registration status in a reviewer note of at least 25 characters. Rejection remains available separately.</p>}
+            <label htmlFor="directory-review-note">Reviewer note / verification or rejection reason</label><input id="directory-review-note" name="reason" placeholder={kind==="clinic"?"Evidence source, registration status and reviewer decision":"Record evidence and decision"}/>
             {kind==="clinic"&&<label className="checkbox-line"><input type="checkbox" name="pvmc_checked" />PVMC registry and credential evidence checked; describe the source and status in the review note (minimum 25 characters).</label>}
             <div className="vc-editor-buttons">{!approved&&<FormSubmitButton className="button button-primary" pendingLabel="Approving… " name="decision" value="approved">Approve profile</FormSubmitButton>}
               <button className="button button-secondary" name="decision" value="rejected" type="submit">{approved?"Unpublish / return for correction":"Reject / return"}</button></div>
@@ -125,7 +128,7 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
          </form></div>}
         {!canEdit&&!canReview&&<p>Access is restricted to the assigned administrator permissions.</p>}
       </section>
-      <section className="vc-admin-panel" id="record-audit"><div className="vc-panel-header"><div><span className="section-kicker">GOVERNANCE</span><h2>Recorded actions</h2><p>Audit entries are available only where the platform wrote them.</p></div></div>
+      <section className="vc-admin-panel" id="record-audit" hidden={activePanel!=="record-audit"}><div className="vc-panel-header"><div><span className="section-kicker">GOVERNANCE</span><h2>Recorded actions</h2><p>Audit entries are available only where the platform wrote them.</p></div></div>
       {audits.error?<p role="alert">Audit trail could not be retrieved.</p>:(audits.data??[]).length?<div className="vc-editor-audit">{(audits.data??[]).map(row=><article key={row.id}>
         <strong>{row.action}</strong><span>{ts(row.created_at)} · actor {row.actor_id||"Unknown"}</span>
         {row.metadata&&<details><summary>Decision details</summary><pre>{JSON.stringify(row.metadata,null,2)}</pre></details>}
