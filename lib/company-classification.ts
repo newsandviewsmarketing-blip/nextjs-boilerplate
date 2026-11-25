@@ -30,3 +30,37 @@ export function isCompanyClassification(value: unknown): value is CompanyClassif
   const valid = (items: unknown, options: readonly string[]) => Array.isArray(items) && items.length > 0 && items.length <= options.length && new Set(items).size === items.length && items.every(item => typeof item === "string" && options.includes(item));
   return valid(row.subsectors, allowed) && valid(row.activities, COMPANY_ACTIVITIES);
 }
+
+/** Reject malformed, oversized and duplicate-sector submissions at the server boundary. */
+export function parseCompanyClassification(raw: string): CompanyClassification[] | null {
+  if (!raw || raw.length > 24000) return null;
+  try {
+    const rows: unknown = JSON.parse(raw);
+    if (!Array.isArray(rows) || !rows.length || rows.length > Object.keys(COMPANY_CLASSIFICATION).length ||
+        !rows.every(isCompanyClassification) || new Set(rows.map(row => row.sector)).size !== rows.length) return null;
+    return rows.map(row => ({sector: row.sector, subsectors: [...row.subsectors], activities: [...row.activities]}));
+  } catch { return null; }
+}
+
+/** Input must already be filtered to authorized canonical company records. */
+export function summarizeCompanyClassification(records: readonly {companyId: string; classification: CompanyClassification[]}[]) {
+  const companies = new Set<string>();
+  const sectors = new Map<string, Set<string>>();
+  const subsectors = new Map<string, Set<string>>();
+  const activities = new Map<string, Set<string>>();
+  const add = (map: Map<string, Set<string>>, key: string, id: string) => {
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key)!.add(id);
+  };
+  for (const record of records) {
+    companies.add(record.companyId);
+    for (const row of record.classification) {
+      if (!isCompanyClassification(row)) continue;
+      add(sectors, row.sector, record.companyId);
+      for (const sub of row.subsectors) add(subsectors, JSON.stringify([row.sector, sub]), record.companyId);
+      for (const activity of row.activities) add(activities, JSON.stringify([row.sector, activity]), record.companyId);
+    }
+  }
+  const counts = (map: Map<string, Set<string>>) => Object.fromEntries(Array.from(map, ([key, ids]) => [key, ids.size]));
+  return {totalCompanies: companies.size, sectors: counts(sectors), subsectors: counts(subsectors), activities: counts(activities)};
+}
