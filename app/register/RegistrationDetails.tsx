@@ -157,6 +157,7 @@ export function AcademicQualifications({ id, name, label, options, practitioner 
         <input id={id + "-pvmc"} name="pvmc_number" required={!pvmcPending} disabled={pvmcPending} maxLength={70} autoComplete="off" /></div>
       <label className="checkbox-line"><input type="checkbox" name="pvmc_number_pending" value="true"
         checked={pvmcPending} onChange={event=>setPvmcPending(event.target.checked)} />PVMC number not yet available</label>
+      {practitioner && !pvmcPending && <label className="checkbox-line form-span-2"><input type="checkbox" name="pvmc_declaration" value="true" required />I declare that my PVMC registration details are accurate and authorize independent verification. My registration remains unverified until reviewed.</label>}
       <small className="form-span-2">{pvmcPending ? "You may save your education as a draft. Practitioner verification requires a PVMC number and supporting evidence." : "A degree or university selection does not automatically verify practice rights."}</small>
     </div>}
   </fieldset>;
@@ -257,6 +258,7 @@ export default function RegistrationDetails({ role, clinic = false }: { role: st
     <ClinicCityField />
     <div><label htmlFor="clinic-vet">Responsible veterinarian full name *</label><input name="responsible_veterinarian" id="clinic-vet" maxLength={180} required /></div>
     <div><label htmlFor="clinic-pvmc">Responsible veterinarian PVMC registration number (optional at account registration)</label><input name="pvmc_number" id="clinic-pvmc" maxLength={70} /><small>This must be provided and independently reviewed before the clinic is published for veterinary practice.</small></div>
+    <label className="checkbox-line form-span-2"><input type="checkbox" name="pvmc_declaration" value="true" required />I declare that the responsible veterinarian details I provide are accurate to the best of my knowledge and that I am authorized to provide them for independent verification. This is not PVMC confirmation.</label>
   </>;
   if (role === "company") return <CompanyRegistrationFields/>;
   if (role === "laboratory") return <>

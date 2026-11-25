@@ -99,6 +99,12 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     data.additional_institution_sources=sources;
   }
 
+  if(role==="veterinarian" || (role==="company" && intent==="clinic")) {
+    const number=field(form,"pvmc_number");
+    if((role==="company" || number) && field(form,"pvmc_declaration")!=="true")return {error:"Accept the PVMC declaration before continuing.",data:{}};
+    if(field(form,"pvmc_declaration")==="true"){data.pvmc_declaration="true";data.pvmc_declaration_version="2026-11-25-v1";data.pvmc_declared_at=new Date().toISOString();}
+    if(role==="company" && number){if(number.length>70 || !/^[a-z0-9\s/\\_.-]+$/i.test(number))return {error:"Enter a valid responsible veterinarian PVMC number.",data:{}};data.pvmc_number=number;}
+  }
   if(role==="veterinarian") {
     if(!pvmcDetails())return {error:"Registered veterinarians must provide their PVMC practitioner number or mark it as not yet available to save a draft.",data:{}};
     if(!qualification("qualifications",VETERINARY_QUALIFICATIONS))return {error:"Select a listed veterinary qualification or specify another qualification for administrator review.",data:{}};
