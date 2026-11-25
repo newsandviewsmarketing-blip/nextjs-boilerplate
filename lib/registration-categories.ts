@@ -175,6 +175,9 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
       const classification=parseCompanyClassification(classificationRaw);
       if(!classification)return {error:"Choose valid company sectors, subsectors and business activities.",data:{}};
       data.company_classification=JSON.stringify(classification);
+      // Structured submissions use actual sector IDs, not business activity labels.
+      data.industry_sector=classification[0].sector;
+      data.industry_sectors=classification.map(row=>row.sector);
     }
   }else if(role==="laboratory"){
     for(const k of ["organization_name","laboratory_type","laboratory_registration_number","tests_offered","lab_location"])
