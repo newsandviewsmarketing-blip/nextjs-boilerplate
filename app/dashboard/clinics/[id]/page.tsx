@@ -322,12 +322,18 @@ export default async function ClinicManagePage({
         <p className="form-help">Service focus choices in the clinic profile are not automatically bookable. To accept online requests, add an active catalogue service below, enable booking for it, and activate appointment hours.</p>
         {clinic.is_published&&<Link className="vcx-button vcx-button-outline" href={`/clinics/${clinic.slug}`}>View public clinic profile</Link>}
        </section>
-       <nav className="vcx-clinic-jump" aria-label="Clinic setup sections">
-        <a href="#clinic-identity">01 · Details & PVMC</a>
-        <a href="#clinic-hours">02 · Hours</a>
-        <a href="#clinic-services">03 · Services & fees</a>
-        <a href="#clinic-team">04 · Team</a>
-        <a href="#clinic-appointments">05 · Appointments</a>
+       <nav aria-label="My Clinic workspace" className="vcx-clinic-workflow">
+        <div className="vcx-clinic-workflow-heading"><div><span className="vcx-eyebrow">MY CLINIC</span><h2>Practice management workspace</h2><p>Choose a section to manage your practice.</p></div></div>
+        <div className="vcx-clinic-workflow-grid">
+          {[
+            ["Clinic registration & profile","#clinic-identity","Identity, location and professional credentials"],
+            ["Calendar & availability","#clinic-hours","Weekly hours and booking slots"],
+            ["Holidays & special dates","#clinic-date-exceptions","Date-specific schedule changes"],
+            ["Services & rate card","#clinic-services","Consultation fees and bookable services"],
+            ["Clinic team","#clinic-team","Owner and professional affiliations"],
+            ["Appointments","#clinic-appointments","Manage incoming booking requests"]
+          ].map(([label,href,description])=><a key={href} href={href} className="vcx-clinic-workflow-item"><strong>{label}</strong><small>{description}</small></a>)}
+        </div>
        </nav>
        <section className="vcx-clinic-readiness" aria-label="Clinic publication readiness">
          <div><span className="vcx-eyebrow">FACILITY REVIEW</span><h2>{readinessIssues.length===0?"Core clinic details ready for VetConnect review":"Complete your clinic before publication"}</h2>
