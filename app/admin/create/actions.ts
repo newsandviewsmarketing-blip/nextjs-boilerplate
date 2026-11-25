@@ -162,7 +162,8 @@ export async function createCompanyAction(formData: FormData) {
       if (publishError) throw publishError;
     }
   } catch (uploadError) {
-    createError("company", "Company created, but additional details need attention. Record ID: "+data.id+"; "+(uploadError instanceof Error ? uploadError.message : "Unknown save error"));
+    revalidatePath("/admin/directory");
+    redirect("/admin/directory/company/"+data.id+"?error="+encodeURIComponent("Company record saved privately, but additional details need attention. Review and complete this existing record instead of creating another company. "+(uploadError instanceof Error ? uploadError.message : "Additional save failed.")));
   }
   revalidatePath("/admin/directory"); revalidatePath("/companies");
   redirect("/admin/directory/company/"+data.id+"?message=Company%20record%20created.");
