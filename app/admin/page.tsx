@@ -10,11 +10,13 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 type Activity = {id:string;kind:string;name:string;status:string;at:string;href:string;description:string};
 type Metric = {label:string;value:number|null;href:string;note:string;attention?:boolean};
-type Params = {q?:string;kind?:string;status?:string};
+type Params = {q?:string;kind?:string;status?:string;panel?:string};
 const format = (at:string) => new Date(at).toLocaleString("en-PK",{timeZone:"Asia/Karachi",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
 
 export default async function AdminOverviewPage({searchParams}:{searchParams:Promise<Params>}) {
   const params=await searchParams;
+  const panels=["overview","approvals","activity","operations"] as const;
+  const panel=panels.find(item=>item===params.panel)??(params.q||params.kind||params.status?"activity":"overview");
   const identity=await requireAdminPermission("admin.view","/admin");
   const rights=await getEffectiveAdminPermissions(identity);
   const can=(key:Parameters<typeof rights.has>[0])=>rights.has(key);
@@ -221,7 +223,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
       <div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
       <div className="admin-control-content vc-admin-main">
         <div className="vc-admin-toolbar">
-          <div><span className="section-kicker">VETCONNECT / ADMIN CONTROL</span><h1>Administration overview</h1><p>Approvals first. Then recent updates, operational indicators and full records.</p></div>
+          <div><span className="section-kicker">VETCONNECT / ADMIN CONTROL</span><h1>Administration dashboard</h1><p>Manage platform records, review queues and recent activity from one workspace.</p></div>
           <div className="vc-admin-actions">
             <Link className="button button-secondary" href="/admin">Refresh</Link>
             {auditAllowed&&<Link className="button button-secondary" href="/admin/reports">Reports & CSV</Link>}
@@ -234,7 +236,8 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
             <div><input id="admin-global-search" name="q" placeholder="Search by name, company or city" required/><button className="button button-primary">Search</button></div>
           </form>}
         </div>
-        <section className="vc-admin-sector-summary" aria-labelledby="vc-platform-figures">
+        <nav className="vc-editor-tabs" aria-label="Dashboard sections">{panels.map(item=><Link key={item} href={`/admin?panel=${item}`} aria-current={panel===item?"page":undefined}>{({overview:"Overview",approvals:"Approvals",activity:"Recent activity",operations:"Operations"})[item]}</Link>)}</nav>
+        <section hidden={panel!=="overview"} className="vc-admin-sector-summary" aria-labelledby="vc-platform-figures">
           <div className="vc-admin-section-title">
             <div><span className="section-kicker">LIVE PLATFORM FIGURES</span>
               <h2 id="vc-platform-figures">Registrations, approvals and new activity</h2>
@@ -263,7 +266,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
           </div>
           <p className="vc-panel-footnote">Approved refers to the source record review status. PVMC verification, public publication and other legal approvals are independent checks. No approval is made by opening these cards.</p>
         </section>
-        <section className="vc-admin-priority-panel" aria-labelledby="vc-pending-reviews">
+        <section hidden={panel!=="approvals" && panel!=="overview"} className="vc-admin-priority-panel" aria-labelledby="vc-pending-reviews">
           <div className="vc-admin-section-title"><div><span className="section-kicker">ACTION REQUIRED</span><h2 id="vc-pending-reviews">Approval and review queues</h2><p>Counts are private to your assigned permissions; opening a queue does not approve anything.</p></div>
           {profilesAllowed&&<Link href="/admin/reviews">Review centre</Link>}</div>
           <div className="vc-admin-metrics vc-admin-priority-grid" aria-label="Review queues">
@@ -273,20 +276,20 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
             </Link>)}
           </div>
         </section>
-        <section className="vc-admin-panel" aria-labelledby="activity-title">
+        <section hidden={panel!=="activity"} className="vc-admin-panel" aria-labelledby="activity-title">
           <div className="vc-panel-header"><div><span className="section-kicker">RECENT ACTIVITY</span><h2 id="activity-title">Latest updates and decisions</h2><p>Recent registrations, requests and review decisions. Open a record for its relevant workflow.</p></div>{auditAllowed&&<Link href="/admin/audit">Full audit history →</Link>}</div>
-          <form className="vc-admin-filter-row" method="get" action="/admin">
+          <form className="vc-admin-filter-row" method="get" action="/admin"><input type="hidden" name="panel" value="activity"/>
             <div><label htmlFor="activity-query">Search recent activity</label><input name="q" id="activity-query" placeholder="Name or activity" defaultValue={params.q??""}/></div>
             <div><label htmlFor="activity-kind">Type</label><select id="activity-kind" name="kind" defaultValue={params.kind??"all"}><option value="all">All records</option>{kinds.map(kind=><option key={kind} value={kind}>{kind.replaceAll("_"," ")}</option>)}</select></div>
             <div><label htmlFor="activity-status">Status</label><select id="activity-status" name="status" defaultValue={params.status??"all"}><option value="all">Any status</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="active">Active</option><option value="recorded">Recorded</option></select></div>
-            <button className="button button-primary" type="submit">Filter</button><Link href="/admin">Clear</Link>
+            <button className="button button-primary" type="submit">Filter</button><Link href="/admin?panel=activity">Clear</Link>
           </form>
           {filtered.length ? <div className="vc-activity-list">{filtered.map(item=><Link className="vc-activity-entry" key={item.id} href={item.href} target="_blank" rel="noopener noreferrer">
             <span className="vc-activity-mark" aria-hidden="true"></span><span className="vc-activity-content"><strong>{item.name}</strong><small>{item.description} · {item.kind.replaceAll("_"," ")}</small></span>
             <span className="vc-activity-meta"><em className={`vc-status vc-status-${item.status}`}>{item.status}</em><time dateTime={item.at}>{format(item.at)}</time></span><span aria-hidden="true">↗</span>
           </Link>)}</div>:<p className="empty-state">No matching recent records. Use the full directory or account search to locate older records.</p>}
         </section>
-        {(usersAllowed||jobsAllowed) && <section className="vc-admin-panel" aria-labelledby="pulse-title"><div className="vc-panel-header"><div><span className="section-kicker">LAST 24 HOURS</span><h2 id="pulse-title">Operational pulse</h2></div></div>
+        {(usersAllowed||jobsAllowed) && <section hidden={panel!=="operations"} className="vc-admin-panel" aria-labelledby="pulse-title"><div className="vc-panel-header"><div><span className="section-kicker">LAST 24 HOURS</span><h2 id="pulse-title">Operational pulse</h2></div></div>
           <div className="admin-pulse-grid">
             {usersAllowed&&<article><Link href="/admin/users"><b>{value("newRegistrations24h")===null?"—":value("newRegistrations24h")}</b><span>New registrations</span></Link></article>}
             {jobsAllowed&&<article><Link href="/admin/jobs"><b>{value("newJobs24h")===null?"—":value("newJobs24h")}</b><span>New job posts</span></Link></article>}
