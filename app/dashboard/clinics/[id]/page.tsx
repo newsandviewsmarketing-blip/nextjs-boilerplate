@@ -1,3 +1,4 @@
+import ClinicLegacySection from "../ClinicLegacySection";
 import ClinicRecords from "../ClinicRecords";
 import ClinicAppointmentCalendar from "../ClinicAppointmentCalendar";
 /* eslint-disable @next/next/no-img-element -- Approved Supabase Storage URLs are displayed directly. */
@@ -222,6 +223,9 @@ export default async function ClinicManagePage({
   if (clinicResult.error || !clinicResult.data) notFound();
 
   const clinic = clinicResult.data as ClinicRow;
+  const { data: archived } = await supabase.from("clinics").select("id")
+    .eq("id", clinic.id).eq("owner_id", identity.userId).not("archived_at", "is", null).maybeSingle();
+  if (archived) redirect("/dashboard/clinics?section=archive");
   // Exception dates are independent of weekly availability.
   // This page must remain readable if the additive migration has not run yet.
   const {data:exceptionRows,error:exceptionLoadError}=await supabase
@@ -290,6 +294,7 @@ export default async function ClinicManagePage({
       title={clinic.clinic_name}
       description="Manage your registered veterinary practice, services, appointment availability and team from your personal VetConnect workspace.">
       <section className="vcx-clinic-operations">
+       {!messages.section && <ClinicLegacySection />}
        <div className="vcx-clinic-identity-bar">
         <div><span className="vcx-eyebrow">CLINIC MANAGEMENT</span><strong>{clinic.facility_type}</strong><small>{[clinic.city,clinic.province].filter(Boolean).join(", ")||"Location not yet specified"}</small></div>
         <div className="vcx-pills"><span>Review: {clinic.verification_status}</span><span>{clinic.is_published?"Published":"Unpublished"}</span></div>
