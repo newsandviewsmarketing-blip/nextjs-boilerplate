@@ -230,9 +230,14 @@ export default async function CompanyDashboardPage({
   }
 
   if (canManageApplicants) {
+    const { data: scopedJobs, error: scopedJobsError } = await supabase.from("jobs").select("id").eq("company_id", workspace.company_id);
+    if (scopedJobsError) redirect(`/dashboard/company?company=${encodeURIComponent(workspace.company_id)}&error=Unable%20to%20load%20company%20jobs`);
+    const scopedJobIds = (scopedJobs ?? []).map(job => job.id);
+    if (scopedJobIds.length > 0) {
     const { data, error } = await supabase
       .from("job_applications")
       .select("id, job_id, candidate_user_id, status, applied_at, cv_document_id, cv_source, cv_snapshot")
+      .in("job_id", scopedJobIds)
       .order("applied_at", { ascending: false })
       .limit(25);
 
@@ -241,8 +246,7 @@ export default async function CompanyDashboardPage({
     }
 
     applicationRows = (data ?? []) as ApplicationRow[];
-
-
+    }
   }
 
   const productMap = new Map(
