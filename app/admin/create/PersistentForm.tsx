@@ -47,6 +47,7 @@ function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLText
     return;
   }
   if (typeof value === "string") {
+    if (control instanceof HTMLSelectElement && !Array.from(control.options).some(option => option.value === value)) return;
     const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(control), "value")?.set;
     setter?.call(control, value);
     control.dispatchEvent(new Event("input", { bubbles: true }));
@@ -54,7 +55,7 @@ function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLText
   }
 }
 
-export default function PersistentForm({ storageKey, clearSaved = false, onInput, onChange, ...props }: Props) {
+export default function PersistentForm({ storageKey, clearSaved = false, onInput, onChange, onSubmit, ...props }: Props) {
   const ref = useRef<HTMLFormElement>(null);
   const restoring = useRef(false);
   const [draftStatus, setDraftStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -63,6 +64,7 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
     const form = ref.current;
     if (!form) return;
     restoring.current = true;
+    setDraftStatus("idle");
     try {
     if (clearSaved) {
       sessionStorage.removeItem(storageKey);
@@ -73,7 +75,7 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
     if (!raw) return;
     try {
       const saved = JSON.parse(raw) as SavedForm;
-      if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) { setDraftStatus("error"); return; }
       const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
         "input[name],select[name],textarea[name]",
       );
@@ -87,10 +89,13 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
         const value = Array.isArray(values) ? values[offset] : offset === 0 ? values : undefined;
         if (typeof value === "string" || typeof value === "boolean") restoreControl(control, value);
       });
+      setDraftStatus("saved");
     } catch {
+      setDraftStatus("error");
       // Preserve unreadable drafts rather than silently deleting them.
     }
     } catch {
+      setDraftStatus("error");
       // Storage may be disabled; the form must remain usable.
     } finally {
       restoring.current = false;
@@ -126,6 +131,10 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
       {...props}
       data-draft-status={draftStatus}
       ref={ref}
+      onSubmit={(event) => {
+        save(event);
+        onSubmit?.(event);
+      }}
       onInput={(event) => {
         save(event);
         onInput?.(event);
@@ -136,7 +145,7 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
       }}
     >
       {props.children}
-      <p className="form-help form-span-2" role="status" aria-live="polite">{draftStatus === "saved" ? "Selected fields saved for this browser session." : draftStatus === "error" ? "Draft could not be saved. Keep this page open and retry." : "Selected non-sensitive fields can be recovered in this browser session."}</p>
+      <p className="form-help form-span-2" role="status" aria-live="polite">{draftStatus === "saved" ? "Selected fields saved for this browser session." : draftStatus === "error" ? "Draft could not be read or saved. Keep this page open and check your entries before continuing." : "Selected non-sensitive fields can be recovered in this browser session."}</p>
     </form>
   );
 }
