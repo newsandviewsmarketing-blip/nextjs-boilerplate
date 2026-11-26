@@ -1,6 +1,4 @@
 import Link from "next/link";
-import SiteHeader from "../components/SiteHeader";
-import SiteFooter from "../components/SiteFooter";
 import AdminNav from "./components/AdminNav";
 import { isSuspiciousProfileName } from "@/lib/profile-name";
 import {credentialDataFlags} from "@/lib/veterinary-verification";
@@ -217,8 +215,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
     .slice(0,24);
   const kinds=[...new Set(activity.map(x=>x.kind))].sort();
   return <main className="vc-admin-page">
-    <SiteHeader/>
-    <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout">
+    <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout" style={{width:"96%",maxWidth:"none"}}>
       <div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
       <div className="admin-control-content vc-admin-main">
         <div className="vc-admin-toolbar">
@@ -299,6 +296,5 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
 
       </div>
     </div></section>
-    <SiteFooter/>
   </main>;
 }
