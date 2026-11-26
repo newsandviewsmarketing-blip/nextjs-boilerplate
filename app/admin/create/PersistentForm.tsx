@@ -18,7 +18,7 @@ function controlKey(control: HTMLInputElement | HTMLSelectElement | HTMLTextArea
 function readControlValue(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): SavedValue | null {
   if (!control.name || control.disabled || control.getAttribute("data-draft") !== "allow") return null;
   if (["file", "password", "hidden", "email", "tel"].includes(control.type)) return null;
-  if (control instanceof HTMLSelectElement && control.multiple) return null;
+  if (control instanceof HTMLSelectElement && control.multiple) return JSON.stringify(Array.from(control.selectedOptions, option => option.value));
   if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
     return control.checked;
   }
@@ -26,9 +26,23 @@ function readControlValue(control: HTMLInputElement | HTMLSelectElement | HTMLTe
 }
 
 function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: SavedValue) {
+  if (control instanceof HTMLSelectElement && control.multiple) {
+    if (typeof value !== "string") return;
+    let selected: unknown;
+    try { selected = JSON.parse(value); } catch { return; }
+    if (!Array.isArray(selected) || !selected.every(item => typeof item === "string")) return;
+    const values = new Set(selected);
+    for (const option of Array.from(control.options)) option.selected = values.has(option.value);
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
   if (control.type === "file") return;
   if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
-    control.checked = Boolean(value);
+    if (typeof value !== "boolean") return;
+    control.checked = value;
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
     return;
   }
   if (typeof value === "string") {
