@@ -27,7 +27,7 @@ export default function ReviewWorkspaceTabs({allowed,counts}:{
     sync();
     window.addEventListener("hashchange",sync);
     return ()=>window.removeEventListener("hashchange",sync);
-  },[allowed.join("|")]);
+  },[allowed]);
   useEffect(()=>{
     const parent=document.querySelector<HTMLElement>(".vc-review-workspace");
     if(parent)parent.dataset.active=selected;
