@@ -13,7 +13,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentIdentity } from "@/lib/auth";
 import {
   initials,
-  sampleClinics,
   type PublicClinic,
 } from "@/lib/directories";
 import { requestClinicMembershipAction } from "../../dashboard/clinics/actions";
@@ -142,20 +141,7 @@ function pakistanToday() {
 async function loadClinic(
   slug: string,
 ): Promise<ClinicPageData | null> {
-  const sample = sampleClinics.find(
-    (item) => item.slug === slug,
-  );
-  if (!isSupabaseConfigured()) {
-    return sample
-      ? {
-          clinic: sample,
-          services: [],
-          availability: [],
-          exceptions: [],
-          team: [],
-        }
-      : null;
-  }
+  if (!isSupabaseConfigured()) return null;
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -167,8 +153,8 @@ async function loadClinic(
     .maybeSingle();
 
   const clinic =
-    (data as PublicClinic | null) ?? sample ?? null;
-  if (!clinic) return null;
+    (data as PublicClinic | null) ?? null;
+  if (!clinic?.profile_verified || clinic.is_sample) return null;
 
   if (!clinic.id || clinic.is_sample) {
     return {

@@ -6,7 +6,7 @@ import SiteFooter from "../../components/SiteFooter";
 import ProfilePhoto from "../../components/ProfilePhoto";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { initials, sampleProfessionals, type PublicProfessional } from "@/lib/directories";
+import { initials, type PublicProfessional } from "@/lib/directories";
 
 export const dynamic = "force-dynamic";
 
@@ -54,10 +54,7 @@ function formatDate(value: string | null) {
 }
 
 async function loadProfessional(slug: string): Promise<ProfessionalPageData | null> {
-  const sample = sampleProfessionals.find((item) => item.slug === slug);
-  if (!isSupabaseConfigured()) {
-    return sample ? { profile: sample, education: [], experience: [], credentials: [] } : null;
-  }
+  if (!isSupabaseConfigured()) return null;
 
   const supabase = await createClient();
 const select =
@@ -80,10 +77,10 @@ const [accountResult, managedResult] = await Promise.all([
 const accountProfile = accountResult.data as PublicProfessional | null;
 const managedProfile = managedResult.data as PublicProfessional | null;
 
-const profile = accountProfile ?? managedProfile ?? sample ?? null;
+const profile = accountProfile?.profile_verified ? accountProfile : managedProfile?.profile_verified ? managedProfile : null;
 if (!profile) return null;
 
-const isManagedProfile = !accountProfile && Boolean(managedProfile);
+const isManagedProfile = profile === managedProfile;
 
 if (isManagedProfile || !profile.user_id || profile.is_sample) {
   return {
