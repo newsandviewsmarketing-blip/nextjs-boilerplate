@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import PakistanLocationFields from "./PakistanLocationFields";
-import CompanyStory from "./CompanyStory";
+import FormattedTextEditor from "./FormattedTextEditor";
 import type { ManagementContact } from "@/lib/company-profile-editor";
 import "./CompanyProfileFields.css";
 
@@ -38,22 +38,6 @@ export default function CompanyProfileFields({mode,initial,presentation,contacts
   const [description,setDescription] = useState(get("description"));
   const [tone,setTone] = useState(getExtra("profile_tone") || "navy");
   const [contacts,setContacts] = useState<ManagementContact[]>(initialContacts);
-  const [preview,setPreview] = useState(false);
-  const textRef = useRef<HTMLTextAreaElement>(null);
-
-  function addFormatting(before:string,after="",fallback="text") {
-    const textArea = textRef.current;
-    if (!textArea) return;
-    const a=textArea.selectionStart,b=textArea.selectionEnd;
-    const selection=description.slice(a,b) || fallback;
-    const next=description.slice(0,a)+before+selection+after+description.slice(b);
-    if (next.length>6000) return;
-    setDescription(next);
-    requestAnimationFrame(() => {
-      textArea.focus();
-      textArea.setSelectionRange(a+before.length,a+before.length+selection.length);
-    });
-  }
   function updateContact(index:number,key:keyof ManagementContact,value:string) {
     setContacts(previous => previous.map((item,i)=>i===index?{...item,[key]:value}:item));
   }
@@ -104,17 +88,7 @@ export default function CompanyProfileFields({mode,initial,presentation,contacts
         <div className="vc-company-wide"><label htmlFor="vc-tagline">Introduction / one-line summary</label><input id="vc-tagline" data-draft="allow" name="tagline" maxLength={240} defaultValue={getExtra("tagline")} placeholder="A concise introduction to the company and its work"/></div>
         <div><label htmlFor="vc-tone">Profile colour style</label><select id="vc-tone" data-draft="allow" name="profile_tone" value={tone} onChange={event=>setTone(event.target.value)}><option value="navy">VetConnect navy</option><option value="orange">VetConnect orange</option><option value="slate">Neutral slate</option></select></div>
         <div className="vc-company-wide">
-          <div className="vc-editor-toolbar" aria-label="Company description formatting">
-            <button type="button" title="Heading" onClick={()=>addFormatting("## ","","Heading")}>H</button>
-            <button type="button" title="Bold" onClick={()=>addFormatting("**","**","bold text")}><strong>B</strong></button>
-            <button type="button" title="Italic" onClick={()=>addFormatting("*","*","italic text")}><em>I</em></button>
-            <button type="button" title="Bullet list" onClick={()=>addFormatting("- ","","Service or achievement")}>• List</button>
-            <button type="button" aria-pressed={preview} onClick={()=>setPreview(v=>!v)}>{preview?"Edit":"Preview"}</button>
-            <span>{description.length}/6000</span>
-          </div>
-          <textarea ref={textRef} id="vc-description" name="description" rows={8} maxLength={6000} value={description} onChange={event=>setDescription(event.target.value)} aria-label="Company description" placeholder="Company background, mission, products, services, facilities and important achievements." style={{display:preview?"none":undefined}}/>
-          {preview && <div className="vc-company-preview" aria-label="Formatted company description preview"><CompanyStory text={description} tone={tone}/></div>}
-          <small>Formatting is stored as safe text, not executable HTML. Only approved public company records are shown in the directory.</small>
+          <FormattedTextEditor name="description" value={description} onChange={setDescription} maxLength={6000} label="Company description" tone={tone}/>
         </div>
       </div>
     </section>
