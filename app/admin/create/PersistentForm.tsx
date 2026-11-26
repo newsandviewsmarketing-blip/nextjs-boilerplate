@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ComponentProps, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 
 type Props = ComponentProps<"form"> & {
   storageKey: string;
@@ -40,7 +40,8 @@ function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLText
   if (control.type === "file") return;
   if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
     if (typeof value !== "boolean") return;
-    control.checked = value;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked")?.set;
+    setter?.call(control, value);
     control.dispatchEvent(new Event("input", { bubbles: true }));
     control.dispatchEvent(new Event("change", { bubbles: true }));
     return;
@@ -56,6 +57,7 @@ function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLText
 export default function PersistentForm({ storageKey, clearSaved = false, onInput, onChange, ...props }: Props) {
   const ref = useRef<HTMLFormElement>(null);
   const restoring = useRef(false);
+  const [draftStatus, setDraftStatus] = useState<"idle" | "saved" | "error">("idle");
 
   useEffect(() => {
     const form = ref.current;
@@ -96,7 +98,7 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
   }, [storageKey, clearSaved]);
 
   const save = (event: FormEvent<HTMLFormElement>) => {
-    if (restoring.current || clearSaved) return;
+    if (restoring.current) return;
     const form = event.currentTarget;
     const saved: SavedForm = Object.create(null);
     const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
@@ -112,7 +114,9 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
     });
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(saved));
+      setDraftStatus("saved");
     } catch {
+      setDraftStatus("error");
       // Keep entered values in the form when browser storage is unavailable.
     }
   };
@@ -120,6 +124,7 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
   return (
     <form
       {...props}
+      data-draft-status={draftStatus}
       ref={ref}
       onInput={(event) => {
         save(event);
@@ -129,6 +134,9 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
         save(event);
         onChange?.(event);
       }}
-    />
+    >
+      {props.children}
+      <p className="form-help form-span-2" role="status" aria-live="polite">{draftStatus === "saved" ? "Selected fields saved for this browser session." : draftStatus === "error" ? "Draft could not be saved. Keep this page open and retry." : "Selected non-sensitive fields can be recovered in this browser session."}</p>
+    </form>
   );
 }
