@@ -1,7 +1,5 @@
 import Link from "next/link";
 import {notFound} from "next/navigation";
-import SiteHeader from "../../../../components/SiteHeader";
-import SiteFooter from "../../../../components/SiteFooter";
 import FormMessage from "../../../../components/FormMessage";
 import FormSubmitButton from "../../../../components/FormSubmitButton";
 import AdminNav from "../../../components/AdminNav";
@@ -68,16 +66,13 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
  ]):null;
  const primary=kind!=="job"?correctionFields[kind as Exclude<keyof typeof correctionFields,"job">]:[];
  return <main className="vc-admin-page vc-editor-dossier">
-  <SiteHeader/>
-  <section className="vc-admin-banner"><div className="shell vc-admin-banner-content"><div>
+  <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout" style={{width:"96%",maxWidth:"none"}}><div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div><div className="admin-control-content vc-admin-main"><div className="vc-admin-toolbar"><div>
     <span className="section-kicker">CANONICAL MANAGEMENT RECORD · {config.label.toUpperCase()}</span>
     <h1>{name}</h1><p>{kind.replaceAll("_"," ")} · {String(data.verification_status??"Not reviewed")} · Record {id.slice(0,8)} · Created {ts(data.created_at)}</p>
   </div><div className="vc-admin-actions"><Link href="/admin/directory" className="button button-secondary">Master directory</Link>
     {kind==="company"&&canEdit&&<Link href={`/admin/directory/company/${id}?panel=record-actions#company-editor`} className="button button-primary">Edit company profile</Link>}
     {publicHref&&<Link className="button button-primary" href={publicHref} target="_blank" rel="noopener noreferrer">Open public page ↗</Link>}
-  </div></div></section>
-  <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout"><div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
-    <div className="admin-control-content vc-admin-main">
+  </div></div>
       <FormMessage {...feedback}/>
       {kind==="company"&&canEdit&&<div className="vc-editor-buttons"><Link href={`/admin/directory/company/${id}?panel=record-actions#company-editor`} className="button button-primary">Edit company profile</Link></div>}
       {isSuspiciousProfileName(name)&&<div className="vc-editor-alert"><strong>Potential promotional wording in the title/name</strong><p>Review this record before taking an approval or publication decision. Untrusted outbound links are intentionally not rendered as clickable URLs.</p></div>}
@@ -155,5 +150,5 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
       </article>)}</div>:<p>No historical audit records found for this entity. The original creation method may not have been logged.</p>}
       </section>
     </div>
-  </div></section><SiteFooter/></main>;
+  </div></section></main>;
 }
