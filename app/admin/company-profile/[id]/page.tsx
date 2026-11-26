@@ -31,7 +31,16 @@ export default async function AdminCompanyProfilePage({
     supabase.from("company_profile_content").select("*").eq("company_id",id).maybeSingle(),
     supabase.from("company_private_contacts").select("full_name,designation,department,office_phone,mobile_phone,email,reports_to,notes").eq("company_id",id).order("sort_order"),
   ]);
-  if(company.error||!company.data) notFound();
+  if(company.error) {
+    console.error("Company editor query failed", { code: company.error.code, message: company.error.message });
+    return <main><SiteHeader/><section className="section"><div className="shell">
+      <h1>Company profile temporarily unavailable</h1>
+      <p role="alert">The company record could not be loaded. No changes were made. Please retry or contact the administrator.</p>
+      <Link href={"/admin/company-profile/"+id} className="button button-primary">Retry loading</Link>
+      <Link href={"/admin/directory/company/"+id} className="button button-secondary">Return to company record</Link>
+    </div></section><SiteFooter/></main>;
+  }
+  if(!company.data) notFound();
   const published=company.data.is_published&&company.data.verification_status==="approved";
   return <main><SiteHeader/>
     <section className="dashboard-hero"><div className="shell">
@@ -48,7 +57,7 @@ export default async function AdminCompanyProfilePage({
           <Link href={"/admin/company-profile/"+id+"/export"} className="button button-secondary">Internal PDF / print profile</Link>
           {published&&<Link href={"/companies/"+id} className="button button-secondary">Public company page</Link>}
         </div>
-        {(presentation.error||contacts.error)&&<div className="setup-notice"><b>Database release gate:</b> Company profile extension migration is not installed. Do not submit this form until database staging has passed.</div>}
+        {(presentation.error||contacts.error)?<div className="setup-notice" role="alert"><b>Company details could not be loaded.</b> Editing is disabled to protect existing information. <Link href={"/admin/company-profile/"+id}>Retry loading</Link>.</div>:
         <form className="profile-form" action={saveAdminCompanyProfileAction}>
           <input type="hidden" name="company_id" value={id}/>
           <CompanyProfileFields mode="admin-edit"
@@ -60,7 +69,7 @@ export default async function AdminCompanyProfilePage({
             <input id="acknowledge_live_edit" name="acknowledge_live_edit" autoComplete="off" placeholder="ACKNOWLEDGE" required/>
           </div>}
           <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Saving company...">Save Complete Company Profile</FormSubmitButton>
-        </form>
+        </form>}
       </div>
     </div></section><SiteFooter/>
   </main>;
