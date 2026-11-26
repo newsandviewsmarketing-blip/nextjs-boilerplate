@@ -9,6 +9,9 @@ import {requireAdminPermission,getEffectiveAdminPermissions} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
 import {reviewProfileAction,reviewVeterinarianCredentialAction} from "../../../actions";
 import {correctDirectoryRecordAction} from "./actions";
+import CompanyProfileFields from "../../../../components/CompanyProfileFields";
+import {saveAdminCompanyProfileAction} from "../../../company-profile/actions";
+import type {ManagementContact} from "@/lib/company-profile-editor";
 import {isSuspiciousProfileName} from "@/lib/profile-name";
 
 export const dynamic="force-dynamic";
@@ -57,7 +60,12 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
    supabase.from("jobs").select("id,title,verification_status").eq("company_id",id).limit(50)
  ]):null;
  const panels=["record-data","related-records","record-files","record-actions","record-audit"] as const;
- const activePanel=feedback.error?"record-actions":panels.find(panel=>panel===feedback.panel)??"record-data";
+ const activePanel=panels.find(panel=>panel===feedback.panel)??(feedback.error?"record-actions":"record-data");
+ const companyEdit=kind==="company"&&canEdit&&activePanel==="record-actions";
+ const companyDetails=companyEdit?await Promise.all([
+   supabase.from("company_profile_content").select("*").eq("company_id",id).maybeSingle(),
+   supabase.from("company_private_contacts").select("full_name,designation,department,office_phone,mobile_phone,email,reports_to,notes").eq("company_id",id).order("sort_order")
+ ]):null;
  const primary=kind!=="job"?correctionFields[kind as Exclude<keyof typeof correctionFields,"job">]:[];
  return <main className="vc-admin-page vc-editor-dossier">
   <SiteHeader/>
@@ -65,12 +73,13 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
     <span className="section-kicker">CANONICAL MANAGEMENT RECORD · {config.label.toUpperCase()}</span>
     <h1>{name}</h1><p>{kind.replaceAll("_"," ")} · {String(data.verification_status??"Not reviewed")} · Record {id.slice(0,8)} · Created {ts(data.created_at)}</p>
   </div><div className="vc-admin-actions"><Link href="/admin/directory" className="button button-secondary">Master directory</Link>
-    {kind==="company"&&canEdit&&<Link href={"/admin/company-profile/"+id} className="button button-primary">Edit company profile</Link>}
+    {kind==="company"&&canEdit&&<Link href={`/admin/directory/company/${id}?panel=record-actions#company-editor`} className="button button-primary">Edit company profile</Link>}
     {publicHref&&<Link className="button button-primary" href={publicHref} target="_blank" rel="noopener noreferrer">Open public page ↗</Link>}
   </div></div></section>
   <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout"><div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
     <div className="admin-control-content vc-admin-main">
       <FormMessage {...feedback}/>
+      {kind==="company"&&canEdit&&<div className="vc-editor-buttons"><Link href={`/admin/directory/company/${id}?panel=record-actions#company-editor`} className="button button-primary">Edit company profile</Link></div>}
       {isSuspiciousProfileName(name)&&<div className="vc-editor-alert"><strong>Potential promotional wording in the title/name</strong><p>Review this record before taking an approval or publication decision. Untrusted outbound links are intentionally not rendered as clickable URLs.</p></div>}
       <nav className="vc-editor-tabs" aria-label="Record navigation"><Link href={`/admin/directory/${kind}/${id}?panel=record-data`} aria-current={activePanel==="record-data"?"page":undefined}>Submitted record</Link><Link href={`/admin/directory/${kind}/${id}?panel=related-records`} aria-current={activePanel==="related-records"?"page":undefined}>Related modules</Link><Link href={`/admin/directory/${kind}/${id}?panel=record-files`} aria-current={activePanel==="record-files"?"page":undefined}>Supporting files</Link><Link href={`/admin/directory/${kind}/${id}?panel=record-actions`} aria-current={activePanel==="record-actions"?"page":undefined}>Actions</Link><Link href={`/admin/directory/${kind}/${id}?panel=record-audit`} aria-current={activePanel==="record-audit"?"page":undefined}>Audit trail</Link></nav>
       <section className="vc-admin-panel" id="record-data" hidden={activePanel!=="record-data"}><div className="vc-panel-header"><div><span className="section-kicker">SAVED FORM DATA</span><h2>Record overview</h2>
@@ -98,6 +107,17 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
         </div>)}</div>:<p>No staff-managed attachments are linked to this record. Media supplied through other owner workflows may be stored separately.</p>}
       </section>
       <section className="vc-admin-panel" id="record-actions" hidden={activePanel!=="record-actions"}><div className="vc-panel-header"><div><span className="section-kicker">EDITORIAL CONTROL</span><h2>Edit, review and manage</h2></div></div>
+        {companyEdit&&companyDetails&&<div id="company-editor" className="vc-editor-action">
+          <h3>Edit company profile</h3>
+          {companyDetails[0].error||companyDetails[1].error?<p role="alert">Company details could not be loaded. Editing is disabled to protect existing records. Please reload and retry.</p>:
+          <form action={saveAdminCompanyProfileAction} className="profile-form">
+            <input type="hidden" name="company_id" value={id}/>
+            <input type="hidden" name="editor_origin" value="directory"/>
+            <CompanyProfileFields mode="admin-edit" initial={data} presentation={companyDetails[0].data} contacts={(companyDetails[1].data??[]) as ManagementContact[]}/>
+            {approved&&published&&<div className="form-span-2"><label htmlFor="company-acknowledge">Type ACKNOWLEDGE to confirm changes to the published profile.</label><input id="company-acknowledge" name="acknowledge_live_edit" autoComplete="off" required/></div>}
+            <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Saving company…">Save &amp; update company</FormSubmitButton>
+          </form>}
+        </div>}
         {canEdit&&kind!=="company"&&<details className="vc-editor-action"><summary>Edit this {kind.replaceAll("_"," ")} record</summary>
           <form action={correctDirectoryRecordAction} className="vc-editor-form"><input type="hidden" name="record_kind" value={kind}/><input type="hidden" name="record_id" value={id}/>
           {primary.map(field=><div key={field}><label htmlFor={`dir-${field}`}>{field.replaceAll("_"," ")}</label>
