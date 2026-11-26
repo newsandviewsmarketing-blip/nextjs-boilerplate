@@ -38,6 +38,9 @@ for (const province of hierarchy.data) {
   }
 }
 
+// Main postal city is independent of Karachi administrative districts.
+if (!options.some(option=>option.value==="Karachi"&&option.province==="Sindh")) options.push({value:"Karachi",label:"Karachi — Sindh",province:"Sindh"});
+
 export const PAKISTAN_LOCATION_OPTIONS = options.sort((a, b) =>
   a.province.localeCompare(b.province) || a.label.localeCompare(b.label),
 );
