@@ -8,7 +8,7 @@ import {createClient} from "@/lib/supabase/server";
 import {reviewProfileAction,reviewVeterinarianCredentialAction} from "../../../actions";
 import {correctDirectoryRecordAction} from "./actions";
 import CompanyProfileFields from "../../../../components/CompanyProfileFields";
-import {saveAdminCompanyProfileAction} from "../../../company-profile/actions";
+import {saveBoundAdminCompanyProfileAction} from "../../../company-profile/actions";
 import type {ManagementContact} from "@/lib/company-profile-editor";
 import {isSuspiciousProfileName} from "@/lib/profile-name";
 
@@ -105,7 +105,7 @@ export default async function AdminDirectoryDossier({params,searchParams}:{param
         {companyEdit&&companyDetails&&<div id="company-editor" className="vc-editor-action">
           <h3>Edit company profile</h3>
           {companyDetails[0].error||companyDetails[1].error?<p role="alert">Company details could not be loaded. Editing is disabled to protect existing records. Please reload and retry.</p>:
-          <form action={saveAdminCompanyProfileAction} className="profile-form">
+          <form action={saveBoundAdminCompanyProfileAction.bind(null,id,true)} className="profile-form">
             <input type="hidden" name="company_id" value={id}/>
             <input type="hidden" name="editor_origin" value="directory"/>
             <CompanyProfileFields mode="admin-edit" initial={data} presentation={companyDetails[0].data} contacts={(companyDetails[1].data??[]) as ManagementContact[]}/>
