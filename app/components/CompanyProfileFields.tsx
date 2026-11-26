@@ -73,11 +73,11 @@ export default function CompanyProfileFields({mode,initial,presentation,contacts
       </div>
       <div className="vc-company-editor-grid">
         <div><label htmlFor="vc-company-name">Company name *</label><input id="vc-company-name" name={isCreate?"canonical_name":mode==="company-edit"?"company_name":"canonical_name"} required maxLength={180} defaultValue={get("canonical_name") || get("company_name")}/></div>
-        <div><label htmlFor="vc-business-type">Business type</label><input id="vc-business-type" name="business_type" maxLength={150} defaultValue={get("business_type")} placeholder="Veterinary pharmaceuticals, Feed, Dairy..."/></div>
+        <div><label htmlFor="vc-business-type">Business type</label><input id="vc-business-type" data-draft="allow" name="business_type" maxLength={150} defaultValue={get("business_type")} placeholder="Veterinary pharmaceuticals, Feed, Dairy..."/></div>
         <div><label htmlFor="vc-legal-name">Legal name</label><input id="vc-legal-name" name="legal_name" maxLength={180} defaultValue={get("legal_name")}/></div>
         <div><label htmlFor="vc-trade-name">Trade name / brand</label><input id="vc-trade-name" name="trade_name" maxLength={180} defaultValue={get("trade_name")}/></div>
         <div><label htmlFor="vc-reg-number">Company registration / NTN number</label><input id="vc-reg-number" name="registration_number" maxLength={100} defaultValue={get("registration_number")}/></div>
-        <div><label htmlFor="vc-founded">Year established</label><input id="vc-founded" name="year_established" type="number" min="1800" max={new Date().getFullYear()} defaultValue={getExtra("year_established") || get("year_established")}/></div>
+        <div><label htmlFor="vc-founded">Year established</label><input id="vc-founded" data-draft="allow" name="year_established" type="number" min="1800" max={new Date().getFullYear()} defaultValue={getExtra("year_established") || get("year_established")}/></div>
         <div><label htmlFor="vc-public-email">Public email</label><input id="vc-public-email" name={mode==="company-edit"?"contact_email":"public_email"} type="email" maxLength={240} defaultValue={get("public_email") || get("contact_email")}/></div>
         <div><label htmlFor="vc-public-phone">Public telephone</label><input id="vc-public-phone" name="public_phone" type="tel" maxLength={60} defaultValue={get("public_phone")}/></div>
         <PakistanLocationFields defaultProvince={get("province")} defaultDistrict={get("district")} defaultTehsil={get("tehsil")} defaultCity={get("city")}/>
@@ -93,7 +93,7 @@ export default function CompanyProfileFields({mode,initial,presentation,contacts
     <section className="vc-company-section">
       <div className="vc-company-section-heading"><span className="vc-company-heading-icon" aria-hidden="true">↗</span><div><h3>Social & online presence</h3><p>Use only the company’s official website and verified social accounts.</p></div></div>
       <div className="vc-company-editor-grid vc-company-social-grid">
-        <div><label htmlFor="vc-website">Website</label><input id="vc-website" name="website" type="url" maxLength={512} defaultValue={get("website")} placeholder="https://example.com"/></div>
+        <div><label htmlFor="vc-website">Website</label><input id="vc-website" data-draft="allow" name="website" type="url" maxLength={512} defaultValue={get("website")} placeholder="https://example.com"/></div>
         {([["facebook_url","Facebook"],["instagram_url","Instagram"],["linkedin_url","LinkedIn"],["youtube_url","YouTube"],["other_url","Other official link (X, WhatsApp, etc.)"]] as const).map(([key,label])=><div key={key}><label htmlFor={"vc-"+key}>{label}</label><input id={"vc-"+key} name={key} type="url" maxLength={512} defaultValue={getExtra(key)} placeholder="https://"/></div>)}
       </div>
     </section>
@@ -101,8 +101,8 @@ export default function CompanyProfileFields({mode,initial,presentation,contacts
     <section className="vc-company-section vc-company-story-editor">
       <div className="vc-company-section-heading"><span className="vc-company-heading-icon" aria-hidden="true">▤</span><div><h3>Company introduction & description</h3><p>Use headings, bold text and bullet points to create a professional public profile and print layout.</p></div></div>
       <div className="vc-company-editor-grid">
-        <div className="vc-company-wide"><label htmlFor="vc-tagline">Introduction / one-line summary</label><input id="vc-tagline" name="tagline" maxLength={240} defaultValue={getExtra("tagline")} placeholder="A concise introduction to the company and its work"/></div>
-        <div><label htmlFor="vc-tone">Profile colour style</label><select id="vc-tone" name="profile_tone" value={tone} onChange={event=>setTone(event.target.value)}><option value="navy">VetConnect navy</option><option value="orange">VetConnect orange</option><option value="slate">Neutral slate</option></select></div>
+        <div className="vc-company-wide"><label htmlFor="vc-tagline">Introduction / one-line summary</label><input id="vc-tagline" data-draft="allow" name="tagline" maxLength={240} defaultValue={getExtra("tagline")} placeholder="A concise introduction to the company and its work"/></div>
+        <div><label htmlFor="vc-tone">Profile colour style</label><select id="vc-tone" data-draft="allow" name="profile_tone" value={tone} onChange={event=>setTone(event.target.value)}><option value="navy">VetConnect navy</option><option value="orange">VetConnect orange</option><option value="slate">Neutral slate</option></select></div>
         <div className="vc-company-wide">
           <div className="vc-editor-toolbar" aria-label="Company description formatting">
             <button type="button" title="Heading" onClick={()=>addFormatting("## ","","Heading")}>H</button>
