@@ -49,3 +49,14 @@ test("public story uses escaped React output and safe protocols",()=>{
   assert.match(print,/privateRecord&&<section/);
   assert.match(print,/CompanyPrintButton/);
 });
+
+
+test("company save accepts canonical five-group UUID and rejects malformed IDs",()=>{
+  const action=read("app/admin/company-profile/actions.ts");
+  const match=action.match(/const uuid=\/(.*?)\/i;/);
+  assert.ok(match);
+  const validator=new RegExp(match[1],"i");
+  assert.equal(validator.test("aa9232fc-8197-4ece-86e8-daaa8097a2c6"),true);
+  assert.equal(validator.test("aa9232fc-8197-4ece-daaa8097a2c6"),false);
+  assert.equal(validator.test(""),false);
+});

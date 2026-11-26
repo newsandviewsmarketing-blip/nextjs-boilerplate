@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { companyContactsFromForm,companyPresentationFromForm,companyCoreFromForm,saveCompleteCompanyProfile } from "@/lib/company-profile-editor";
 import { uploadPublicImage, uploadedFile, uploadPrivateDocument, recordUploadedDocument } from "@/lib/admin-uploads";
 
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function saveAdminCompanyProfileAction(form:FormData) {
   return saveBoundAdminCompanyProfileAction(String(form.get("company_id") ?? ""), form.get("editor_origin")==="directory", form);
 }
