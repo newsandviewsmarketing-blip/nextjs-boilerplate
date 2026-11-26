@@ -100,8 +100,8 @@ function CompanyRegistrationFields() {
     <div><label htmlFor="company-name">Registered company name *</label>
       <input id="company-name" name="organization_name" required maxLength={180}
         autoComplete="organization" placeholder="Legal registered company name"/></div>
-    <div><label htmlFor="company-reg">Registration / NTN number *</label>
-      <input id="company-reg" name="company_registration_number" required maxLength={180}
+    <div><label htmlFor="company-reg">Registration / NTN number (optional)</label>
+      <input id="company-reg" name="company_registration_number" maxLength={180}
         placeholder="Official registration or NTN"/></div>
     <fieldset className="form-span-2 vc-company-activities">
       <legend>Company business activities *</legend>
