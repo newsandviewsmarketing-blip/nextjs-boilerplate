@@ -6,7 +6,7 @@ import SiteFooter from "../components/SiteFooter";
 import ProfilePhoto from "../components/ProfilePhoto";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { initials, sampleClinics, type PublicClinic } from "@/lib/directories";
+import { initials, type PublicClinic } from "@/lib/directories";
 
 export const metadata: Metadata = {
   title: "Veterinary Clinics & Hospitals in Pakistan",
@@ -17,11 +17,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 async function loadClinics(): Promise<PublicClinic[]> {
-  if (!isSupabaseConfigured()) return sampleClinics;
+  if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
   const { data, error } = await supabase.from("public_clinics").select("id, slug, clinic_name, facility_type, description, city, province, district, tehsil, logo_url, cover_image_url, address, public_phone, public_email, website, working_hours, emergency_service, services, species, profile_verified, other_cities").order("clinic_name");
-  if (error || !data?.length) return sampleClinics;
-  return data as PublicClinic[];
+  if (error || !data?.length) return [];
+  return (data as PublicClinic[]).filter(row=>row.profile_verified && !row.is_sample);
 }
 
 export default async function ClinicsPage({ searchParams }: { searchParams: Promise<{ q?: string; city?: string; type?: string }> }) {
