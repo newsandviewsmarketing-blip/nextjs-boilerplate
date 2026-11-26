@@ -1,0 +1,386 @@
+diff --git a/app/admin/page.tsx b/app/admin/page.tsx
+index dcd9704..45030a0 100644
+--- a/app/admin/page.tsx
++++ b/app/admin/page.tsx
+@@ -197,7 +197,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
+   const accountIds=[...(vets.data??[]).map(x=>x.user_id),...(professionals.data??[]).map(x=>x.user_id)].filter(Boolean);
+   const lookup=accountIds.length ? await supabase.from("profiles").select("id,full_name").in("id",accountIds) : {data:[]};
+   const names=new Map((lookup.data??[]).map(item=>[item.id,item.full_name]));
+-  for(const item of profiles.data??[])addActivity({id:"registration-"+item.id,kind:"registration",name:isSuspiciousProfileName(item.full_name||"")?`Flagged account · ${item.id.slice(0,8)}`:item.full_name||"New account",status:item.account_status,at:item.created_at,href:"/admin/users/"+item.id,description:"New "+item.primary_role.replaceAll("_"," ")+" registration"});
++  for(const item of profiles.data??[])addActivity({id:"registration-"+item.id,kind:"registration",name:isSuspiciousProfileName(item.full_name||"")?"Flagged account":item.full_name||"New account",status:item.account_status,at:item.created_at,href:"/admin/users/"+item.id,description:"New "+item.primary_role.replaceAll("_"," ")+" registration"});
+   for(const item of vets.data??[])addActivity({id:"vet-"+item.user_id,kind:"veterinarian",name:names.get(item.user_id)||"Veterinarian registration",status:item.verification_status,at:item.created_at,href:"/admin/reviews#profile-account-"+item.user_id,description:"Veterinarian profile needs review"});
+   for(const item of professionals.data??[])addActivity({id:"professional-"+item.user_id,kind:"professional",name:names.get(item.user_id)||"Professional registration",status:item.verification_status,at:item.created_at,href:"/admin/reviews#profile-account-"+item.user_id,description:"Professional profile needs review"});
+   for(const item of managed.data??[])addActivity({id:"managed-"+item.id,kind:item.profile_kind,name:item.full_name||"Assisted entry",status:item.verification_status,at:item.created_at,href:"/admin/reviews#profile-managed_people-"+item.id,description:"Assisted "+item.profile_kind+" awaits review"});
+@@ -214,6 +214,7 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
+       (!params.status || params.status==="all" || x.status===params.status))
+     .slice(0,24);
+   const kinds=[...new Set(activity.map(x=>x.kind))].sort();
++  const pendingActivity=activity.filter(item=>item.status==="pending"&&item.kind!=="registration").slice(0,12);
+   return <main className="vc-admin-page">
+     <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout" style={{width:"96%",maxWidth:"none"}}>
+       <div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div>
+@@ -262,6 +263,10 @@ export default async function AdminOverviewPage({searchParams}:{searchParams:Pro
+           </div>
+           <p className="vc-panel-footnote">Approved refers to the source record review status. PVMC verification, public publication and other legal approvals are independent checks. No approval is made by opening these cards.</p>
+         </section>}
++        {(panel==="overview"||panel==="approvals")&&pendingActivity.length>0&&<section className="vc-admin-panel" aria-labelledby="recent-pending-title">
++          <div className="vc-panel-header"><div><h2 id="recent-pending-title">Newest pending records</h2><p>Recent submissions only. Open the full review queue for all records.</p></div><Link href="/admin?panel=activity&status=pending">Recent activity</Link></div>
++          <div className="vc-activity-list">{pendingActivity.map(item=><Link className="vc-activity-entry" key={item.id} href={item.href}><span className="vc-activity-content"><strong>{item.name}</strong><small>{item.kind.replaceAll("_"," ")} · {item.description}</small></span><span className="vc-activity-meta"><em className="vc-status vc-status-pending">Pending</em><time dateTime={item.at}>{format(item.at)}</time></span><span>Review →</span></Link>)}</div>
++        </section>}
+         {panel==="approvals" && <section className="vc-admin-priority-panel" aria-labelledby="vc-pending-reviews">
+           <div className="vc-admin-section-title"><div><span className="section-kicker">ACTION REQUIRED</span><h2 id="vc-pending-reviews">Approval and review queues</h2><p>Counts are private to your assigned permissions; opening a queue does not approve anything.</p></div>
+           {profilesAllowed&&<Link href="/admin/reviews">Review centre</Link>}</div>
+diff --git a/app/companies/[id]/page.tsx b/app/companies/[id]/page.tsx
+index adb527c..10fd575 100644
+--- a/app/companies/[id]/page.tsx
++++ b/app/companies/[id]/page.tsx
+@@ -3,6 +3,7 @@ import Link from "next/link";
+ import { notFound } from "next/navigation";
+ import SiteHeader from "../../components/SiteHeader";
+ import SiteFooter from "../../components/SiteFooter";
++import {compactDescription,distinctLabels} from "@/lib/directory-presentation";
+ import CompanyStory,{plainCompanyDescription} from "../../components/CompanyStory";
+ import "../../components/CompanyProfileFields.css";
+ import { PublicContactLinks } from "../../components/ExternalLinks";
+@@ -12,7 +13,7 @@ import { companyInitials, productMark, sampleCompanies, sampleProducts, type Pub
+ export const dynamic="force-dynamic";
+ async function loadCompany(id:string){const sampleIndex=id.startsWith("sample-")?Number(id.replace("sample-",""))-1:-1;if(sampleIndex>=0)return{company:sampleCompanies[sampleIndex]??null,products:sampleProducts.slice(0,3),presentation:null};if(!isSupabaseConfigured())return{company:null,products:[],presentation:null};const supabase=await createClient();let {data:company}=await supabase.from("public_company_directory").select("id,user_id,company_name,business_type,city,province,district,tehsil,address,description,website,contact_email,public_phone,google_maps_url,logo_url").eq("id",id).maybeSingle();if(!company){const legacy=await supabase.from("public_company_directory").select("id,user_id,company_name,business_type,city,province,district,tehsil,address,description,website,contact_email,public_phone,google_maps_url,logo_url").eq("user_id",id).maybeSingle();company=legacy.data}if(!company)return{company:null,products:[]};const {data:presentation}=await supabase.from("company_profile_content").select("tagline,year_established,facebook_url,instagram_url,linkedin_url,youtube_url,other_url,profile_tone").eq("company_id",company.id).maybeSingle();const filters=[`company_id.eq.${company.id}`];if(company.user_id)filters.push(`company_user_id.eq.${company.user_id}`);const {data:products}=await supabase.from("products").select("*").or(filters.join(",")).eq("verification_status","approved").eq("is_published",true).order("created_at",{ascending:false});const publicProducts=(products??[]).map((r):PublicProduct=>({id:r.id,slug:r.slug,product_name:r.product_name,brand_name:r.brand_name,generic_name:r.generic_name,category:r.category,sector:r.sector,composition:r.composition,strength:r.strength,dosage_form:r.dosage_form,pack_sizes:r.pack_sizes??[],indications:r.indications,description:r.description,storage_instructions:r.storage_instructions,image_url:r.image_url,availability:r.availability,product_code:r.product_code,subclass:r.subclass,therapeutic_class:r.therapeutic_class,sectors:r.sectors??[],species:r.species??[],production_systems:r.production_systems??[],use_areas:r.use_areas??[],routes:r.routes??[],precautions:r.precautions,contraindications:r.contraindications,warnings:r.warnings,meat_withdrawal:r.meat_withdrawal,milk_withdrawal:r.milk_withdrawal,egg_withdrawal:r.egg_withdrawal,cold_chain:r.cold_chain,temperature_range:r.temperature_range,shelf_life:r.shelf_life,country_of_origin:r.country_of_origin,regulatory_review_status:r.regulatory_review_status,company_user_id:company.user_id,company_id:company.id,company_name:company.company_name,company_city:company.city}));return{company:company as PublicCompany,products:publicProducts,presentation}}
+ export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{const {id}=await params;const {company,presentation}=await loadCompany(id);if(!company)return{title:"Veterinary Company"};return{title:`${company.company_name} | Veterinary Company Profile`,description:presentation?.tagline||plainCompanyDescription(company.description||"")||`${company.company_name} animal-health company profile on VetConnect Pakistan.`,alternates:{canonical:`/companies/${id}`},robots:company.is_sample?{index:false,follow:true}:undefined}}
+-export default async function CompanyDetailPage({params}:{params:Promise<{id:string}>}){const {id}=await params;const {company,products,presentation}=await loadCompany(id);if(!company)notFound();return <main className="vc-public-company"><SiteHeader/><section className="page-hero"><div className="shell company-profile-hero">{company.logo_url?<img className="company-profile-logo" src={company.logo_url} alt={`${company.company_name} logo`} loading="lazy" decoding="async"/>:<div className="company-mark company-profile-logo">{companyInitials(company.company_name)}</div>}<div><span className="section-kicker">{company.is_sample?"SAMPLE COMPANY":"VERIFIED COMPANY"}</span><h1>{company.company_name}</h1><p>{presentation?.tagline||plainCompanyDescription(company.description||"")||"A verified VetConnect animal-health company profile."}</p><div className="profile-chips">{(company.business_type||"").split(",").map(v=>v.trim()).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).map(v=><span key={v}>{v}</span>)}<span>{company.city||"Pakistan"}</span></div></div></div></section><section className="section compact-section"><div className="shell company-contact-grid"><article><span>Location</span><b>{company.address||[company.tehsil||company.city,company.district,company.province].filter(Boolean).join(", ")||"Pakistan"}</b>{company.google_maps_url&&<PublicContactLinks mapUrl={company.google_maps_url}/>}</article><article><span>Public contact</span><PublicContactLinks phone={company.public_phone} email={company.contact_email}/></article><article><span>Website</span><PublicContactLinks website={company.website}/></article></div></section>{(company.description||presentation?.tagline||presentation?.facebook_url||presentation?.instagram_url||presentation?.linkedin_url||presentation?.youtube_url)&&<section className="section compact-section"><div className="shell">
++export default async function CompanyDetailPage({params}:{params:Promise<{id:string}>}){const {id}=await params;const {company,products,presentation}=await loadCompany(id);if(!company)notFound();return <main className="vc-public-company"><SiteHeader/><section className="page-hero"><div className="shell company-profile-hero">{company.logo_url?<img className="company-profile-logo" src={company.logo_url} alt={`${company.company_name} logo`} loading="lazy" decoding="async"/>:<div className="company-mark company-profile-logo">{companyInitials(company.company_name)}</div>}<div><span className="section-kicker">{company.is_sample?"SAMPLE COMPANY":"VERIFIED COMPANY"}</span><h1>{company.company_name}</h1><p>{compactDescription(presentation?.tagline||company.description||"",company.company_name,180)}</p><div className="profile-chips">{distinctLabels(company.business_type).map(v=><span key={v}>{v}</span>)}<span>{company.city||"Pakistan"}</span></div></div></div></section><section className="section compact-section"><div className="shell company-contact-grid"><article><span>Location</span><b>{company.address||[company.tehsil||company.city,company.district,company.province].filter(Boolean).join(", ")||"Pakistan"}</b>{company.google_maps_url&&<PublicContactLinks mapUrl={company.google_maps_url}/>}</article><article><span>Public contact</span><PublicContactLinks phone={company.public_phone} email={company.contact_email}/></article><article><span>Website</span><PublicContactLinks website={company.website}/></article></div></section>{(company.description||presentation?.tagline||presentation?.facebook_url||presentation?.instagram_url||presentation?.linkedin_url||presentation?.youtube_url)&&<section className="section compact-section"><div className="shell">
+   <div className="section-heading compact-heading"><span className="section-kicker">COMPANY PROFILE</span><h2>Company overview</h2>{presentation?.year_established&&<p>Established {presentation.year_established}</p>}</div>
+   {company.description&&<CompanyStory text={company.description.replace(/^#\s+[^\n]+\n+/, (heading)=>heading.trim().slice(2).trim().toLowerCase()===company.company_name.trim().toLowerCase()?"":heading)} tone={presentation?.profile_tone??"navy"}/>}
+   <div className="vc-company-public-social">{([
+diff --git a/app/companies/page.tsx b/app/companies/page.tsx
+index 4812db1..ed123f2 100644
+--- a/app/companies/page.tsx
++++ b/app/companies/page.tsx
+@@ -8,13 +8,12 @@ import { createClient } from "@/lib/supabase/server";
+ import { companyInitials, type PublicCompany } from "@/lib/marketplace";
+ import { COMPANY_SECTOR_LABELS, COMPANY_CLASSIFICATION } from "@/lib/company-classification";
+ import "./directory.css";
++import {compactDescription, distinctLabels} from "@/lib/directory-presentation";
+ 
+ export const metadata:Metadata={title:"Veterinary & Animal Health Companies",description:"Browse approved veterinary, livestock, poultry, dairy, feed, diagnostics and animal-health companies.",alternates:{canonical:"/companies"}};
+ export const dynamic="force-dynamic";
+ const norm=(s:string)=>s.trim().toLowerCase();
+-function businessLabels(raw:string|null){
+-  return [...new Map((raw??"").split(",").map(s=>s.trim()).filter(Boolean).map(s=>[norm(s),s])).values()];
+-}
++const businessLabels=distinctLabels;
+ // Legacy labels remain record-supplied; only exact master labels/subsectors are normalized.
+ // Never infer company sectors from unrelated activity or description.
+ function sectorLabels(raw:string|null){
+@@ -26,15 +25,6 @@ function sectorLabels(raw:string|null){
+     return label;
+   }))];
+ }
+-function shortIntro(c:PublicCompany,tagline?:string){
+-  const raw=plainCompanyDescription(tagline||c.description||"");
+-  const value=raw.toLowerCase().startsWith(c.company_name.toLowerCase())?raw.slice(c.company_name.length).trim():raw;
+-  const clean=value.replace(/^about the company\s*/i,"").trim();
+-  if(!clean)return "View the company profile for more information.";
+-  if(clean.length<=140)return clean;
+-  const cut=clean.slice(0,137);const last=cut.lastIndexOf(" ");
+-  return (last>60?cut.slice(0,last):cut)+"…";
+-}
+ async function loadCompanies(){
+   if(!isSupabaseConfigured())return {companies:[] as PublicCompany[],taglines:new Map<string,string>(),error:true};
+   const supabase=await createClient();
+@@ -49,8 +39,9 @@ async function loadCompanies(){
+ export default async function CompaniesPage({searchParams}:{searchParams:Promise<{q?:string;type?:string;page?:string}>}){
+  const params=await searchParams;const {companies,taglines,error}=await loadCompanies();
+  const q=norm(params.q??"");const selected=norm(params.type??"");
+- const types=[...new Map(companies.flatMap(c=>sectorLabels(c.business_type)).map(s=>[norm(s),s])).values()].sort((a,b)=>a.localeCompare(b));
++ const recordedTypes=companies.flatMap(c=>sectorLabels(c.business_type));
+  const master=Object.entries(COMPANY_SECTOR_LABELS).map(([key,label])=>({key,label,children:COMPANY_CLASSIFICATION[key as keyof typeof COMPANY_CLASSIFICATION] as readonly string[]}));
++ const types=[...new Map([...recordedTypes,...master.filter(s=>recordedTypes.some(label=>s.children.some(child=>norm(child)===norm(label)))).map(s=>s.label)].map(s=>[norm(s),s])).values()].sort((a,b)=>a.localeCompare(b));
+  const matchesType=(c:PublicCompany)=>!selected||selected==="all business types"||sectorLabels(c.business_type).some(label=>norm(label)===selected)||businessLabels(c.business_type).some(label=>norm(label)===selected)||master.some(s=>norm(s.label)===selected&&sectorLabels(c.business_type).some(label=>s.children.some(child=>norm(child)===norm(label))));
+  const visible=companies.filter(c=>(!q||norm([c.company_name,c.business_type??"",c.city??"",taglines.get(c.id??"")??"",plainCompanyDescription(c.description??"")].join(" ")).includes(q))&&matchesType(c));
+  const pageSize=18;const pages=Math.max(1,Math.ceil(visible.length/pageSize));const page=Math.min(pages,Math.max(1,Number.parseInt(params.page??"1",10)||1));
+@@ -60,7 +51,7 @@ export default async function CompaniesPage({searchParams}:{searchParams:Promise
+  <section className="section compact-section"><div className="shell"><div className="directory-top"><div><b>{visible.length} company profiles</b><span>Administrator-approved directory</span></div><form className="market-search" method="get"><input name="q" aria-label="Search companies" defaultValue={params.q??""} placeholder="Search company or sector"/><select name="type" aria-label="Business category" defaultValue={params.type??""}><option value="">All business categories</option>{types.map(t=><option key={t}>{t}</option>)}</select><button className="button button-primary" type="submit">Search</button></form></div>
+  {error?<div className="empty-state">Company directory is temporarily unavailable.</div>:visible.length===0?<div className="empty-state"><h2>No approved companies match this search.</h2><Link href="/companies">Clear search</Link></div>:<div className="vc-directory-grid">{visible.slice((page-1)*pageSize,page*pageSize).map(c=>{
+  const id=c.id??c.user_id;if(!id)return null;const labels=sectorLabels(c.business_type);const location=[c.city,c.province].filter((v,i,a)=>v&&a.findIndex(w=>w?.toLowerCase()===v.toLowerCase())===i).join(", ");
+- return <article className="vc-directory-card" key={id}><div className="vc-directory-logo">{c.logo_url?<img src={c.logo_url} alt={c.company_name+" logo"} loading="lazy" decoding="async" width={180} height={110}/>:<span aria-label={c.company_name+" initials"}>{companyInitials(c.company_name)}</span>}</div><h3><Link href={"/companies/"+id}>{c.company_name}</Link></h3><div className="vc-directory-tags">{labels.slice(0,4).map(t=><Link key={t} href={"/companies?"+new URLSearchParams({type:t}).toString()}>{t}</Link>)}{labels.length>4&&<span>+{labels.length-4} more</span>}</div><p className="vc-directory-intro">{shortIntro(c,taglines.get(id))}</p><div className="vc-directory-location">{location||"Location not specified"}</div><Link className="button button-primary button-full vc-directory-read" href={"/companies/"+id}>Read more</Link></article>})}</div>}
++ return <article className="vc-directory-card" key={id}><div className="vc-directory-logo">{c.logo_url?<img src={c.logo_url} alt={c.company_name+" logo"} loading="lazy" decoding="async" width={180} height={110}/>:<span aria-label={c.company_name+" initials"}>{companyInitials(c.company_name)}</span>}</div><h3><Link href={"/companies/"+id}>{c.company_name}</Link></h3><div className="vc-directory-tags">{labels.slice(0,4).map(t=><Link key={t} href={"/companies?"+new URLSearchParams({type:t}).toString()}>{t}</Link>)}{labels.length>4&&<span>+{labels.length-4} more</span>}</div><p className="vc-directory-intro">{compactDescription(taglines.get(id)||c.description||"",c.company_name)}</p><div className="vc-directory-location">{location||"Location not specified"}</div><Link className="button button-primary button-full vc-directory-read" href={"/companies/"+id}>Read more</Link></article>})}</div>}
+  {pages>1&&<nav className="vc-directory-pagination" aria-label="Company pages">{page>1&&<Link href={href(page-1)}>Previous</Link>}<span>Page {page} of {pages}</span>{page<pages&&<Link href={href(page+1)}>Next</Link>}</nav>}
+  </div></section><SiteFooter/></main>;
+ }
+diff --git a/docs/master-closure/INTEGRATION-REVIEW.md b/docs/master-closure/INTEGRATION-REVIEW.md
+new file mode 100644
+index 0000000..daa88ff
+--- /dev/null
++++ b/docs/master-closure/INTEGRATION-REVIEW.md
+@@ -0,0 +1,29 @@
++# VetConnect integrated source candidate | 26 November 2026
++Release status: HOLD. This is an actual source archive with limited additional changes, not a fully tested production build or database dump.
++
++## Comparison and decisions
++The uploaded source has PR162 company directory code and existing admin overview, permission gates, master data studio, public profiles, migrations and CI. The closure ZIP contains requirements, historical SQL references and 80 acceptance cases. Preserve existing migrations byte-for-byte. Historical dry-run SQL is not a new migration and is deliberately not imported. No live changes. Compare this candidate with fresh GitHub main before merging; do not overwrite newer commits.
++
++## Implemented locally
++- Shared compact company description and case-insensitive exact label deduplication; use on directory and profile; no full description in hero; parent category options for exact existing child labels. Existing underlying descriptions are preserved.
++- Newest pending records on admin overview/approvals using existing permission-gated activity sources and review links. Shows up to 12 recent pending entries; not a complete queue or real-time push. Remove visible raw UUID prefix from flagged account labels.
++- Four executable pure logic regression tests. Existing 80-case manual acceptance matrix and read-only SQL audit included.
++
++## Engineering workstreams still open
++| Discipline | Required change | Gate |
++|---|---|---|
++| Database architect | Reuse companies.id, master_data_items parent hierarchy, geo_areas and aliases. Reconcile legacy company user links; no guessed taxonomy. Stable sector/subsector/activity, disease, vaccine, species, brand, breed, quality/certification, market and geography dimensions; explicit many-to-many links. | Isolated migration, backfill report, unique constraints, rollback, RLS two-account tests |
++| Backend | Shared transactional create/edit/publish/unpublish/archive/restore; dependency-checked delete with confirmation, audit and permissions. Scoped secure drafts, idempotency, bounded paginated API, safe export. | Save/reload, failed submit, authorization and concurrency tests |
++| Search | One public search across approved vets, companies, feeds, medicines, vaccines, labs, jobs and professionals; aliases and exact disease distinction. Example Poultry > vaccine > disease > product > company; feed > nutrition > supplier; HR > job > employer and verified professional. Use relationships, not keyword guesses. | Exact matches, related separately labelled, privacy and performance |
++| Admin | Unified queues with new/pending/approved/rejected/published/archived, independent PVMC and publication checks; new submissions alerts, owner/assignee, review date, click-through dossier, safe edit/archive/restore/delete, bulk operations only with explicit permission. | Every role, type and lifecycle tested; no false counts |
++| Senior UX/graphic design | Preserve navy/orange identity and original uploaded logos/photos. Shared spacing (4/8/12/16/24/32), card alignment, type hierarchy, visible focus, accessible contrast, consistent 1/2/3-column grids, concise titles, contextual empty/error states, no redundant labels or internal IDs. Audit every route listed in ROUTES.txt at 360/390/768/1366px. | Screenshot evidence and keyboard navigation, no overflow |
++| Reporting and social | Permission-scoped CSV/print/PDF, public links and editable captions/hashtags; social share composer with user confirmation, no automatic posts or private data transmission. Browser print already exists; full exports and posting integrations not verified. | Export injection prevention, private field allowlists, destination confirmation |
++| Security | RLS policy review, API field allowlists, private evidence, dependency audit, no secrets in ZIP, exact-head test gates. Hide raw identifiers visually but retain relational keys and audit metadata. | Anonymous/owner/unrelated/admin test matrix; no production test data |
++| Performance | Measure current and candidate mobile/desktop; database indexed server filters and pagination, bounded admin query fan-out, image optimization, optional map links; preserve AdSense and approved assets. Targets proposed: LCP <=2.5s, INP <=200ms, CLS <=0.1 at p75; measure rather than claim. | Record measurements and regressions |
++| Release | No new feature scope until P0/P1 gates pass. Verify exact GitHub main and both Vercel custom aliases; inspect automatic domain assignment, preserve rollback, staged schema compatibility. | Successful exact-head CI, staged DB, manual acceptance, both aliases verified |
++
++## Testing status
++Archive integrity: both inputs passed. Structure audit: 96 required entries verified. New helper tests: 4/4 passed. Source release gate passed before adding this report; rerun after all changes. npm ci --offline failed ENOTCACHED for zod-validation-error 4.0.2; full lint/typecheck/build/database tests not verified. No browser screenshots or actual latency measurements. No production database modifications, no live posting or deployment. All existing migrations are historical source, not a current production schema export.
++
++## How to integrate
++Extract outside your checkout. Compare exact current main with this source (especially the five changed source/test files and added docs). Apply only reviewed changes on a branch, not a blind ZIP overwrite. Install dependencies in a network-enabled trusted CI environment using npm ci; run npm run check, npm run security:audit, and node --experimental-strip-types --test scripts/directory-presentation.test.mjs. Rehearse existing and proposed migrations on isolated staging; complete acceptance.csv and store results. Never upload ZIP as a repository artifact or run historical SQL on production. Promote one verified build only after all gates and review.
+diff --git a/docs/master-closure/MASTER.md b/docs/master-closure/MASTER.md
+new file mode 100644
+index 0000000..c9494f3
+--- /dev/null
++++ b/docs/master-closure/MASTER.md
+@@ -0,0 +1,22 @@
++# Consolidated P0/P1 closure register
++Baseline: verify latest main, production aliases and migration history before changes. Last directly checked at 11:09 UTC: PR 162 build READY (2b7fbaca), both domains still on PR 158 (cca5908). Recheck rather than assuming current state. User screenshots previously confirmed Jadeed save/publish. No complete functional acceptance yet.
++
++| ID | Priority | Action | Required implementation | Acceptance |
++|---|---|---|---|---|
++| VC01 | P0 | KEEP/MODIFY | Reuse companies.id; migrate legacy company_sectors and company_locations ownership to canonical ID with audited mappings | Admin-created and owner-created records save/reload; no cross-tenant access |
++| VC02 | P0 | MODIFY | Reuse master_data_items and geo_areas/geo_aliases; stable parent/child IDs and reviewed synonyms; do not infer missing sectors | Valid hierarchy, duplicate prevention, inactive records retained |
++| VC03 | P0 | MODIFY | Universal countries, Pakistan default, city-first, Karachi main city, optional district/tehsil, international region/city/postcode, Google Maps links | Pakistan/UK/UAE round-trip across relevant modules; no forced Pakistani subdivisions |
++| VC04 | P0 | MODIFY | Company classification multi-sector/subsector/activity using shared master; separate brand, breed, species, disease, generic | Admin/customer create/edit parity; legacy text retained until reviewed mapping |
++| VC05 | P0 | MODIFY | Secure owner/company-scoped drafts and staged uploads, conflict versioning, idempotency, atomic writes or recoverable partial saves | Refresh, failed submit, session expiry, repeated fields, two-account isolation |
++| VC06 | P0 | MODIFY | Role-specific verification, separate publication and approval, optional NTN and appropriate foreign evidence | No approval bypass, no private evidence leakage, PVMC rules preserved |
++| VC07 | P0 | MODIFY | Consistent record actions: edit/update, publish/unpublish where applicable, archive/restore, dependency-checked audited delete | Authorized actions only; no destructive production testing; preserve historical records |
++| VC08 | P0 | REMOVE FROM DISPLAY | Hide raw IDs, audit actor IDs, storage URLs, internal tags, private contacts from public views and ordinary admin presentation; authorized audit panel only | Public response and export allowlists; direct URL and RLS tests |
++| VC09 | P1 | MODIFY | Company directory centered original logos, company name, sector chips, short tagline, read more, consistent cards; reuse PR162 | Phone/tablet/desktop, no full description, individual filters |
++| VC10 | P1 | MODIFY | All public profiles and admin/customer forms use shared typography, spacing, labels, responsive layout; remove duplicate buttons and unnecessary internal marketing copy | Visual route matrix, no sticky overlap, no horizontal overflow |
++| VC11 | P1 | ADD/INTEGRATE | Global search with approved public projections, sector/alias and exact disease matching, entity tabs, location filters, indexed pagination | Poultry returns relevant entities; unrelated vaccines excluded; no unpublished/private matches |
++| VC12 | P1 | MODIFY | Master data add/edit/deactivate, reviewed suggestions, dedupe/merge/relink, audit; retain stable IDs | Permissions, parent validation, no orphan relationships |
++| VC13 | P1 | MODIFY | Jobs, clinics, labs, professionals, students, owners, products, CV and reporting integrate only relevant shared fields | Per-module create/edit/search/print tests; product origin not duplicate company address |
++| VC14 | P1 | MODIFY | Performance: indexed measured queries, bounded server pagination, lightweight assets, optional map links without initial embeds | Compare query plans, requests, mobile load and bundle |
++| VC15 | P0 | VERIFY | GitHub exact-head CI, isolated DB migration rehearsal, rollback, production alias configuration and release controls | Tests and build pass, explicit acceptance, both aliases verified |
++
++All items remain OPEN/PARTIAL unless evidence is recorded. PRs 159–162 are partial implementation, not universal closure. Alumni separate future issue #150. Clinical workflow #80 must be scoped against actual existing implementation; no fake completion. Main issues: #96, #132, #114, #101, #80. Preserve current branding, AdSense, approved profiles, routes and security. No duplicate source files or per-module master tables without justification.
+diff --git a/docs/master-closure/ROUTES.txt b/docs/master-closure/ROUTES.txt
+new file mode 100644
+index 0000000..68add8a
+--- /dev/null
++++ b/docs/master-closure/ROUTES.txt
+@@ -0,0 +1,71 @@
++app/about/page.tsx
++app/admin/applications/page.tsx
++app/admin/audit/page.tsx
++app/admin/clinic-affiliations/page.tsx
++app/admin/company-profile/[id]/export/page.tsx
++app/admin/company-profile/[id]/page.tsx
++app/admin/create/page.tsx
++app/admin/credential-recheck/page.tsx
++app/admin/data/page.tsx
++app/admin/directory/[kind]/[id]/page.tsx
++app/admin/directory/page.tsx
++app/admin/jobs-media/page.tsx
++app/admin/jobs/[id]/page.tsx
++app/admin/jobs/page.tsx
++app/admin/page.tsx
++app/admin/products/[id]/page.tsx
++app/admin/products/new/page.tsx
++app/admin/products/page.tsx
++app/admin/reports/page.tsx
++app/admin/reviews/page.tsx
++app/admin/team/page.tsx
++app/admin/users/[id]/page.tsx
++app/admin/users/page.tsx
++app/admin/website/page.tsx
++app/career/connections/page.tsx
++app/career/cover-letter/page.tsx
++app/career/cv/page.tsx
++app/career/cv/print/page.tsx
++app/career/page.tsx
++app/career/preferences/page.tsx
++app/clinics/[slug]/page.tsx
++app/clinics/page.tsx
++app/coming-soon/page.tsx
++app/companies/[id]/page.tsx
++app/companies/page.tsx
++app/cookies/page.tsx
++app/dashboard/career/cv/page.tsx
++app/dashboard/career/cv/print/page.tsx
++app/dashboard/career/page.tsx
++app/dashboard/clinics/[id]/page.tsx
++app/dashboard/clinics/page.tsx
++app/dashboard/company/export/page.tsx
++app/dashboard/company/page.tsx
++app/dashboard/company/products/[id]/page.tsx
++app/dashboard/company/select/page.tsx
++app/dashboard/laboratory/page.tsx
++app/dashboard/page.tsx
++app/dashboard/professional/page.tsx
++app/forgot-password/page.tsx
++app/jobs/[slug]/page.tsx
++app/jobs/page.tsx
++app/labs/[slug]/page.tsx
++app/labs/page.tsx
++app/learn/page.tsx
++app/login/page.tsx
++app/marketplace/[slug]/page.tsx
++app/marketplace/page.tsx
++app/page.tsx
++app/privacy/page.tsx
++app/professionals/[slug]/page.tsx
++app/professionals/page.tsx
++app/register/complete/page.tsx
++app/register/page.tsx
++app/register/status/page.tsx
++app/team/[slug]/page.tsx
++app/team/page.tsx
++app/terms/page.tsx
++app/update-password/page.tsx
++app/verify-email/page.tsx
++app/vets/[id]/page.tsx
++app/vets/page.tsx
+diff --git a/docs/master-closure/acceptance.csv b/docs/master-closure/acceptance.csv
+new file mode 100644
+index 0000000..dc1acdf
+--- /dev/null
++++ b/docs/master-closure/acceptance.csv
+@@ -0,0 +1,81 @@
++Module,Test,Status,Evidence,Blocker
++Company,Authorized create/edit and reload,NOT RUN,,
++Company,Failed submit and retry; no data loss,NOT RUN,,
++Company,Unauthorized account denied,NOT RUN,,
++Company,Archive/restore or documented not applicable,NOT RUN,,
++Company,Public/private fields and exports,NOT RUN,,
++Company,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Veterinarian,Authorized create/edit and reload,NOT RUN,,
++Veterinarian,Failed submit and retry; no data loss,NOT RUN,,
++Veterinarian,Unauthorized account denied,NOT RUN,,
++Veterinarian,Archive/restore or documented not applicable,NOT RUN,,
++Veterinarian,Public/private fields and exports,NOT RUN,,
++Veterinarian,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Professional,Authorized create/edit and reload,NOT RUN,,
++Professional,Failed submit and retry; no data loss,NOT RUN,,
++Professional,Unauthorized account denied,NOT RUN,,
++Professional,Archive/restore or documented not applicable,NOT RUN,,
++Professional,Public/private fields and exports,NOT RUN,,
++Professional,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Student,Authorized create/edit and reload,NOT RUN,,
++Student,Failed submit and retry; no data loss,NOT RUN,,
++Student,Unauthorized account denied,NOT RUN,,
++Student,Archive/restore or documented not applicable,NOT RUN,,
++Student,Public/private fields and exports,NOT RUN,,
++Student,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Clinic,Authorized create/edit and reload,NOT RUN,,
++Clinic,Failed submit and retry; no data loss,NOT RUN,,
++Clinic,Unauthorized account denied,NOT RUN,,
++Clinic,Archive/restore or documented not applicable,NOT RUN,,
++Clinic,Public/private fields and exports,NOT RUN,,
++Clinic,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Laboratory,Authorized create/edit and reload,NOT RUN,,
++Laboratory,Failed submit and retry; no data loss,NOT RUN,,
++Laboratory,Unauthorized account denied,NOT RUN,,
++Laboratory,Archive/restore or documented not applicable,NOT RUN,,
++Laboratory,Public/private fields and exports,NOT RUN,,
++Laboratory,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Farmer/Owner,Authorized create/edit and reload,NOT RUN,,
++Farmer/Owner,Failed submit and retry; no data loss,NOT RUN,,
++Farmer/Owner,Unauthorized account denied,NOT RUN,,
++Farmer/Owner,Archive/restore or documented not applicable,NOT RUN,,
++Farmer/Owner,Public/private fields and exports,NOT RUN,,
++Farmer/Owner,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Job/Employer,Authorized create/edit and reload,NOT RUN,,
++Job/Employer,Failed submit and retry; no data loss,NOT RUN,,
++Job/Employer,Unauthorized account denied,NOT RUN,,
++Job/Employer,Archive/restore or documented not applicable,NOT RUN,,
++Job/Employer,Public/private fields and exports,NOT RUN,,
++Job/Employer,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Job Seeker/CV,Authorized create/edit and reload,NOT RUN,,
++Job Seeker/CV,Failed submit and retry; no data loss,NOT RUN,,
++Job Seeker/CV,Unauthorized account denied,NOT RUN,,
++Job Seeker/CV,Archive/restore or documented not applicable,NOT RUN,,
++Job Seeker/CV,Public/private fields and exports,NOT RUN,,
++Job Seeker/CV,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Product,Authorized create/edit and reload,NOT RUN,,
++Product,Failed submit and retry; no data loss,NOT RUN,,
++Product,Unauthorized account denied,NOT RUN,,
++Product,Archive/restore or documented not applicable,NOT RUN,,
++Product,Public/private fields and exports,NOT RUN,,
++Product,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Master Data,Authorized create/edit and reload,NOT RUN,,
++Master Data,Failed submit and retry; no data loss,NOT RUN,,
++Master Data,Unauthorized account denied,NOT RUN,,
++Master Data,Archive/restore or documented not applicable,NOT RUN,,
++Master Data,Public/private fields and exports,NOT RUN,,
++Master Data,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Admin Website/Team,Authorized create/edit and reload,NOT RUN,,
++Admin Website/Team,Failed submit and retry; no data loss,NOT RUN,,
++Admin Website/Team,Unauthorized account denied,NOT RUN,,
++Admin Website/Team,Archive/restore or documented not applicable,NOT RUN,,
++Admin Website/Team,Public/private fields and exports,NOT RUN,,
++Admin Website/Team,Responsive 360/768/1440; keyboard access,NOT RUN,,
++Integration,Pakistan and international location round trip,NOT RUN,,
++Integration,Poultry cross-entity search,NOT RUN,,
++Integration,Exact vaccine vs unrelated vaccine,NOT RUN,,
++Integration,Migration staging rollback,NOT RUN,,
++Integration,Exact commit lint/typecheck/tests/build,NOT RUN,,
++Integration,Production aliases both verified,NOT RUN,,
++Integration,No credentials in source artifact,NOT RUN,,
++Integration,Measured query and page performance,NOT RUN,,
+diff --git a/lib/directory-presentation.ts b/lib/directory-presentation.ts
+new file mode 100644
+index 0000000..90af74c
+--- /dev/null
++++ b/lib/directory-presentation.ts
+@@ -0,0 +1,15 @@
++/** Presentation only: preserve the original record and do not infer classifications. */
++export function compactDescription(value: string, companyName: string, limit = 140) {
++  let text = value.replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
++  if (text.toLowerCase().startsWith(companyName.toLowerCase()+" ")) text=text.slice(companyName.length).trim();
++  text=text.replace(/^about the company\s*[:\-]?\s*/i, "").trim();
++  if (!text) return "View the company profile for more information.";
++  if (text.length<=limit) return text;
++  const cut=text.slice(0,limit-1), last=cut.lastIndexOf(" ");
++  return (last>limit/2?cut.slice(0,last):cut)+"…";
++}
++export function distinctLabels(value:string|null) {
++  const labels=new Map<string,string>();
++  for(const item of (value??"").split(",")){const label=item.trim();if(label&&!labels.has(label.toLowerCase()))labels.set(label.toLowerCase(),label);}
++  return [...labels.values()];
++}
+diff --git a/scripts/directory-presentation.test.mjs b/scripts/directory-presentation.test.mjs
+new file mode 100644
+index 0000000..af741e7
+--- /dev/null
++++ b/scripts/directory-presentation.test.mjs
+@@ -0,0 +1,7 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {compactDescription, distinctLabels} from '../lib/directory-presentation.ts';
++test('summary is bounded and preserves source text',()=>{const text='Company A '+ 'Animal health and nutrition. '.repeat(20);assert.ok(compactDescription(text,'Company A').length<=140);assert.ok(compactDescription(text,'Company A').startsWith('Animal health'));});
++test('empty description does not invent claims',()=>assert.equal(compactDescription('', 'A'),'View the company profile for more information.'));
++test('category labels deduplicate without inferring sectors',()=>assert.deepEqual(distinctLabels(' Poultry, poultry, Feed Mill, , '),['Poultry','Feed Mill']));
++test('links and heading stripped from preview',()=>assert.equal(compactDescription('# About the company\n**[Website](https://example.org)**','A'),'Website'));
+diff --git a/supabase/preflight/master_closure_read_only_audit.sql b/supabase/preflight/master_closure_read_only_audit.sql
+new file mode 100644
+index 0000000..df2699a
+--- /dev/null
++++ b/supabase/preflight/master_closure_read_only_audit.sql
+@@ -0,0 +1,10 @@
++-- Metadata-only audit; no customer rows or DDL. Run in an authorized SQL session.
++BEGIN TRANSACTION READ ONLY;
++SELECT c.relname AS table_name,c.relrowsecurity AS rls_enabled,pg_total_relation_size(c.oid) AS total_bytes FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') ORDER BY c.relname;
++SELECT table_name,column_name,data_type,is_nullable FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name,ordinal_position;
++SELECT conrelid::regclass AS relation,conname,pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE connamespace='public'::regnamespace ORDER BY 1,2;
++SELECT tablename,policyname,roles,cmd,qual,with_check FROM pg_policies WHERE schemaname='public' ORDER BY tablename,policyname;
++SELECT tablename,indexname,indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY tablename,indexname;
++SELECT c.relname,c.reloptions FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v';
++SELECT p.proname,pg_get_function_identity_arguments(p.oid) AS args,p.prosecdef AS security_definer,has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' ORDER BY p.proname;
++ROLLBACK;
