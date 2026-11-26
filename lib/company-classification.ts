@@ -1,6 +1,6 @@
 /** Proposed shared taxonomy. Stable IDs are independent of display labels. */
 export const COMPANY_CLASSIFICATION = {
-  poultry: ["Broiler", "Layer", "Breeder", "Hatchery", "Processing"],
+  poultry: ["Broiler", "Layer", "Breeder", "Hatchery", "Processing", "Day-old chicks"],
   dairy: ["Dairy farming", "Milk collection", "Milk processing"],
   livestock: ["Beef", "Buffalo", "Sheep", "Goat", "Camel"],
   feed_industry: ["Poultry feed mill", "Dairy feed mill", "Livestock feed mill", "Aqua feed mill", "Pet food manufacturing"],
@@ -20,6 +20,8 @@ export const COMPANY_CLASSIFICATION = {
   one_health: ["Wildlife health", "Conservation", "Zoonoses", "AMR"],
 } as const;
 export const COMPANY_ACTIVITIES = ["local_manufacturer", "contract_manufacturer", "importer", "exporter", "distributor", "trader", "wholesaler", "retailer", "principal", "indentor", "marketer", "registration_holder", "farm_operator", "processor", "service_provider", "consultant"] as const;
+export const COMPANY_SECTOR_LABELS = { poultry:"Poultry", dairy:"Dairy", livestock:"Livestock", feed_industry:"Feed Industry", nutrition:"Animal Nutrition", medicines:"Veterinary Medicines", vaccines:"Vaccines & Biologicals", feed_ingredients:"Feed Ingredients", genetics:"Genetics", aquaculture:"Aquaculture & Fisheries", diagnostics:"Diagnostics", equipment:"Equipment", biosecurity:"Biosecurity", agriculture:"Agriculture", food_processing:"Food Processing", pets:"Pets", services:"Services", one_health:"One Health" } as const;
+export function companyActivityLabel(value:string) { return value.split("_").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" "); }
 export type CompanySector = keyof typeof COMPANY_CLASSIFICATION;
 export type CompanyClassification = { sector: CompanySector; subsectors: string[]; activities: string[] };
 export function isCompanyClassification(value: unknown): value is CompanyClassification {
