@@ -9,11 +9,14 @@ import { uploadPublicImage, uploadedFile, uploadPrivateDocument, recordUploadedD
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function saveAdminCompanyProfileAction(form:FormData) {
+  return saveBoundAdminCompanyProfileAction(String(form.get("company_id") ?? ""), form.get("editor_origin")==="directory", form);
+}
+
+export async function saveBoundAdminCompanyProfileAction(recordId:string, inline:boolean, form:FormData) {
   const identity=await requireAdminPermission("directories.manage","/admin/directory");
   if (!identity.roles.includes("super_admin")) redirect("/admin/directory?error=Super%20administrator%20access%20required.");
-  const id=String(form.get("company_id") ?? "").trim();
+  const id=recordId.trim();
   if (!uuid.test(id)) redirect("/admin/directory?error=Invalid%20company%20ID.");
-  const inline=form.get("editor_origin")==="directory";
   const base=inline?"/admin/directory/company/"+encodeURIComponent(id)+"?panel=record-actions":"/admin/company-profile/"+encodeURIComponent(id);
   const separator=inline?"&":"?";
   let message="";
