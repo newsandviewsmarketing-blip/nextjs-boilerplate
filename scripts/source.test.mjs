@@ -301,7 +301,11 @@ test("release closure preserves assisted-entry data and adds media/document uplo
   assert.match(page, /<PersistentForm/);
   assert.match(page, /type="file"/);
   assert.match(uploads, /record-documents/);
-  assert.match(persistentForm, /localStorage/);
+  assert.match(persistentForm, /sessionStorage/);
+  assert.doesNotMatch(persistentForm, /localStorage/);
+  assert.match(page, /draft-v2:\$\{identity\.userId\}/);
+  assert.match(persistentForm, /data-draft/);
+  assert.match(persistentForm, /selectedOptions/);
   assert.match(persistentForm, /clearSaved/);
   assert.match(uploads, /uploadPublicImage/);
   assert.match(uploads, /uploadPrivateDocument/);

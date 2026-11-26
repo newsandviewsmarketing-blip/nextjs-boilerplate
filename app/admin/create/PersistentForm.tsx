@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ComponentProps, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 
 type Props = ComponentProps<"form"> & {
   storageKey: string;
@@ -16,7 +16,9 @@ function controlKey(control: HTMLInputElement | HTMLSelectElement | HTMLTextArea
 }
 
 function readControlValue(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): SavedValue | null {
-  if (!control.name || control.type === "file" || control.type === "password" || control.disabled) return null;
+  if (!control.name || control.disabled || control.getAttribute("data-draft") !== "allow") return null;
+  if (["file", "password", "hidden", "email", "tel"].includes(control.type)) return null;
+  if (control instanceof HTMLSelectElement && control.multiple) return JSON.stringify(Array.from(control.selectedOptions, option => option.value));
   if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
     return control.checked;
   }
@@ -24,9 +26,24 @@ function readControlValue(control: HTMLInputElement | HTMLSelectElement | HTMLTe
 }
 
 function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: SavedValue) {
+  if (control instanceof HTMLSelectElement && control.multiple) {
+    if (typeof value !== "string") return;
+    let selected: unknown;
+    try { selected = JSON.parse(value); } catch { return; }
+    if (!Array.isArray(selected) || !selected.every(item => typeof item === "string")) return;
+    const values = new Set(selected);
+    for (const option of Array.from(control.options)) option.selected = values.has(option.value);
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
   if (control.type === "file") return;
   if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
-    control.checked = Boolean(value);
+    if (typeof value !== "boolean") return;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked")?.set;
+    setter?.call(control, value);
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
     return;
   }
   if (typeof value === "string") {
@@ -39,19 +56,24 @@ function restoreControl(control: HTMLInputElement | HTMLSelectElement | HTMLText
 
 export default function PersistentForm({ storageKey, clearSaved = false, onInput, onChange, ...props }: Props) {
   const ref = useRef<HTMLFormElement>(null);
+  const restoring = useRef(false);
+  const [draftStatus, setDraftStatus] = useState<"idle" | "saved" | "error">("idle");
 
   useEffect(() => {
     const form = ref.current;
     if (!form) return;
+    restoring.current = true;
+    try {
     if (clearSaved) {
-      localStorage.removeItem(storageKey);
+      sessionStorage.removeItem(storageKey);
       return;
     }
 
-    const raw = localStorage.getItem(storageKey);
+    const raw = sessionStorage.getItem(storageKey);
     if (!raw) return;
     try {
       const saved = JSON.parse(raw) as SavedForm;
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
       const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
         "input[name],select[name],textarea[name]",
       );
@@ -59,18 +81,24 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
       controls.forEach((control) => {
         if (readControlValue(control) === null) return;
         const key = controlKey(control);
-        const values = saved[key];
+        const values = Object.prototype.hasOwnProperty.call(saved, key) ? saved[key] : undefined;
         const offset = offsets.get(key) ?? 0;
         offsets.set(key, offset + 1);
         const value = Array.isArray(values) ? values[offset] : offset === 0 ? values : undefined;
         if (typeof value === "string" || typeof value === "boolean") restoreControl(control, value);
       });
     } catch {
-      localStorage.removeItem(storageKey);
+      // Preserve unreadable drafts rather than silently deleting them.
+    }
+    } catch {
+      // Storage may be disabled; the form must remain usable.
+    } finally {
+      restoring.current = false;
     }
   }, [storageKey, clearSaved]);
 
   const save = (event: FormEvent<HTMLFormElement>) => {
+    if (restoring.current) return;
     const form = event.currentTarget;
     const saved: SavedForm = Object.create(null);
     const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
@@ -84,12 +112,19 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
         saved[key] = previous === undefined ? [value] : Array.isArray(previous) ? [...previous, value] : [previous, value];
       }
     });
-    localStorage.setItem(storageKey, JSON.stringify(saved));
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(saved));
+      setDraftStatus("saved");
+    } catch {
+      setDraftStatus("error");
+      // Keep entered values in the form when browser storage is unavailable.
+    }
   };
 
   return (
     <form
       {...props}
+      data-draft-status={draftStatus}
       ref={ref}
       onInput={(event) => {
         save(event);
@@ -99,6 +134,9 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
         save(event);
         onChange?.(event);
       }}
-    />
+    >
+      {props.children}
+      <p className="form-help form-span-2" role="status" aria-live="polite">{draftStatus === "saved" ? "Selected fields saved for this browser session." : draftStatus === "error" ? "Draft could not be saved. Keep this page open and retry." : "Selected non-sensitive fields can be recovered in this browser session."}</p>
+    </form>
   );
 }
