@@ -66,11 +66,11 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <div><label>Contact email (optional)</label><input name="contact_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div>
         {profileMode==="veterinarian"?<>
           <AcademicQualifications practitioner id="assisted-vet-degree" name="qualifications" label="Veterinary qualification *" options={VETERINARY_QUALIFICATIONS} />
-          <fieldset className="form-span-2 service-selector-fieldset"><legend>Practice areas: choose several *</legend><div className="service-checkbox-grid">{PRACTICE_AREAS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="practice_areas" value={x}/>{x}</label>)}</div></fieldset>
-          <fieldset className="form-span-2 service-selector-fieldset"><legend>Specializations: choose several</legend><div className="service-checkbox-grid">{SPECIALIZATIONS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="specializations" value={x}/>{x}</label>)}</div></fieldset>
+          <fieldset className="form-span-2 service-selector-fieldset"><legend>Practice areas: choose several *</legend><div className="service-checkbox-grid">{PRACTICE_AREAS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="practice_areas" data-draft="allow" value={x}/>{x}</label>)}</div></fieldset>
+          <fieldset className="form-span-2 service-selector-fieldset"><legend>Specializations: choose several</legend><div className="service-checkbox-grid">{SPECIALIZATIONS.map(x=><label className="checkbox-line" key={x}><input type="checkbox" name="specializations" data-draft="allow" value={x}/>{x}</label>)}</div></fieldset>
         </>:profileMode==="student"?<>
           <input type="hidden" name="professional_type" value="Veterinary Student / Trainee"/>
-          <div><label>Study program *</label><select name="study_program" required><option>DVM</option><option>MPhil</option><option>PhD</option><option>Other</option></select></div>
+          <div><label>Study program *</label><select name="study_program" data-draft="allow" required><option>DVM</option><option>MPhil</option><option>PhD</option><option>Other</option></select></div>
           <div><label>University / college *</label><input name="organization_name" required/></div>
           <div><label>College / university registration number</label><input name="student_college_registration_number" maxLength={75}/></div>
           <div><label>PVMC student reference (if issued)</label><input name="pvmc_student_reference" maxLength={75}/></div>
@@ -79,12 +79,12 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <div><label>Additional specialization / expertise</label><input name="specialization_other" maxLength={120}/></div>
         {profileMode==="professional"&&<div><label>Professional type *</label><input name="professional_type" placeholder="Nutritionist / Farm Manager / Researcher" required/></div>}<div><label>Headline</label><input name="headline" /></div>
         <div><label>Current position</label><input name="current_position" /></div><div><label>Organization</label><input name="organization_name" /></div>
-        <div><label>Years experience</label><input name="years_experience" type="number" min="0" defaultValue="0" /></div><div><label>Image URL (optional fallback)</label><input name="image_url" type="url" /></div>
+        <div><label>Years experience</label><input name="years_experience" data-draft="allow" type="number" min="0" defaultValue="0" /></div><div><label>Image URL (optional fallback)</label><input name="image_url" type="url" /></div>
         <div><label>Upload profile photo</label><input name="profile_image" type="file" accept="image/jpeg,image/png,image/webp" /><p className="form-help">JPG, PNG or WebP, maximum 5 MB.</p></div>
         <div><label>CV / qualification document</label><input name="supporting_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /><p className="form-help">Private admin evidence, maximum 10 MB.</p></div>
         <div className="form-span-2"><label>PVMC / credential evidence (veterinarian only)</label><input name="credential_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /></div>
-        <div className="form-span-2"><label>Services (comma separated)</label><input name="services" placeholder="Farm visit, Vaccination, Disease diagnosis" /></div>
-        <div className="form-span-2"><label>Skills (comma separated)</label><input name="skills" /></div>
+        <div className="form-span-2"><label>Services (comma separated)</label><input name="services" data-draft="allow" placeholder="Farm visit, Vaccination, Disease diagnosis" /></div>
+        <div className="form-span-2"><label>Skills (comma separated)</label><input name="skills" data-draft="allow" /></div>
         <PakistanLocationFields />
         <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
         <div className="form-span-2"><label>Public summary</label><textarea name="public_summary" rows={4} /></div>
@@ -101,7 +101,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
 
       {kind === "clinic" && <PersistentForm className="profile-form" action={createClinicAction} storageKey={draftKey("clinic")} clearSaved={Boolean(params.message)}>
         <div><label>Clinic / hospital name</label><input name="clinic_name" required /></div><MasterDataInput category="facility_type" name="facility_type" label="Facility type" defaultValue="Veterinary Clinic" />
-        <div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div><div><label>Website</label><input name="website" /></div><div><label>Working hours</label><input name="working_hours" /></div>
+        <div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div><div><label>Website</label><input name="website" /></div><div><label>Working hours</label><input name="working_hours" data-draft="allow" /></div>
         <div><label>Upload clinic logo</label><input name="logo_file" type="file" accept="image/jpeg,image/png,image/webp" /></div><div><label>Upload cover photo</label><input name="cover_file" type="file" accept="image/jpeg,image/png,image/webp" /></div>
         <div className="form-span-2"><label>Registration / licence evidence</label><input name="supporting_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /></div>
         <div><label>Responsible veterinarian name</label><input name="responsible_veterinarian_name" maxLength={180} placeholder="Registered clinical practitioner" /></div>
@@ -109,19 +109,19 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <p className="form-help">This admin-assisted clinic begins private and pending. Verify PVMC evidence, hours and public services in the clinic review before publication.</p>
         <PakistanLocationFields />
         <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
-        <div className="form-span-2"><label>Services (comma separated)</label><input name="services" /></div><div className="form-span-2"><label>Species (comma separated)</label><input name="species" /></div>
+        <div className="form-span-2"><label>Services (comma separated)</label><input name="services" data-draft="allow" /></div><div className="form-span-2"><label>Species (comma separated)</label><input name="species" data-draft="allow" /></div>
         <div className="form-span-2"><label>Description</label><textarea name="description" rows={4} /></div>
-        <label className="checkbox-line"><input type="checkbox" name="emergency_service" /> Emergency service</label><label className="checkbox-line"><input type="checkbox" name="publish_now" /> Approve & publish</label>
+        <label className="checkbox-line"><input type="checkbox" name="emergency_service" data-draft="allow" /> Emergency service</label><label className="checkbox-line"><input type="checkbox" name="publish_now" /> Approve & publish</label>
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create clinic / hospital</FormSubmitButton>
       </PersistentForm>}
 
       {kind === "laboratory" && <PersistentForm className="profile-form" action={createLaboratoryAction} storageKey={draftKey("laboratory")} clearSaved={Boolean(params.message)}>
         <div><label>Laboratory name</label><input name="laboratory_name" required /></div><MasterDataInput category="laboratory_type" name="laboratory_type" label="Laboratory type" defaultValue="Diagnostic Laboratory" />
-        <div><label>Technical head</label><input name="technical_head" /></div><div><label>Working hours</label><input name="working_hours" /></div><div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div><div><label>Website</label><input name="website" /></div><div><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
+        <div><label>Technical head</label><input name="technical_head" /></div><div><label>Working hours</label><input name="working_hours" data-draft="allow" /></div><div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div><div><label>Website</label><input name="website" /></div><div><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
         <div><label>Upload laboratory logo</label><input name="logo_file" type="file" accept="image/jpeg,image/png,image/webp" /></div><div><label>Upload cover photo</label><input name="cover_file" type="file" accept="image/jpeg,image/png,image/webp" /></div>
         <div className="form-span-2"><label>Accreditation / licence evidence</label><input name="supporting_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /></div>
         <PakistanLocationFields />
-        <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Tests offered (comma separated)</label><input name="tests_offered" /></div><div className="form-span-2"><label>Species served (comma separated)</label><input name="species_served" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={4} /></div>
+        <div className="form-span-2"><label>Address</label><input name="address" /></div><div className="form-span-2"><label>Tests offered (comma separated)</label><input name="tests_offered" data-draft="allow" /></div><div className="form-span-2"><label>Species served (comma separated)</label><input name="species_served" data-draft="allow" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={4} /></div>
         <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now" /> Approve & publish</label><FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create laboratory</FormSubmitButton>
       </PersistentForm>}
 
@@ -130,10 +130,10 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <div><label>Brand name</label><input name="brand_name" /></div><div><label>Generic name</label><input name="generic_name" /></div>
         <MasterDataInput category="product_category" name="category" label="Category" required /><MasterDataInput category="veterinary_sector" name="sector" label="Sector" />
         <MasterDataInput category="product_dosage_form" name="dosage_form" label="Dosage form" /><MasterDataInput category="product_presentation" name="presentation" label="Presentation" />
-        <MasterDataInput category="product_packaging" name="packaging_type" label="Packaging type" /><div><label>Pack size value</label><input name="pack_size_value" placeholder="100 / 500 / 1000" /></div>
+        <MasterDataInput category="product_packaging" name="packaging_type" label="Packaging type" /><div><label>Pack size value</label><input name="pack_size_value" data-draft="allow" placeholder="100 / 500 / 1000" /></div>
         <MasterDataInput category="product_packaging" name="pack_size_unit" label="Pack size unit" /><MasterDataInput category="vaccine_type" name="vaccine_type" label="Vaccine type (if applicable)" />
         <div><label>Concentration value</label><input name="concentration_value" /></div><MasterDataInput category="concentration_unit" name="concentration_unit" label="Concentration unit" />
-        <MasterDataInput category="administration_route" name="administration_route" label="Administration route" /><div><label>Legacy / multiple pack sizes</label><input name="pack_sizes" placeholder="100 ml, 500 ml, 1000 doses" /></div>
+        <MasterDataInput category="administration_route" name="administration_route" label="Administration route" /><div><label>Legacy / multiple pack sizes</label><input name="pack_sizes" data-draft="allow" placeholder="100 ml, 500 ml, 1000 doses" /></div>
         <div className="form-span-2"><label>Composition</label><textarea name="composition" rows={2} /></div><div><label>Strength</label><input name="strength" /></div><div><label>Indications</label><input name="indications" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={4} /></div>
         <div><label>Upload product image</label><input name="product_image" type="file" accept="image/jpeg,image/png,image/webp" /></div><div><label>Regulatory / supporting evidence</label><input name="supporting_document" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp" /></div>
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create product draft</FormSubmitButton>
@@ -143,7 +143,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <div><label>Employer company</label><select name="company_id" required><option value="">Select company</option>{(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.canonical_name}</option>)}</select></div><div><label>Job title</label><input name="title" required /></div>
         <JobMasterChoice category="job_sector" name="sector" label="Job sector" /><MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" />
         <JobTerritoryFields />
-        <div className="form-span-2"><label>Address / workplace</label><input name="address" /></div><JobCompensationFields/><JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" /><div><label>Minimum experience (years)</label><input type="number" min="0" name="minimum_experience" /></div><div><label>Deadline</label><input type="date" name="deadline" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={5} required /></div>
+        <div className="form-span-2"><label>Address / workplace</label><input name="address" /></div><JobCompensationFields/><JobMasterChoice category="job_qualification" name="minimum_qualification" label="Minimum qualification" /><div><label>Minimum experience (years)</label><input type="number" min="0" name="minimum_experience" data-draft="allow" /></div><div><label>Deadline</label><input type="date" name="deadline" data-draft="allow" /></div><div className="form-span-2"><label>Description</label><textarea name="description" rows={5} required /></div>
         <div className="form-span-2"><label>Original job advertisement image (optional, JPG/PNG/WebP, max 5 MB)</label>
      <input name="job_ad_image" type="file" accept="image/jpeg,image/png,image/webp" />
      <p className="form-help">This image becomes publicly visible only after an administrator approves the job. Use a separate supporting document for private evidence.</p>
