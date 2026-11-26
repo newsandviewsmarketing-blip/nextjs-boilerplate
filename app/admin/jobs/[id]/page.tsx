@@ -6,8 +6,9 @@ import AdminNav from "../../components/AdminNav";
 import {requireAdminPermission} from "@/lib/admin";
 import {createClient} from "@/lib/supabase/server";
 export const dynamic="force-dynamic";
-export default async function AdminJobDetail({params}:{params:Promise<{id:string}>}){
+export default async function AdminJobDetail({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{error?:string}>}){
   const {id}=await params;
+  const {error:message}=await searchParams;
   const identity=await requireAdminPermission("jobs.manage","/admin/jobs");
   const supabase=await createClient();
   const {data:job,error}=await supabase.from("jobs").select("id,title,description,sector,city,province,district,tehsil,minimum_qualification,minimum_experience,employment_type,deadline,verification_status,is_published,slug,created_at").eq("id",id).maybeSingle();
@@ -20,6 +21,7 @@ export default async function AdminJobDetail({params}:{params:Promise<{id:string
   ];
   return <main className="vc-admin-page"><SiteHeader/><section className="vc-admin-banner"><div className="shell"><span className="section-kicker">JOB DOSSIER</span><h1>{job.title}</h1><p>{job.verification_status} · {job.is_published?"Published":"Not published"}</p></div></section>
     <section className="section compact-section"><div className="shell admin-control-layout vc-admin-layout"><div className="admin-control-sidebar"><AdminNav roles={identity.roles}/></div><div className="admin-control-content vc-admin-main">
+      {message && <p role="alert" className="form-error">{message}</p>}
       <section className="vc-admin-panel"><div className="vc-panel-header"><div><h2>Recruitment details</h2><p>Administrative information for record verification and follow-up.</p></div>
         <Link href="/admin/jobs">All jobs</Link></div>
         <dl className="review-details">{details.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value??"Not supplied"}</dd></div>)}</dl>
