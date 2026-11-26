@@ -9,7 +9,7 @@ import CompanyProfileFields from "../../../components/CompanyProfileFields";
 import { requireAdminPermission } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ManagementContact } from "@/lib/company-profile-editor";
-import { saveAdminCompanyProfileAction } from "../actions";
+import { saveBoundAdminCompanyProfileAction } from "../actions";
 
 export const dynamic="force-dynamic";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,7 +58,7 @@ export default async function AdminCompanyProfilePage({
           {published&&<Link href={"/companies/"+id} className="button button-secondary">Public company page</Link>}
         </div>
         {(presentation.error||contacts.error)?<div className="setup-notice" role="alert"><b>Company details could not be loaded.</b> Editing is disabled to protect existing information. <Link href={"/admin/company-profile/"+id}>Retry loading</Link>.</div>:
-        <form className="profile-form" action={saveAdminCompanyProfileAction}>
+        <form className="profile-form" action={saveBoundAdminCompanyProfileAction.bind(null,id,false)}>
           <input type="hidden" name="company_id" value={id}/>
           <CompanyProfileFields mode="admin-edit"
             initial={company.data}
