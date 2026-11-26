@@ -63,19 +63,23 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
   useEffect(() => {
     const form = ref.current;
     if (!form) return;
+    let active = true;
+    const publishStatus = (status: "idle" | "saved" | "error") => {
+      queueMicrotask(() => { if (active) setDraftStatus(status); });
+    };
     restoring.current = true;
-    setDraftStatus("idle");
+    publishStatus("idle");
     try {
     if (clearSaved) {
       sessionStorage.removeItem(storageKey);
-      return;
+      return () => { active = false; };
     }
 
     const raw = sessionStorage.getItem(storageKey);
-    if (!raw) return;
+    if (!raw) return () => { active = false; };
     try {
       const saved = JSON.parse(raw) as SavedForm;
-      if (!saved || typeof saved !== "object" || Array.isArray(saved)) { setDraftStatus("error"); return; }
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) { publishStatus("error"); return () => { active = false; }; }
       const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
         "input[name],select[name],textarea[name]",
       );
@@ -89,17 +93,18 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
         const value = Array.isArray(values) ? values[offset] : offset === 0 ? values : undefined;
         if (typeof value === "string" || typeof value === "boolean") restoreControl(control, value);
       });
-      setDraftStatus("saved");
+      publishStatus("saved");
     } catch {
-      setDraftStatus("error");
+      publishStatus("error");
       // Preserve unreadable drafts rather than silently deleting them.
     }
     } catch {
-      setDraftStatus("error");
+      publishStatus("error");
       // Storage may be disabled; the form must remain usable.
     } finally {
       restoring.current = false;
     }
+    return () => { active = false; };
   }, [storageKey, clearSaved]);
 
   const save = (event: FormEvent<HTMLFormElement>) => {
