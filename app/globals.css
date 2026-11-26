@@ -4161,3 +4161,43 @@ textarea:focus {
   .vcx-appointment-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .vcx-appointment-days time::after { content: " · " attr(aria-label); font-size: .75rem; }
 }
+
+/* Unified admin responsive workspace: preserve the same navigation and actions at every width. */
+.vc-admin-page .vc-admin-layout{width:96%;max-width:none;min-width:0}
+.vc-admin-page .vc-admin-main,.vc-admin-page .vc-admin-panel,.vc-admin-page .admin-directory-table-wrap{min-width:0;max-width:100%}
+.vc-admin-page .vc-admin-toolbar h1{overflow-wrap:anywhere}
+.vc-admin-page .vc-admin-toolbar p,.vc-admin-page .vc-admin-section-title p{font-size:14px;line-height:1.5}
+.vc-admin-page .admin-directory-table-wrap{overflow-x:auto}
+.vc-admin-page .admin-directory-table{font-size:14px}
+.vc-admin-page .admin-directory-table td{overflow-wrap:anywhere}
+.vc-admin-page .admin-directory-table td small{font-size:12px}
+.vc-admin-page .vc-editor-field-grid dd,.vc-admin-page .vc-editor-note{overflow-wrap:anywhere}
+.vc-admin-page .vc-admin-actions,.vc-admin-page .vc-editor-buttons,.vc-admin-page .vc-editor-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.vc-admin-page .vc-admin-actions .button,.vc-admin-page .vc-editor-buttons .button{min-height:44px;white-space:normal;text-align:center}
+.vc-admin-page .admin-directory-filters{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+.vc-admin-page .admin-directory-filters input,.vc-admin-page .admin-directory-filters select{min-width:0;width:100%;min-height:44px;font-size:16px}
+.vc-admin-page .admin-navigation{top:16px;max-height:calc(100dvh - 32px)}
+.vc-admin-page :is(a,button,input,select,textarea,summary):focus-visible{outline:2px solid #3159a3;outline-offset:2px}
+@media(min-width:921px) and (max-width:1200px){
+ .vc-admin-page .vc-admin-layout{grid-template-columns:200px minmax(0,1fr);gap:14px}
+}
+@media(max-width:920px){
+ .vc-admin-page .vc-admin-layout{grid-template-columns:minmax(0,1fr);gap:14px}
+ .vc-admin-page .admin-navigation{position:static;max-height:none;overflow:visible}
+ .vc-admin-page .admin-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vc-admin-page .vc-editor-field-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:600px){
+ .vc-admin-page .vc-admin-layout{width:96%;gap:10px}
+ .vc-admin-page .vc-admin-toolbar h1{font-size:1.4rem}
+ .vc-admin-page .vc-admin-toolbar,.vc-admin-page .vc-admin-actions{align-items:stretch}
+ .vc-admin-page .vc-admin-actions .button{flex:1 1 130px}
+ .vc-admin-page .admin-directory-filters{grid-template-columns:minmax(0,1fr)}
+ .vc-admin-page .vc-editor-tabs a{min-height:44px;display:flex;align-items:center}
+ .vc-admin-page .vc-admin-panel{padding:12px}
+ .vc-admin-page .profile-form :is(input:not([type=checkbox]):not([type=radio]),select,textarea){max-width:100%;min-width:0;font-size:16px}
+ .vc-admin-page .vc-admin-global-search>div{flex-wrap:wrap}
+ .vc-admin-page .vc-admin-global-search input{min-width:0;flex:1 1 100%}
+ .vc-admin-page .vc-admin-global-search button{width:100%}
+ .vc-admin-page .admin-directory-table td:last-child a{display:inline-flex;align-items:center;min-height:44px;padding:4px}
+}
