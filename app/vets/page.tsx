@@ -10,7 +10,6 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import {
   initials,
-  sampleVeterinarians,
   type PublicVeterinarian,
 } from "@/lib/directories";
 
@@ -31,7 +30,7 @@ export const dynamic = "force-dynamic";
 
 async function loadVeterinarians(): Promise<PublicVeterinarian[]> {
   if (!isSupabaseConfigured()) {
-    return sampleVeterinarians;
+    return [];
   }
 
   const supabase = await createClient();
@@ -51,10 +50,8 @@ async function loadVeterinarians(): Promise<PublicVeterinarian[]> {
       .order("full_name"),
   ]);
 
-  return [
-    ...(account.data ?? []),
-    ...(managed.data ?? []),
-  ] as PublicVeterinarian[];
+  const rows=[...(account.data ?? []),...(managed.data ?? [])] as PublicVeterinarian[];
+  return [...new Map(rows.filter(row=>row.profile_verified && !row.is_sample).map(row=>[row.user_id,row])).values()];
 }
 
 /* -------------------------------------------------------
