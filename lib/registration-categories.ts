@@ -157,8 +157,8 @@ export function registrationExtraFields(form:FormData,role:string,intent:string)
     if(cities.length>20||cities.some(city=>!isPakistanLocation(city)))return {error:"Choose up to 20 clinic service cities from the Pakistan locations list.",data:{}};
     data.clinic_cities=cities;
   }else if(role==="company"){
-    for(const k of ["organization_name","company_registration_number"])
-      if(!required(k,180))return {error:"Company name and registration / NTN are required.",data:{}};
+    if(!required("organization_name",180))return {error:"Company name is required.",data:{}};
+    if(!capture("company_registration_number",180))return {error:"Invalid registration / NTN number.",data:{}};
     const types=values(form,"company_types");
     if(!types.length||types.length>17||types.some(x=>!clean(x,100)))
       return {error:"Choose between 1 and 17 valid company activities.",data:{}};
