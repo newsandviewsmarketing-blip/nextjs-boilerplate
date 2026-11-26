@@ -49,7 +49,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   const identity = await requireAdminPermission("users.manage", "/admin/users");
   const supabase = await createClient();
 
-  const [{ data: profiles, error: profilesError }, { data: roles }, { data: vets, error: vetsError }] = await Promise.all([
+  const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }, { data: vets, error: vetsError }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, email, full_name, city, province, district, tehsil, primary_role, account_status, created_at")
@@ -114,12 +114,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
           <AdminNav roles={identity.roles} />
           <div className="admin-control-content">
             <FormMessage
-              error={params.error || profilesError?.message || vetsError?.message}
+              error={params.error || profilesError?.message || vetsError?.message || rolesError?.message}
               message={params.message}
             />
 
             <div className="admin-summary">
-              <article><b>{allRows.length}</b><span>Total registered users</span></article>
+              <article><b>{allRows.length}</b><span>Loaded accounts (up to 1,000)</span></article>
               <article><b>{allRows.filter((row) => row.primary_role === "veterinarian").length}</b><span>Veterinarians</span></article>
               <article><b>{((vets ?? []) as VetRow[]).filter((row) => row.verification_status === "approved").length}</b><span>Profile approvals (not PVMC licence)</span></article>
               <article><Link href="/admin/credential-recheck"><b>{((vets ?? []) as VetRow[]).filter(row => credentialDataFlags(row).length>0).length}</b><span>PVMC data rechecks ↗</span></Link></article>
@@ -162,7 +162,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                     return (
                       <tr key={user.id}>
                         <td><Link href={`/admin/users/${user.id}`} className="vc-dossier-link" target="_blank" rel="noopener noreferrer"><b>{isSuspiciousProfileName(user.full_name||"") ? `Flagged account · ${user.id.slice(0,8)}` : (user.full_name || "Unnamed account").slice(0,90)}</b></Link><small>{user.email}</small></td>
-                        <td>{user.primary_role.replaceAll("_", " ")}</td>
+                        <td>{user.primary_role.replaceAll("_", " ")}{!rolesError && (roleMap.get(user.id) ?? []).filter(role => role !== user.primary_role).map(role => <small key={role}>{role.replaceAll("_", " ")}</small>)}</td>
                         <td>{user.province || "—"}</td>
                         <td>{user.district || "—"}</td>
                         <td>{user.tehsil || user.city || "—"}</td>
