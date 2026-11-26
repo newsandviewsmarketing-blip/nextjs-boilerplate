@@ -93,11 +93,11 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create assisted profile</FormSubmitButton>
       </PersistentForm></>}
 
-      {kind === "company" && <form className="profile-form" action={createCompanyAction}>
+      {kind === "company" && <PersistentForm className="profile-form" action={createCompanyAction} storageKey={draftKey("company")} clearSaved={Boolean(params.message)}>
         <CompanyProfileFields mode="admin-create"/>
         <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now"/> Approve and publish now (authorized directory admins only)</label>
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create Company Profile</FormSubmitButton>
-      </form>}
+      </PersistentForm>}
 
       {kind === "clinic" && <PersistentForm className="profile-form" action={createClinicAction} storageKey={draftKey("clinic")} clearSaved={Boolean(params.message)}>
         <div><label>Clinic / hospital name</label><input name="clinic_name" required /></div><MasterDataInput category="facility_type" name="facility_type" label="Facility type" defaultValue="Veterinary Clinic" />
