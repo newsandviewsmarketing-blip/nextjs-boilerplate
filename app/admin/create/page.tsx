@@ -28,6 +28,7 @@ const tabs: Array<[Kind,string]> = [["person","Professional / Vet"],["company","
 export default async function AdminCreatePage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const identity = await requireAdminPermission("admin.view", "/admin/create");
+  const draftKey = (kind: string) => `vetconnect-admin-draft-v2:${identity.userId}:${kind}`;
   const kind: Kind = tabs.some(([value]) => value === params.type) ? (params.type as Kind) : "person";
   const profileMode=params.profile==="professional"?"professional":params.profile==="student"?"student":"veterinarian";
   const supabase = await createClient();
@@ -44,7 +45,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
     <section className="dashboard-hero"><div className="shell"><span className="section-kicker">ASSISTED ENTRY CENTRE</span><h1>Staff can build records for people and businesses.</h1><p>A client login is not required to create a directory record. Records remain accountable to the staff member who entered them and can later be claimed/linked.</p></div></section>
     <section className="section compact-section"><div className="shell admin-control-layout"><AdminNav roles={identity.roles}/><div className="admin-control-content">
       <FormMessage error={params.error} message={params.message}/>
-      {submitted && <JobSubmissionReceipt isAdmin storageKey="vetconnect-admin-create-job"
+      {submitted && <JobSubmissionReceipt isAdmin storageKey={draftKey("job")}
         closeHref="/admin/create?type=job"
         job={{
           id:submitted.id,title:submitted.title,sector:submitted.sector,
@@ -58,7 +59,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
 
       <div className="management-links assisted-entry-tabs">{tabs.map(([value,label]) => <a className={`button ${kind===value?"button-primary":"button-secondary"}`} href={`/admin/create?type=${value}`} key={value}>{label}</a>)}</div>
 
-      {kind === "person" && <><nav className="vc-customer-shortcuts" aria-label="Choose assisted profile type"><a href="/admin/create?type=person&profile=veterinarian">Registered Veterinarian</a><a href="/admin/create?type=person&profile=student">Student / Trainee</a><a href="/admin/create?type=person&profile=professional">Allied Professional</a></nav><PersistentForm className="profile-form" action={createManagedPersonAction} storageKey={"vetconnect-admin-create-person-"+profileMode} clearSaved={Boolean(params.message)}>
+      {kind === "person" && <><nav className="vc-customer-shortcuts" aria-label="Choose assisted profile type"><a href="/admin/create?type=person&profile=veterinarian">Registered Veterinarian</a><a href="/admin/create?type=person&profile=student">Student / Trainee</a><a href="/admin/create?type=person&profile=professional">Allied Professional</a></nav><PersistentForm className="profile-form" action={createManagedPersonAction} storageKey={draftKey("person-"+profileMode)} clearSaved={Boolean(params.message)}>
         <input type="hidden" name="profile_kind" value={profileMode==="veterinarian"?"veterinarian":"professional"}/>
         <input type="hidden" name="assisted_profile_mode" value={profileMode}/>
         <div><label>Full name</label><input name="full_name" required /></div>
@@ -98,7 +99,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create Company Profile</FormSubmitButton>
       </form>}
 
-      {kind === "clinic" && <PersistentForm className="profile-form" action={createClinicAction} storageKey="vetconnect-admin-create-clinic" clearSaved={Boolean(params.message)}>
+      {kind === "clinic" && <PersistentForm className="profile-form" action={createClinicAction} storageKey={draftKey("clinic")} clearSaved={Boolean(params.message)}>
         <div><label>Clinic / hospital name</label><input name="clinic_name" required /></div><MasterDataInput category="facility_type" name="facility_type" label="Facility type" defaultValue="Veterinary Clinic" />
         <div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div><div><label>Website</label><input name="website" /></div><div><label>Working hours</label><input name="working_hours" /></div>
         <div><label>Upload clinic logo</label><input name="logo_file" type="file" accept="image/jpeg,image/png,image/webp" /></div><div><label>Upload cover photo</label><input name="cover_file" type="file" accept="image/jpeg,image/png,image/webp" /></div>
@@ -114,7 +115,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create clinic / hospital</FormSubmitButton>
       </PersistentForm>}
 
-      {kind === "laboratory" && <PersistentForm className="profile-form" action={createLaboratoryAction} storageKey="vetconnect-admin-create-laboratory" clearSaved={Boolean(params.message)}>
+      {kind === "laboratory" && <PersistentForm className="profile-form" action={createLaboratoryAction} storageKey={draftKey("laboratory")} clearSaved={Boolean(params.message)}>
         <div><label>Laboratory name</label><input name="laboratory_name" required /></div><MasterDataInput category="laboratory_type" name="laboratory_type" label="Laboratory type" defaultValue="Diagnostic Laboratory" />
         <div><label>Technical head</label><input name="technical_head" /></div><div><label>Working hours</label><input name="working_hours" /></div><div><label>Public email</label><input name="public_email" type="email" /></div><div><label>Public phone</label><input name="public_phone" /></div><div><label>Website</label><input name="website" /></div><div><label>Google Maps URL</label><input name="google_maps_url" type="url" /></div>
         <div><label>Upload laboratory logo</label><input name="logo_file" type="file" accept="image/jpeg,image/png,image/webp" /></div><div><label>Upload cover photo</label><input name="cover_file" type="file" accept="image/jpeg,image/png,image/webp" /></div>
@@ -124,7 +125,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <label className="checkbox-line form-span-2"><input type="checkbox" name="publish_now" /> Approve & publish</label><FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create laboratory</FormSubmitButton>
       </PersistentForm>}
 
-      {kind === "product" && <PersistentForm className="profile-form" action={createAdminProductAction} storageKey="vetconnect-admin-create-product" clearSaved={Boolean(params.message)}>
+      {kind === "product" && <PersistentForm className="profile-form" action={createAdminProductAction} storageKey={draftKey("product")} clearSaved={Boolean(params.message)}>
         <div><label>Company</label><select name="company_id" required><option value="">Select company</option>{(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.canonical_name}</option>)}</select></div><div><label>Product name</label><input name="product_name" required /></div>
         <div><label>Brand name</label><input name="brand_name" /></div><div><label>Generic name</label><input name="generic_name" /></div>
         <MasterDataInput category="product_category" name="category" label="Category" required /><MasterDataInput category="veterinary_sector" name="sector" label="Sector" />
@@ -138,7 +139,7 @@ export default async function AdminCreatePage({ searchParams }: { searchParams: 
         <FormSubmitButton className="button button-primary form-span-2" pendingLabel="Creating...">Create product draft</FormSubmitButton>
       </PersistentForm>}
 
-      {kind === "job" && <PersistentForm className="profile-form" action={createAdminJobAction} storageKey="vetconnect-admin-create-job" clearSaved={Boolean(params.message || params.submitted)}>
+      {kind === "job" && <PersistentForm className="profile-form" action={createAdminJobAction} storageKey={draftKey("job")} clearSaved={Boolean(params.message || params.submitted)}>
         <div><label>Employer company</label><select name="company_id" required><option value="">Select company</option>{(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.canonical_name}</option>)}</select></div><div><label>Job title</label><input name="title" required /></div>
         <JobMasterChoice category="job_sector" name="sector" label="Job sector" /><MasterDataInput category="employment_type" name="employment_type" label="Employment type" defaultValue="" />
         <JobTerritoryFields />
