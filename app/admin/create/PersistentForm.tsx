@@ -16,7 +16,9 @@ function controlKey(control: HTMLInputElement | HTMLSelectElement | HTMLTextArea
 }
 
 function readControlValue(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): SavedValue | null {
-  if (!control.name || control.type === "file" || control.type === "password" || control.disabled) return null;
+  if (!control.name || control.disabled || control.getAttribute("data-draft") !== "allow") return null;
+  if (["file", "password", "hidden", "email", "tel"].includes(control.type)) return null;
+  if (control instanceof HTMLSelectElement && control.multiple) return null;
   if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
     return control.checked;
   }
@@ -47,14 +49,15 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
     restoring.current = true;
     try {
     if (clearSaved) {
-      localStorage.removeItem(storageKey);
+      sessionStorage.removeItem(storageKey);
       return;
     }
 
-    const raw = localStorage.getItem(storageKey);
+    const raw = sessionStorage.getItem(storageKey);
     if (!raw) return;
     try {
       const saved = JSON.parse(raw) as SavedForm;
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
       const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
         "input[name],select[name],textarea[name]",
       );
@@ -62,7 +65,7 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
       controls.forEach((control) => {
         if (readControlValue(control) === null) return;
         const key = controlKey(control);
-        const values = saved[key];
+        const values = Object.prototype.hasOwnProperty.call(saved, key) ? saved[key] : undefined;
         const offset = offsets.get(key) ?? 0;
         offsets.set(key, offset + 1);
         const value = Array.isArray(values) ? values[offset] : offset === 0 ? values : undefined;
@@ -94,7 +97,7 @@ export default function PersistentForm({ storageKey, clearSaved = false, onInput
       }
     });
     try {
-      localStorage.setItem(storageKey, JSON.stringify(saved));
+      sessionStorage.setItem(storageKey, JSON.stringify(saved));
     } catch {
       // Keep entered values in the form when browser storage is unavailable.
     }
