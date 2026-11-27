@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read = p=>readFileSync(new URL('../'+p, import.meta.url),'utf8');
+const sql=read('supabase/migrations/20261127123000_consultation_foundation.sql');
+test('new tables default disabled and enable RLS',()=>{assert.match(sql,/enabled boolean not null default false/);for(const t of ['settings','preferences'])assert.match(sql,new RegExp(`consultation_${t} enable row level security`));});
+test('public view omits raw heartbeat and checks TTL, eligibility and global flag',()=>{const view=sql.split('create view public.public_consultation_availability')[1];assert.match(view,/interval '90 seconds'/);assert.match(view,/public.public_veterinarians/);assert.match(view,/s.enabled and p.enabled/);assert.doesNotMatch(view,/select p.user_id,p.heartbeat_at/);});
+test('public call controls are disabled',()=>{const s=read('app/components/consultation/PublicOptions.tsx');assert.match(s,/disabled>Audio call/);assert.match(s,/disabled>Video call/);});
+test('provider uses server-only fixed endpoint and no raw response',()=>{const s=read('lib/consultation/provider.ts');assert.match(s,/import "server-only"/);assert.match(s,/https:\/\/api.daily.co\/v1\/rooms/);assert.doesNotMatch(s,/NEXT_PUBLIC_|result\.json\(/);});
+test('heartbeat requires approved identity and active opted-in record',()=>{const s=read('app/dashboard/consultation/actions.ts');assert.match(s,/public_veterinarians/);assert.match(s,/eq\("enabled",true\)/);assert.match(s,/eq\("user_id",ctx.identity.userId\)/);});
+test('provider test uses actual server response, not URL parameters',()=>{assert.match(read('app/admin/consultation/ProviderTest.tsx'),/await testProvider\(\)/);assert.doesNotMatch(read('app/admin/consultation/page.tsx'),/params\.connection/);});

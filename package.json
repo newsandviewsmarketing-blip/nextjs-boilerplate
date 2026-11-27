@@ -8,18 +8,20 @@
     "start": "next start",
     "audit": "node scripts/audit-structure.mjs",
     "lint": "eslint .",
-    "test": "node --test scripts/source.test.mjs scripts/phase1-security.test.mjs scripts/editor-dossier.test.mjs scripts/veterinary-credential.test.mjs scripts/registration-category.test.mjs scripts/career-cv-defaults.test.mjs scripts/career-matching.test.mjs scripts/career-alerts-db.test.mjs scripts/career-cover-letter-db.test.mjs scripts/site-content.test.mjs scripts/workspace-navigation.test.mjs scripts/company-profile.test.mjs scripts/managed-clinic-records.test.mjs scripts/clinic-archive.test.mjs",
+    "test": "node --experimental-strip-types --test scripts/source.test.mjs scripts/phase1-security.test.mjs scripts/editor-dossier.test.mjs scripts/veterinary-credential.test.mjs scripts/registration-category.test.mjs scripts/career-cv-defaults.test.mjs scripts/career-matching.test.mjs scripts/career-alerts-db.test.mjs scripts/career-cover-letter-db.test.mjs scripts/site-content.test.mjs scripts/workspace-navigation.test.mjs scripts/company-profile.test.mjs scripts/managed-clinic-records.test.mjs scripts/clinic-archive.test.mjs scripts/consultation-candidate.test.mjs scripts/consultation-room-policy.test.mjs scripts/consultation-session-policy.test.mjs scripts/consultation-db.test.mjs",
     "typecheck": "tsc --noEmit",
     "security:audit": "npm audit --audit-level=high",
     "check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build",
     "release:gate": "node scripts/release-gate.mjs",
     "release:manifest": "node scripts/create-release-manifest.mjs",
-    "release:check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build && npm run release:gate"
+    "release:check": "npm run audit && npm run lint && npm test && npm run typecheck && npm run build && node scripts/check-source-package.mjs",
+    "test:consultation": "node --experimental-strip-types --test scripts/consultation-candidate.test.mjs scripts/consultation-room-policy.test.mjs scripts/consultation-session-policy.test.mjs scripts/consultation-db.test.mjs"
   },
   "dependencies": {
+    "@daily-co/daily-js": "0.95.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",
-    "next": "16.4.2",
+    "next": "16.4.6",
     "react": "19.2.9",
     "react-dom": "19.2.9"
   },
@@ -30,7 +32,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.4.2",
+    "eslint-config-next": "16.4.6",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3"
   },

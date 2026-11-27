@@ -63,6 +63,7 @@ export default async function AdminNav({roles,activeGroup}:{roles:AccountRole[];
           <summary className="vc-nav-label">{group.title}</summary>
           {group.items.map(item=><Link href={item.href} key={item.name}>{item.name}</Link>)}
         </details>)}
+        {identity?.roles.includes("super_admin")&&allowed("users.manage")&&<div className="vc-nav-section"><Link href="/admin/consultation">Consultation settings</Link></div>}
         {assist && <div className="vc-nav-section"><Link href="/admin/create">Create a record</Link></div>}
         <div className="vc-nav-section"><Link href="/dashboard">My workspace</Link></div>
       </nav>
