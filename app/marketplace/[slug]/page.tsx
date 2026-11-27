@@ -32,7 +32,7 @@ async function loadProduct(slug: string) {
     .eq("verification_status", "approved")
     .eq("is_published", true)
     .maybeSingle();
-  if (!row) return { product: sample ?? null, saved: false };
+  if (!row) return { product: null, saved: false };
   const { data: company } = row.company_id
     ? await supabase.from("public_company_directory").select("id, user_id, company_name, city").eq("id", row.company_id).maybeSingle()
     : await supabase.from("public_companies").select("user_id, company_name, city").eq("user_id", row.company_user_id).maybeSingle();
@@ -92,7 +92,7 @@ async function loadProduct(slug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const { product } = await loadProduct(slug);
-  if (!product) return { title: "Veterinary Product" };
+  if (!product) return { title: "Veterinary Product", robots: { index: false, follow: false } };
   return {
     title: `${product.product_name} by ${product.company_name} | Veterinary Product Directory`,
     description: product.description || `${product.product_name} product information from ${product.company_name} on VetConnect Pakistan.`,

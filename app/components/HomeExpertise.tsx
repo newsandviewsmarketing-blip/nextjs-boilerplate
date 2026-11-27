@@ -7,18 +7,18 @@ export type HomeClinic = {slug:string;clinic_name:string;city:string|null;facili
 export type HomeProfessional = {slug:string;full_name:string;professional_type:string;city:string|null;image_url:string|null};
 export type OnlineClinic = {slug:string;clinic_name:string;city:string|null;logo_url:string|null};
 
-export default function HomeExpertise({vets,clinics,professionals,onlineClinics}:{vets:HomeVet[];clinics:HomeClinic[];professionals:HomeProfessional[];onlineClinics:OnlineClinic[]}){
+export default function HomeExpertise({vets,clinics,professionals}:{vets:HomeVet[];clinics:HomeClinic[];professionals:HomeProfessional[];onlineClinics:OnlineClinic[]}){
  return <section className="vc-expertise-section" aria-labelledby="vc-expertise-title"><div className="shell">
   <div className="vc-expertise-heading"><span className="section-kicker">CONNECTED VETERINARY SERVICES</span>
    <h2 id="vc-expertise-title">Find the right expertise and services.</h2>
-   <p>Browse current public profiles. Online consultation is offered only where a verified practice explicitly lists the service. Appointment times require separate confirmation.</p>
+   <p>Browse current public profiles. Online consultation availability depends on participating verified providers. Appointment times require separate confirmation.</p>
   </div>
   <div className="vc-expertise-grid">
    <article className="vc-expertise-feature">
     <div className="vc-approved-art vc-approved-art-online" role="img" aria-label="Illustrative Pakistani female veterinarian in a veterinary consultation setting"/>
     <div><span className="vc-feature-kicker">VETCONNECT SERVICES</span><h3>Online Booking &amp; Vet Online</h3>
-     <p>{onlineClinics.length>0?onlineClinics.length+" approved "+(onlineClinics.length===1?"practice lists":"practices list")+" tele-veterinary consultation. Request a time directly." :"Discover remote veterinary consultations and request appointments when participating clinicians publish availability."}</p>
-     <Link href="/clinics?q=Tele-Veterinary+Consultation">Explore online booking →</Link></div>
+     <p>Discover participating veterinarians with enabled online consultation. Availability is not guaranteed.</p>
+     <Link href="/vets?consultation=enabled">Explore online booking →</Link></div>
    </article>
    <article className="vc-expertise-feature">
     <div className="vc-approved-art vc-approved-art-consultant" role="img" aria-label="Illustrative Pakistani veterinary professional consultant"/>
