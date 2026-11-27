@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import "./job-detail-upgrade.css";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${job.title} at ${job.company_name} in ${job.coverage?.display_text || job.city || job.province || "Pakistan"}`,
     description: seoDescription(job.description, "Veterinary and animal-health opportunity on VetConnect Pakistan."),
-    openGraph: {title: job.title, description: seoDescription(job.description, "VetConnect Pakistan job opportunity."), url: `/jobs/${slug}`, type: "website"},
+    openGraph: {title: job.title, description: seoDescription(job.description, "VetConnect Pakistan job opportunity."), url: `/jobs/${slug}`, type: "website", ...(job.id && job.image_available ? {images:[absoluteUrl(`/api/jobs/${job.id}/advertisement`)]}: {})},
     alternates: { canonical: `/jobs/${slug}` },
     robots: job.is_sample ? { index: false, follow: true } : undefined,
   };
@@ -65,8 +66,11 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     ? await (await createClient()).from("career_cv_profiles")
       .select("full_name").eq("user_id",identity.userId).maybeSingle()
     : {data:null};
-  const {data:employerContact}=job.company_id ? await (await createClient()).from("companies").select("public_phone,verification_status,is_published").eq("id",job.company_id).maybeSingle() : {data:null};
+  const {data:employerContact}=job.company_id ? await (await createClient()).from("companies").select("public_phone,logo_url,verification_status,is_published").eq("id",job.company_id).maybeSingle() : {data:null};
   const publicPhone=employerContact?.verification_status==="approved" && employerContact?.is_published ? employerContact.public_phone : null;
+  const employerApproved=employerContact?.verification_status==="approved" && employerContact?.is_published;
+  const employerId=job.company_id || job.company_user_id;
+  const location=job.coverage?.display_text || [job.city,job.province,job.country].filter(Boolean).join(", ") || "Location not specified";
   const callNumber=publicPhone?.split(/[–—]/)[0].replace(/[^+0-9]/g,"")||"";
   const canonicalJobUrl=absoluteUrl("/jobs/"+job.slug);
   const shareText=job.title+" at "+job.company_name;
@@ -118,22 +122,33 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
     <section className="page-hero job-detail-hero"><div className="shell">
       <span className="section-kicker">{job.sector==="Punjab"?"VETERINARY CAREER":job.sector||"VETERINARY CAREER"}</span>
       <h1>{job.title}</h1>
+      <div className="vc-job-employer">{employerApproved && employerContact?.logo_url ? <Image src={employerContact.logo_url} unoptimized width={80} height={80} alt="" className="vc-job-employer-logo"/> : <span className="vc-job-employer-mark" aria-hidden="true">{job.company_name.split(/\s+/).slice(0,2).map(word=>word[0]).join("").toUpperCase()}</span>}<div>{employerId ? <Link className="vc-job-employer-name" href={"/companies/"+encodeURIComponent(employerId)}>{job.company_name}</Link>:<strong className="vc-job-employer-name">{job.company_name}</strong>}{employerApproved&&<span className="vc-job-approved">Approved employer profile</span>}<p className="vc-job-location">{location} · {job.employment_type}{job.work_mode?" · "+job.work_mode:""}</p></div></div>
       <nav className="hero-actions" aria-label="Job contact and sharing">
         <a className="button button-secondary" href={whatsappHref} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
+        <a className="button button-secondary" href={"https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(canonicalJobUrl)} target="_blank" rel="noopener noreferrer">Facebook</a>
+        <a className="button button-secondary" href={"https://www.linkedin.com/sharing/share-offsite/?url="+encodeURIComponent(canonicalJobUrl)} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        <a className="button button-secondary" href={"https://x.com/intent/tweet?text="+encodeURIComponent(shareText)+"&url="+encodeURIComponent(canonicalJobUrl)} target="_blank" rel="noopener noreferrer">X</a>
         <a className="button button-secondary" href={emailHref}>Share by email</a>
         {publicPhone && callNumber.length>=10 && <a className="button button-secondary" href={"tel:"+callNumber}>Call employer: {publicPhone}</a>}
       </nav>
       <p><a href={canonicalJobUrl} className="text-link">Permanent job link</a></p>
-      <p>{job.company_name} • {job.coverage?.display_text || job.city || job.province || "Pakistan"} • {job.employment_type}</p>
+
       <div className="profile-chips">
         {job.minimum_qualification&&<span>{job.minimum_qualification}</span>}
         <span>{job.minimum_experience===null?"Experience not specified":job.minimum_experience+"+ years"}</span>
         {job.deadline&&<span>Deadline: {job.deadline}</span>}
       </div>
-      {!closed && !job.is_sample && <a className="button button-primary job-mobile-apply-link" href="#apply-job">Apply for this job ↓</a>}
+      {!closed && !job.is_sample && <a className="button button-primary vc-job-apply-link" href="#apply-job">Apply for this job ↓</a>}
     </div></section>
     <section className="section compact-section"><div className="shell job-detail-grid">
       <div className="backend-form-card job-opportunity-card">
+        {imageUrl&&<figure className="job-advertisement">
+          <h3>Original employer job advertisement</h3>
+          <Image src={imageUrl} unoptimized width={960} height={1180}
+            className="vc-job-original-image" alt={"Approved job advertisement for "+job.title+" by "+job.company_name}/>
+          <figcaption>Original approved job advertisement image</figcaption>
+          <a href={imageUrl} target="_blank" rel="noopener noreferrer">View full advertisement</a>
+        </figure>}
         <h2>Opportunity details</h2>
         <p className="job-description">{job.description}</p>
         <dl className="product-specs">
@@ -146,14 +161,7 @@ export default async function JobDetailPage({ params, searchParams }: { params: 
           <div><dt>Minimum experience</dt><dd>{job.minimum_experience===null?"Not specified":job.minimum_experience+" years"}</dd></div>
           {job.deadline&&<div><dt>Deadline</dt><dd>{job.deadline}</dd></div>}
         </dl>
-        {imageUrl&&<figure className="job-advertisement">
-          <h3>Original employer job advertisement</h3>
-          <Image src={imageUrl} unoptimized width={960} height={1180}
-            alt={"Approved job advertisement for "+job.title+" by "+job.company_name}/>
-          <figcaption>Original approved job advertisement image</figcaption>
-          <a href={imageUrl} target="_blank" rel="noopener noreferrer">View full advertisement</a>
-        </figure>}
-        {job.company_user_id&&<Link className="button button-secondary" href={"/companies/"+job.company_user_id}>View employer profile</Link>}
+        {employerId&&<Link className="button button-secondary" href={"/companies/"+encodeURIComponent(employerId)}>View employer profile</Link>}
       </div>
       <div className="backend-form-card job-apply-card" id="apply-job">
         <FormMessage {...messages}/>
