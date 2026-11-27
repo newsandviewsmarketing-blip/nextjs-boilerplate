@@ -859,3 +859,14 @@ export async function signOutAction() {
 
   redirect("/");
 }
+
+// End the current browser session before requesting credentials for another account.
+export async function switchAccountAction() {
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const {error} = await supabase.auth.signOut({scope:"local"});
+    if (error) redirect("/dashboard?error=Unable%20to%20switch%20account.%20Please%20try%20again.");
+  }
+  revalidatePath("/", "layout");
+  redirect("/login");
+}

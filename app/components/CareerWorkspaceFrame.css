@@ -546,3 +546,6 @@
 }
 .clinic-registration-facts dt { color: #536174; font-size: .875rem; }
 .clinic-registration-facts dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
+
+/* Private account switcher, shared across member workspaces. */
+.vcx-account-menu{position:relative}.vcx-account-menu summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none}.vcx-account-menu summary::-webkit-details-marker{display:none}.vcx-account-popover{position:absolute;right:0;top:calc(100% + 8px);z-index:100;width:min(290px,85vw);padding:16px;background:white;border:1px solid #dbe2ec;border-radius:12px;box-shadow:0 12px 30px #14264c22;display:flex;flex-direction:column;gap:8px;color:#14264c}.vcx-account-email{overflow-wrap:anywhere;font-weight:400}.vcx-account-popover small{text-transform:capitalize}.vcx-account-popover hr{width:100%;border:0;border-top:1px solid #dbe2ec}.vcx-account-popover a,.vcx-account-popover button{display:block!important;width:100%;padding:7px 4px;text-align:left;color:inherit;background:none;border:0;font:inherit;cursor:pointer}.vcx-account-popover a:hover,.vcx-account-popover button:hover{background:#fff1e2}.vcx-account-popover button:focus-visible,.vcx-account-menu summary:focus-visible{outline:2px solid #1760be;outline-offset:3px}@media(max-width:600px){.vcx-account-caption{display:none}}
