@@ -27,6 +27,15 @@ export async function applyToJobAction(formData: FormData) {
   const supabase = await createClient();
   if(!await matchingVerifiedAccountEmail(supabase,identity.userId,String(formData.get("confirm_email")??"")))
    redirect(path+"?error="+encodeURIComponent("Confirm the verified email of your logged-in VetConnect account before applying."));
+  // Reject unavailable or mismatched vacancies before uploading private files.
+  const {data:openJob,error:openJobError}=await supabase.from("public_jobs")
+    .select("id,deadline").eq("id",jobId).eq("slug",slug).maybeSingle();
+  if(openJobError || !openJob || (openJob.deadline && openJob.deadline<new Date().toISOString().slice(0,10)))
+    redirect(path+"?error="+encodeURIComponent("This job is no longer accepting applications."));
+  const {data:priorApplication,error:priorError}=await supabase.from("job_applications")
+    .select("id").eq("job_id",jobId).eq("candidate_user_id",identity.userId).maybeSingle();
+  if(priorError)redirect(path+"?error="+encodeURIComponent("Could not verify your application status. Please retry."));
+  if(priorApplication)redirect(path+"?message="+encodeURIComponent("You have already applied for this job."));
   if(formData.get('use_saved_letter')==='on'){
     const {data:letter,error:letterError}=await supabase.from('career_cover_letters').select('body_text').eq('user_id',identity.userId).maybeSingle();
     if(letterError||!letter?.body_text)redirect(path+'?error='+encodeURIComponent('Create and save your cover letter before selecting it.'));
@@ -78,10 +87,16 @@ export async function applyToJobAction(formData: FormData) {
       redirect(path+"?error="+encodeURIComponent("Create and save your VetConnect CV first."));
     snapshot=cv;
   }
+  // Recheck publication and deadline after any storage operation.
   const {data:jobStatus,error:jobError}=await supabase.from("public_jobs")
-    .select("id,deadline").eq("id",jobId).maybeSingle();
-  if(jobError || !jobStatus || (jobStatus.deadline && jobStatus.deadline<new Date().toISOString().slice(0,10)))
+    .select("id,deadline").eq("id",jobId).eq("slug",slug).maybeSingle();
+  if(jobError || !jobStatus || (jobStatus.deadline && jobStatus.deadline<new Date().toISOString().slice(0,10))){
+    if(uploadedPath && documentId){
+      await supabase.from("career_documents").delete().eq("id",documentId).eq("professional_user_id",identity.userId);
+      await supabase.storage.from("career-documents").remove([uploadedPath]);
+    }
     redirect(path+"?error="+encodeURIComponent("This job is no longer accepting applications."));
+  }
 
   const {data:application,error} = await supabase.from("job_applications").insert({
     job_id: jobId,
@@ -97,7 +112,7 @@ export async function applyToJobAction(formData: FormData) {
       await supabase.from("career_documents").delete().eq("id",documentId).eq("professional_user_id",identity.userId);
       await supabase.storage.from("career-documents").remove([uploadedPath]);
     }
-    redirect(`${path}?error=${encodeURIComponent(error.message)}`);
+    redirect(`${path}?error=${encodeURIComponent("Application could not be submitted. Check your application history before retrying.")}`);
   }
   if(uploadedPath && documentId){
     await supabase.from("career_documents").update({is_current:false})
