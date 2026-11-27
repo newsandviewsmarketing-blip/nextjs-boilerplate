@@ -2,6 +2,7 @@ import {publicConsultations} from "@/lib/consultation/public";
 import { uniqueCities, matchesCity } from "@/lib/city-normalization";
 import type { Metadata } from "next";
 import Link from "next/link";
+import "../components/people-directory.css";
 
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -321,7 +322,7 @@ export default async function VeterinarianDirectoryPage({
                VETERINARIAN CARDS
             ----------------------------------------------- */
 
-            <div className="company-grid">
+            <div className="company-grid vc-people-grid">
               {visible.map((vet) => (
                 <article key={vet.user_id}>
 
@@ -346,6 +347,7 @@ export default async function VeterinarianDirectoryPage({
                   {/* NAME */}
 
                   <h3>{vet.full_name}</h3>
+                  <div>{vet.pvmc_verified&&<span className="vc-trust vc-trust-pvmc">✓ PVMC Verified</span>}{vet.profile_verified&&<span className="vc-trust vc-trust-platform">✓ VetConnect Verified</span>}</div>
 
                   {/* MAIN SECTOR + CITY */}
 
@@ -353,13 +355,13 @@ export default async function VeterinarianDirectoryPage({
                     {vet.veterinary_sector ||
                       "Veterinarian"}
                     {" • "}
-                    {vet.city || "Pakistan"}
+                    {[vet.city,vet.province].filter(Boolean).join(", ") || "Location not listed"}
                   </p>
 
                   {/* SPECIALIZATION */}
 
                   {vet.specialization && (
-                    <p className="profile-specialization">
+                    <p className="profile-specialization vc-person-headline">
                       {vet.specialization}
                     </p>
                   )}

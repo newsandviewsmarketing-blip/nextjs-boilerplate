@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   ],
 
   icons: {
-    icon: "/favicon.svg",
+    icon: [{ url: "/favicon.svg?v=vetconnect-1", type: "image/svg+xml", sizes: "any" }],
     apple: "/vetconnect-logo.png",
   },
 
