@@ -339,10 +339,12 @@ export default async function ClinicManagePage({
                ["Location", [clinic.city, clinic.district, clinic.province].filter(Boolean).join(", ")],
                ["Address", clinic.address], ["Public phone", clinic.public_phone],
                ["Public email", clinic.public_email], ["Website", clinic.website],
-               ["Animals served", clinic.species?.join(", ")], ["Practice services", clinic.services?.join(", ")],
+               ["Animals served", clinic.species?.join(", ")],
              ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not provided"}</dd></div>)}
            </dl>
-           <Link href={`/dashboard/clinics/${id}?section=profile#clinic-identity`}>Edit clinic details</Link>
+           <h3>Practice services</h3><div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:20}}>{clinic.services?.length?clinic.services.map((service,index)=><span key={index} style={{background:"#eef2f7",borderRadius:8,padding:"6px 10px",fontSize:13}}>{service}</span>):<p>Not provided</p>}</div>
+           <p className="form-help">The submitted registration number identifies the responsible veterinarian; facility publication requires separate review.</p>
+           <Link className="button button-secondary" href={`/dashboard/clinics/${id}?section=profile#clinic-identity`}>Edit clinic details</Link>
          </section>
        )}
        {section === "upcoming" && <ClinicUpcomingVisits clinicId={clinic.id} />}
