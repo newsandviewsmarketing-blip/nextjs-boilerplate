@@ -1,0 +1,10 @@
+.vc-people-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:1rem}
+.vc-people-grid>article{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.vc-people-grid>article>.button:last-child{margin-top:auto}
+.vc-people-grid .vc-person-headline{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;max-width:100%}
+.vc-people-grid .vc-person-summary{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.vc-trust{display:inline-flex;align-self:flex-start;max-width:100%;font-size:.75rem;font-weight:700;padding:.2rem .45rem;border-radius:.35rem;margin:.2rem .25rem .2rem 0}
+.vc-trust-platform{background:#e4f5e9;color:#17663b}
+.vc-trust-pvmc{background:#e5edff;color:#174a9b}
+@media(max-width:900px){.vc-people-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.vc-people-grid{grid-template-columns:minmax(0,1fr)}}
