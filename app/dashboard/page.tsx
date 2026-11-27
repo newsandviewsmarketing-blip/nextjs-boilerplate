@@ -177,6 +177,16 @@ export default async function DashboardPage({
         </div>
         {companyWorkspaceResult.error&&<p role="status" className="form-help">Company membership information is temporarily unavailable. Your existing records are unchanged.</p>}
       </section>}
+      <section className="backend-form-card vcx-account-card" aria-labelledby="member-operations">
+        <h2 id="member-operations">My activities</h2>
+        <p>Open your connected workspaces to manage your records. Availability and commercial activity depend on your approved services and permissions.</p>
+        <div className="workspace-record-list">
+          {canUseCareer&&<article><div><h3>My professional profile</h3><p>Photo, expertise, education, credentials and career details.</p></div><Link className="button button-secondary" href="/dashboard/professional">Manage profile</Link></article>}
+          {identity.roles.some(item=>["veterinarian","professional","company"].includes(item))&&<article><div><h3>Clinics, services and appointments</h3><p>Manage your facilities, affiliations, schedules and appointment inboxes.</p></div><Link className="button button-secondary" href="/dashboard/clinics">Open clinic workspace</Link></article>}
+          {identity.roles.includes("veterinarian")&&<article><div><h3>Online consultation</h3><p>Manage preferences. Calling remains subject to verified eligibility and release controls.</p></div><Link className="button button-secondary" href="/dashboard/consultation">Manage services</Link></article>}
+          {linkedCompanies.map(company=><article key={company.company_id}><div><h3>{company.canonical_name}: products and enquiries</h3><p>Open your authorized company workspace for product listings and enquiries. Orders and sales totals are not yet available here.</p></div><Link className="button button-secondary" href={`/dashboard/company?company=${encodeURIComponent(company.company_id)}`}>Open workspace</Link></article>)}
+        </div>
+      </section>
       <section className="backend-form-card vcx-account-card">
         <FormMessage {...params} />
             <form id="account-settings" className="backend-form-card vc-review-target" action={updateProfileAction}>
