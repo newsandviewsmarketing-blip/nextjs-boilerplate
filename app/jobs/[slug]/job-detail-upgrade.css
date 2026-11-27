@@ -1,0 +1,15 @@
+.job-detail-hero{padding-block:clamp(1.25rem,3vw,2.5rem)}
+.job-detail-hero h1{font-size:clamp(1.65rem,3.2vw,2.6rem);line-height:1.15;overflow-wrap:anywhere}
+.vc-job-employer{display:flex;gap:1rem;align-items:center;margin:1rem 0;min-width:0}
+.vc-job-employer-logo,.vc-job-employer-mark{width:80px;height:80px;flex:0 0 80px;object-fit:contain;border:1px solid #dce2eb;border-radius:10px;background:white}
+.vc-job-employer-mark{display:grid;place-items:center;font-weight:800;color:#17365d;font-size:1.4rem}
+.vc-job-employer-name{display:block;font-size:1.2rem;font-weight:750;overflow-wrap:anywhere}
+.vc-job-approved{display:block;font-size:.85rem;color:#17663b}
+.vc-job-location{font-size:1rem;margin:.3rem 0;overflow-wrap:anywhere}
+.vc-job-apply-link{display:inline-flex;margin-top:1rem}
+.job-detail-hero .hero-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.job-opportunity-card .job-advertisement{margin:0 0 1.5rem;max-width:100%}
+.job-opportunity-card .vc-job-original-image{width:100%;height:auto;max-height:760px;object-fit:contain;display:block}
+.job-opportunity-card .job-description{font-size:1rem;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.job-detail-grid>*{min-width:0}
+@media(max-width:640px){.vc-job-employer-logo,.vc-job-employer-mark{width:56px;height:56px;flex-basis:56px}.job-detail-grid{grid-template-columns:minmax(0,1fr)}.job-detail-hero .hero-actions .button{white-space:normal;overflow-wrap:anywhere}}
