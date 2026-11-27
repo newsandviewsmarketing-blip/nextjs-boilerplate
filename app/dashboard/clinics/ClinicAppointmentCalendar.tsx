@@ -31,12 +31,12 @@ export default function ClinicAppointmentCalendar({
   appointments: CalendarAppointment[];
   today: string;
 }) {
-  const [view, setView] = useState<"week" | "month">("week");
+  const [view, setView] = useState<"day" | "week" | "month">("week");
   const [cursor, setCursor] = useState(() => new Date(today + "T00:00:00Z"));
   const first = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 1));
-  const start = monday(view === "month" ? first : cursor);
+  const start = view === "day" ? cursor : monday(view === "month" ? first : cursor);
   const last = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0));
-  const days = view === "week" ? 7 : Math.ceil((last.getUTCDate() + (first.getUTCDay() + 6) % 7) / 7) * 7;
+  const days = view === "day" ? 1 : view === "week" ? 7 : Math.ceil((last.getUTCDate() + (first.getUTCDay() + 6) % 7) / 7) * 7;
   const byDate = new Map<string, CalendarAppointment[]>();
   for (const appointment of appointments) {
     const entries = byDate.get(appointment.date) ?? [];
@@ -45,7 +45,7 @@ export default function ClinicAppointmentCalendar({
   }
 
   function move(direction: number) {
-    setCursor(view === "week"
+    setCursor(view === "day" ? shiftDate(cursor, direction) : view === "week"
       ? shiftDate(cursor, direction * 7)
       : new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + direction, 1)));
   }
@@ -56,14 +56,15 @@ export default function ClinicAppointmentCalendar({
         <button type="button" onClick={() => move(-1)}>Previous</button>
         <button type="button" onClick={() => move(1)}>Next</button>
         <button type="button" onClick={() => setCursor(new Date(today + "T00:00:00Z"))}>Today</button>
+        <button type="button" aria-pressed={view === "day"} onClick={() => setView("day")}>Day</button>
         <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>Week</button>
         <button type="button" aria-pressed={view === "month"} onClick={() => setView("month")}>Month</button>
       </div>
-      <h3 aria-live="polite">{view === "month" ? headingFormat.format(cursor) : dayFormat.format(start) + " to " + dayFormat.format(shiftDate(start, 6))}</h3>
+      <h3 aria-live="polite">{view === "month" ? headingFormat.format(cursor) : view === "day" ? dayFormat.format(cursor) : dayFormat.format(start) + " to " + dayFormat.format(shiftDate(start, 6))}</h3>
       <p className="form-help">Pakistan time. Confirmed times take precedence over requested times. The calendar covers the 50 most recent requests.</p>
-      <div className="vcx-appointment-weekdays" aria-hidden="true">
+      {view!=="day" && <div className="vcx-appointment-weekdays" aria-hidden="true">
         {weekdays.map(day => <span key={day}>{day}</span>)}
-      </div>
+      </div>}
       <ol className="vcx-appointment-days">
         {Array.from({ length: days }, (_, index) => {
           const day = shiftDate(start, index);

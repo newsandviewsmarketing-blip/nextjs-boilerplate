@@ -145,6 +145,8 @@ export default async function DashboardPage({
         {isAdmin&&<Link className="vcx-button vcx-button-outline" href="/admin">Admin workspace</Link>}
         <form action={signOutAction}><button className="vcx-button vcx-button-outline" type="submit">Sign out</button></form>
       </div>
+      {process.env.CONSULTATION_CALLS_TEST_MODE==="true"&&<Link href="/dashboard/consultation/history">Consultation requests and history</Link>}
+      {(role==="veterinarian"||identity.roles.includes("veterinarian"))&&<section className="backend-form-card"><h2>Online consultation</h2><Link className="button button-secondary" href="/dashboard/consultation">Manage consultation preferences</Link></section>}
       {hasOwnWorkspaces&&<section className="backend-form-card vcx-account-card" aria-labelledby="my-connected-workspaces">
         <div className="section-heading">
           <span className="section-kicker">MY VETCONNECT</span>

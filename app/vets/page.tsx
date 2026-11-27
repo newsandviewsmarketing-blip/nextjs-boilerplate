@@ -1,3 +1,4 @@
+import {publicConsultations} from "@/lib/consultation/public";
 import { uniqueCities, matchesCity } from "@/lib/city-normalization";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -66,10 +67,12 @@ export default async function VeterinarianDirectoryPage({
     city?: string;
     service?: string;
     sector?: string;
+    consultation?: string;
   }>;
 }) {
   const params = await searchParams;
   const veterinarians = await loadVeterinarians();
+  const consultations=await publicConsultations(veterinarians.map(v=>v.user_id));
 
   const query = (params.q ?? "").trim().toLowerCase();
   const city = (params.city ?? "").trim().toLowerCase();
@@ -121,7 +124,7 @@ export default async function VeterinarianDirectoryPage({
       queryMatch &&
       cityMatch &&
       sectorMatch &&
-      serviceMatch
+      serviceMatch && (!params.consultation || (params.consultation === "enabled" ? consultations.has(vet.user_id) : params.consultation === "available" && consultations.get(vet.user_id)?.status === "available"))
     );
   });
 
@@ -206,6 +209,7 @@ export default async function VeterinarianDirectoryPage({
               className="market-search"
               method="get"
             >
+              <select name="consultation" aria-label="Online consultation" defaultValue={params.consultation??""}><option value="">All veterinarians</option><option value="enabled">Consultation enabled</option><option value="available">Online &amp; available</option></select>
               {/* NAME / EXPERTISE SEARCH */}
 
               <input

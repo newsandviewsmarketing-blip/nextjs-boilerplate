@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {canTransition,canJoin} from '../lib/consultation/session-policy.ts';
+const s={requesterId:'customer',veterinarianId:'vet',state:'requested',expiresAt:2000};
+test('only assigned vet accepts or declines',()=>{assert.equal(canTransition(s,'accepted','veterinarian','vet',1000),true);assert.equal(canTransition(s,'accepted','veterinarian','other',1000),false);assert.equal(canTransition(s,'declined','requester','customer',1000),false)});
+test('requester cancellation is scoped',()=>{assert.equal(canTransition(s,'cancelled','requester','customer',1000),true);assert.equal(canTransition(s,'cancelled','requester','other',1000),false)});
+test('expiry fails closed',()=>{assert.equal(canTransition(s,'accepted','veterinarian','vet',2000),false);assert.equal(canTransition(s,'expired','system',null,1999),false);assert.equal(canTransition(s,'expired','system',null,2000),true)});
+test('provisioning requires trusted system actor',()=>{const a={...s,state:'accepted'};assert.equal(canTransition(a,'provisioning','system',null,1000),true);assert.equal(canTransition(a,'provisioning','veterinarian','vet',1000),false)});
+test('provider completion cannot be claimed by participant',()=>{const a={...s,state:'in_progress'};assert.equal(canTransition(a,'completed','provider',null,1000),true);assert.equal(canTransition(a,'completed','requester','customer',1000),false)});
+test('terminal sessions cannot restart',()=>{assert.equal(canTransition({...s,state:'completed'},'accepted','veterinarian','vet',1000),false)});
+test('join requires assigned participant, ready state, fresh eligibility and activation',()=>{const a={...s,state:'ready'};assert.equal(canJoin(a,'vet',1000,true,true),true);for(const args of [[a,'other',1000,true,true],[a,'vet',2000,true,true],[a,'vet',1000,false,true],[a,'vet',1000,true,false],[s,'vet',1000,true,true]])assert.equal(canJoin(...args),false)});
+test('self consultation and invalid clocks denied',()=>{assert.equal(canJoin({...s,state:'ready',requesterId:'vet'},'vet',1000,true,true),false);assert.equal(canTransition(s,'accepted','veterinarian','vet',NaN),false)});
